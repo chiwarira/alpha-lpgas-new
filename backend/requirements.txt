@@ -1,0 +1,43 @@
+# Core Django
+Django==4.2.7
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+django-filter==23.5
+
+# Database
+psycopg2-binary==2.9.11
+dj-database-url==2.1.0
+
+# Authentication
+djangorestframework-simplejwt==5.3.1
+django-allauth==0.57.0
+dj-rest-auth==5.0.2
+
+# CMS
+wagtail==5.2
+wagtail-localize==1.7
+
+# Image handling
+Pillow==10.4.0
+
+# Environment variables
+python-decouple==3.8
+python-dotenv==1.0.0
+
+# API Documentation
+drf-spectacular==0.27.0
+
+# Utilities
+pytz==2023.3
+requests==2.31.0
+
+# Production
+gunicorn==21.2.0
+whitenoise==6.6.0
+
+# Celery for async tasks
+celery==5.3.4
+redis==5.0.1
+
+# Payment processing (YOCO)
+stripe==7.8.0  # YOCO uses similar integration patterns
