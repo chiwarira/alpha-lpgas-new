@@ -62,8 +62,8 @@ def client_edit(request, pk):
 def client_detail(request, pk):
     """View client details"""
     client = get_object_or_404(Client, pk=pk)
-    quotes = client.quotes.all().order_by('-quote_date')[:5]
-    invoices = client.invoices.all().order_by('-invoice_date')[:5]
+    quotes = client.quotes.all().order_by('-issue_date')[:5]
+    invoices = client.invoices.all().order_by('-issue_date')[:5]
     
     return render(request, 'core/client_detail.html', {
         'client': client,
@@ -123,7 +123,7 @@ def product_edit(request, pk):
 @login_required
 def quote_list(request):
     """List all quotes"""
-    quotes = Quote.objects.all().order_by('-quote_date')
+    quotes = Quote.objects.all().order_by('-issue_date')
     return render(request, 'core/quote_list.html', {'quotes': quotes})
 
 
@@ -198,7 +198,7 @@ def quote_detail(request, pk):
 @login_required
 def invoice_list(request):
     """List all invoices"""
-    invoices = Invoice.objects.all().order_by('-invoice_date')
+    invoices = Invoice.objects.all().order_by('-issue_date')
     return render(request, 'core/invoice_list.html', {'invoices': invoices})
 
 
@@ -362,7 +362,7 @@ def accounting_dashboard(request):
             due_date__lt=today
         ).count(),
         'monthly_revenue': Invoice.objects.filter(
-            invoice_date__gte=first_day,
+            issue_date__gte=first_day,
             status='paid'
         ).aggregate(total=Sum('total_amount'))['total'] or 0,
         'outstanding_amount': Invoice.objects.filter(
@@ -370,8 +370,8 @@ def accounting_dashboard(request):
         ).aggregate(total=Sum('total_amount'))['total'] or 0,
     }
     
-    recent_invoices = Invoice.objects.all().order_by('-invoice_date')[:5]
-    recent_quotes = Quote.objects.all().order_by('-quote_date')[:5]
+    recent_invoices = Invoice.objects.all().order_by('-issue_date')[:5]
+    recent_quotes = Quote.objects.all().order_by('-issue_date')[:5]
     recent_payments = Payment.objects.all().order_by('-payment_date')[:5]
     
     return render(request, 'core/dashboard.html', {

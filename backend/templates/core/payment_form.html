@@ -1,0 +1,11 @@
+{% extends 'core/base.html' %}
+{% block title %}Record Payment - Alpha LPGas{% endblock %}
+{% block content %}
+<h1>Record Payment</h1>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Save Payment</button>
+    <a href="{% url 'accounting_forms:dashboard' %}" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}

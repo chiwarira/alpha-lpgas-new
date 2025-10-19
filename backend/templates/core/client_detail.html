@@ -1,0 +1,154 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ client.name }} - Alpha LPGas{% endblock %}
+{% block nav_clients %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-person"></i> {{ client.name }}</h1>
+        <p class="text-muted">Customer ID: <code>{{ client.customer_id }}</code></p>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:client_edit' client.pk %}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Edit
+        </a>
+        <a href="{% url 'accounting_forms:client_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Contact Information</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Email:</strong><br>
+                {% if client.email %}
+                <a href="mailto:{{ client.email }}">{{ client.email }}</a>
+                {% else %}
+                <span class="text-muted">Not provided</span>
+                {% endif %}
+                </p>
+                
+                <p><strong>Phone:</strong><br>
+                {% if client.phone %}
+                <a href="tel:{{ client.phone }}">{{ client.phone }}</a>
+                {% else %}
+                <span class="text-muted">Not provided</span>
+                {% endif %}
+                </p>
+                
+                <p><strong>Address:</strong><br>
+                {% if client.address %}
+                {{ client.address|linebreaks }}
+                {{ client.city }}{% if client.postal_code %}, {{ client.postal_code }}{% endif %}
+                {% else %}
+                <span class="text-muted">Not provided</span>
+                {% endif %}
+                </p>
+                
+                {% if client.tax_id %}
+                <p><strong>Tax ID:</strong><br>{{ client.tax_id }}</p>
+                {% endif %}
+                
+                <p><strong>Status:</strong><br>
+                {% if client.is_active %}
+                <span class="badge bg-success">Active</span>
+                {% else %}
+                <span class="badge bg-secondary">Inactive</span>
+                {% endif %}
+                </p>
+                
+                <p class="mb-0"><strong>Created:</strong><br>{{ client.created_at|date:"F d, Y" }}</p>
+            </div>
+        </div>
+
+        {% if client.notes %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Notes</h5>
+            </div>
+            <div class="card-body">
+                {{ client.notes|linebreaks }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Quotes</h5>
+            </div>
+            <div class="card-body">
+                {% if quotes %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Quote #</th>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for quote in quotes %}
+                            <tr>
+                                <td><a href="{% url 'accounting_forms:quote_detail' quote.pk %}">{{ quote.quote_number }}</a></td>
+                                <td>{{ quote.issue_date }}</td>
+                                <td>R {{ quote.total_amount|floatformat:2 }}</td>
+                                <td><span class="badge bg-secondary">{{ quote.get_status_display }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No quotes yet</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Invoices</h5>
+            </div>
+            <div class="card-body">
+                {% if invoices %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Paid</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in invoices %}
+                            <tr>
+                                <td><a href="{% url 'accounting_forms:invoice_detail' invoice.pk %}">{{ invoice.invoice_number }}</a></td>
+                                <td>{{ invoice.issue_date }}</td>
+                                <td>R {{ invoice.total_amount|floatformat:2 }}</td>
+                                <td>R {{ invoice.paid_amount|floatformat:2 }}</td>
+                                <td><span class="badge bg-info">{{ invoice.get_status_display }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No invoices yet</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

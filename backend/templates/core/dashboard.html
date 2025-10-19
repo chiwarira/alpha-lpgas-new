@@ -1,0 +1,246 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accounting Dashboard - Alpha LPGas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'accounting_forms:dashboard' %}">
+                <i class="bi bi-calculator"></i> Alpha LPGas Accounting
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'accounting_forms:client_list' %}">
+                            <i class="bi bi-people"></i> Clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'accounting_forms:product_list' %}">
+                            <i class="bi bi-box"></i> Products
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'accounting_forms:quote_list' %}">
+                            <i class="bi bi-file-earmark-text"></i> Quotes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'accounting_forms:invoice_list' %}">
+                            <i class="bi bi-receipt"></i> Invoices
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/">
+                            <i class="bi bi-gear"></i> Admin
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <span class="nav-link">
+                            <i class="bi bi-person-circle"></i> {{ user.username }}
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="bi bi-speedometer2"></i> Accounting Dashboard
+                </h1>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="card text-white bg-primary">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-people-fill"></i> Total Clients
+                        </h5>
+                        <h2 class="mb-0">{{ stats.total_clients }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-warning">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-file-earmark-text"></i> Pending Quotes
+                        </h5>
+                        <h2 class="mb-0">{{ stats.pending_quotes }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-info">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-receipt"></i> Unpaid Invoices
+                        </h5>
+                        <h2 class="mb-0">{{ stats.unpaid_invoices }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-danger">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-exclamation-triangle"></i> Overdue
+                        </h5>
+                        <h2 class="mb-0">{{ stats.overdue_invoices }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Revenue Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div class="card text-white bg-success">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-graph-up-arrow"></i> Monthly Revenue
+                        </h5>
+                        <h2 class="mb-0">R {{ stats.monthly_revenue|floatformat:2 }}</h2>
+                        <small>Current month</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card text-white bg-secondary">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-cash-stack"></i> Outstanding Amount
+                        </h5>
+                        <h2 class="mb-0">R {{ stats.outstanding_amount|floatformat:2 }}</h2>
+                        <small>Unpaid invoices</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="row g-4">
+            <!-- Recent Invoices -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-receipt"></i> Recent Invoices
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            {% for invoice in recent_invoices %}
+                            <a href="{% url 'accounting_forms:invoice_detail' invoice.pk %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ invoice.invoice_number }}</h6>
+                                    <small>{{ invoice.issue_date }}</small>
+                                </div>
+                                <p class="mb-1">{{ invoice.client.name }}</p>
+                                <small>R {{ invoice.total_amount|floatformat:2 }} - {{ invoice.get_status_display }}</small>
+                            </a>
+                            {% empty %}
+                            <div class="list-group-item">No invoices yet</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{% url 'accounting_forms:invoice_list' %}" class="btn btn-sm btn-primary">
+                            View All Invoices
+                        </a>
+                        <a href="{% url 'accounting_forms:invoice_create' %}" class="btn btn-sm btn-success">
+                            <i class="bi bi-plus-circle"></i> New Invoice
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Quotes -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="bi bi-file-earmark-text"></i> Recent Quotes
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            {% for quote in recent_quotes %}
+                            <a href="{% url 'accounting_forms:quote_detail' quote.pk %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ quote.quote_number }}</h6>
+                                    <small>{{ quote.issue_date }}</small>
+                                </div>
+                                <p class="mb-1">{{ quote.client.name }}</p>
+                                <small>R {{ quote.total_amount|floatformat:2 }} - {{ quote.get_status_display }}</small>
+                            </a>
+                            {% empty %}
+                            <div class="list-group-item">No quotes yet</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{% url 'accounting_forms:quote_list' %}" class="btn btn-sm btn-warning">
+                            View All Quotes
+                        </a>
+                        <a href="{% url 'accounting_forms:quote_create' %}" class="btn btn-sm btn-success">
+                            <i class="bi bi-plus-circle"></i> New Quote
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Payments -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-cash-coin"></i> Recent Payments
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            {% for payment in recent_payments %}
+                            <a href="{% url 'accounting_forms:invoice_detail' payment.invoice.pk %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ payment.payment_number }}</h6>
+                                    <small>{{ payment.payment_date }}</small>
+                                </div>
+                                <p class="mb-1">{{ payment.invoice.client.name }}</p>
+                                <small>R {{ payment.amount|floatformat:2 }} - {{ payment.get_payment_method_display }}</small>
+                            </a>
+                            {% empty %}
+                            <div class="list-group-item">No payments yet</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{% url 'accounting_forms:payment_create' %}" class="btn btn-sm btn-success">
+                            <i class="bi bi-plus-circle"></i> Record Payment
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

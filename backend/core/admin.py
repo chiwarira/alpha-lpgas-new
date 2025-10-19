@@ -39,10 +39,25 @@ class CompanySettingsAdmin(admin.ModelAdmin):
 
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
-    list_display = ['customer_id', 'name', 'email', 'phone', 'city', 'country', 'is_active', 'created_at']
-    list_filter = ['is_active', 'country', 'created_at']
+    list_display = ['customer_id', 'name', 'email', 'phone', 'city', 'is_active', 'created_at']
+    list_filter = ['is_active', 'created_at']
     search_fields = ['customer_id', 'name', 'email', 'phone', 'tax_id']
     readonly_fields = ['customer_id', 'created_at', 'updated_at']
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'email', 'phone', 'is_active')
+        }),
+        ('Address', {
+            'fields': ('address', 'city', 'postal_code')
+        }),
+        ('Additional', {
+            'fields': ('tax_id', 'notes')
+        }),
+        ('System', {
+            'fields': ('customer_id', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
 
 
 @admin.register(Product)

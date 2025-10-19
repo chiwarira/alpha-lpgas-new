@@ -1,0 +1,104 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ title }} - Alpha LPGas{% endblock %}
+{% block nav_products %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-box-seam"></i> {{ title }}</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:product_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Products
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">Product Name *</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <div class="text-danger">{{ form.name.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.sku.id_for_label }}" class="form-label">SKU *</label>
+                            {{ form.sku }}
+                            {% if form.sku.errors %}
+                            <div class="text-danger">{{ form.sku.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <div class="text-danger">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.unit_price.id_for_label }}" class="form-label">Unit Price *</label>
+                            {{ form.unit_price }}
+                            {% if form.unit_price.errors %}
+                            <div class="text-danger">{{ form.unit_price.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.cost_price.id_for_label }}" class="form-label">Cost Price</label>
+                            {{ form.cost_price }}
+                            {% if form.cost_price.errors %}
+                            <div class="text-danger">{{ form.cost_price.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.tax_rate.id_for_label }}" class="form-label">Tax Rate (%)</label>
+                            {{ form.tax_rate }}
+                            {% if form.tax_rate.errors %}
+                            <div class="text-danger">{{ form.tax_rate.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.unit.id_for_label }}" class="form-label">Unit</label>
+                            {{ form.unit }}
+                            {% if form.unit.errors %}
+                            <div class="text-danger">{{ form.unit.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted">e.g., kg, piece, hour</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check mt-4">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                    Active
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'accounting_forms:product_list' %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Save Product
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

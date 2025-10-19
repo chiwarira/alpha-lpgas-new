@@ -1,0 +1,162 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ title }} - Alpha LPGas{% endblock %}
+{% block nav_quotes %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-file-earmark-text"></i> {{ title }}</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:quote_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Quotes
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.client.id_for_label }}" class="form-label">Client *</label>
+                    {{ form.client }}
+                    {% if form.client.errors %}
+                    <div class="text-danger">{{ form.client.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                    {{ form.status }}
+                    {% if form.status.errors %}
+                    <div class="text-danger">{{ form.status.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.issue_date.id_for_label }}" class="form-label">Issue Date *</label>
+                    {{ form.issue_date }}
+                    {% if form.issue_date.errors %}
+                    <div class="text-danger">{{ form.issue_date.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.expiry_date.id_for_label }}" class="form-label">Expiry Date *</label>
+                    {{ form.expiry_date }}
+                    {% if form.expiry_date.errors %}
+                    <div class="text-danger">{{ form.expiry_date.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="{{ form.terms.id_for_label }}" class="form-label">Terms & Conditions</label>
+                {{ form.terms }}
+                {% if form.terms.errors %}
+                <div class="text-danger">{{ form.terms.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                {{ form.notes }}
+                {% if form.notes.errors %}
+                <div class="text-danger">{{ form.notes.errors }}</div>
+                {% endif %}
+            </div>
+
+            <hr class="my-4">
+            <h5>Line Items</h5>
+            <p class="text-muted">Add products/services to this quote</p>
+            
+            {{ formset.management_form }}
+            <div id="formset-container">
+                {% for form in formset %}
+                <div class="card mb-3 formset-form">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Product</label>
+                                {{ form.product }}
+                            </div>
+                            <div class="col-md-8 mb-2">
+                                <label class="form-label">Description</label>
+                                {{ form.description }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3 mb-2">
+                                <label class="form-label">Quantity</label>
+                                {{ form.quantity }}
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <label class="form-label">Unit Price</label>
+                                {{ form.unit_price }}
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <label class="form-label">Tax Rate (%)</label>
+                                {{ form.tax_rate }}
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="button" class="btn btn-danger btn-sm w-100 remove-form">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <button type="button" class="btn btn-secondary mb-4" id="add-form">
+                <i class="bi bi-plus-circle"></i> Add Line Item
+            </button>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{% url 'accounting_forms:quote_list' %}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Save Quote
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Simple formset management
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('formset-container');
+    const addButton = document.getElementById('add-form');
+    const totalForms = document.querySelector('[name$=TOTAL_FORMS]');
+    
+    addButton.addEventListener('click', function() {
+        const formCount = parseInt(totalForms.value);
+        const newForm = container.querySelector('.formset-form').cloneNode(true);
+        
+        // Update form index
+        newForm.innerHTML = newForm.innerHTML.replace(/form-\d+-/g, `form-${formCount}-`);
+        newForm.querySelectorAll('input, select, textarea').forEach(input => {
+            input.value = '';
+        });
+        
+        container.appendChild(newForm);
+        totalForms.value = formCount + 1;
+    });
+    
+    container.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-form')) {
+            if (container.querySelectorAll('.formset-form').length > 1) {
+                e.target.closest('.formset-form').remove();
+                totalForms.value = parseInt(totalForms.value) - 1;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

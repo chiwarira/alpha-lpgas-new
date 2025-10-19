@@ -13,7 +13,7 @@ class ClientForm(forms.ModelForm):
         model = Client
         fields = [
             'name', 'email', 'phone', 'address', 'city', 
-            'postal_code', 'vat_number', 'is_active', 'notes'
+            'postal_code', 'tax_id', 'is_active', 'notes'
         ]
         widgets = {
             'name': forms.TextInput(attrs={
@@ -41,9 +41,9 @@ class ClientForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': '7975'
             }),
-            'vat_number': forms.TextInput(attrs={
+            'tax_id': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'VAT Number (optional)'
+                'placeholder': 'Tax ID / VAT Number (optional)'
             }),
             'notes': forms.Textarea(attrs={
                 'class': 'form-control',
@@ -73,8 +73,8 @@ class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = [
-            'name', 'description', 'sku', 'unit', 'price_incl_vat',
-            'vat_rate', 'category', 'is_active'
+            'name', 'description', 'sku', 'unit', 'unit_price',
+            'cost_price', 'tax_rate', 'is_active'
         ]
         widgets = {
             'name': forms.TextInput(attrs={
@@ -94,18 +94,20 @@ class ProductForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Unit (e.g., kg, piece, hour)'
             }),
-            'price_incl_vat': forms.NumberInput(attrs={
+            'unit_price': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': '0.00',
                 'step': '0.01'
             }),
-            'vat_rate': forms.NumberInput(attrs={
+            'cost_price': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00 (optional)',
+                'step': '0.01'
+            }),
+            'tax_rate': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'value': '15.00',
                 'step': '0.01'
-            }),
-            'category': forms.Select(attrs={
-                'class': 'form-select'
             }),
             'is_active': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
@@ -130,19 +132,19 @@ class QuoteForm(forms.ModelForm):
     class Meta:
         model = Quote
         fields = [
-            'client', 'quote_date', 'valid_until', 'status',
-            'terms', 'notes', 'discount_percentage'
+            'client', 'issue_date', 'expiry_date', 'status',
+            'terms', 'notes'
         ]
         widgets = {
             'client': forms.Select(attrs={
                 'class': 'form-select',
                 'required': True
             }),
-            'quote_date': forms.DateInput(attrs={
+            'issue_date': forms.DateInput(attrs={
                 'class': 'form-control',
                 'type': 'date'
             }),
-            'valid_until': forms.DateInput(attrs={
+            'expiry_date': forms.DateInput(attrs={
                 'class': 'form-control',
                 'type': 'date'
             }),
@@ -159,13 +161,6 @@ class QuoteForm(forms.ModelForm):
                 'rows': 3,
                 'placeholder': 'Additional notes'
             }),
-            'discount_percentage': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'placeholder': '0.00',
-                'step': '0.01',
-                'min': '0',
-                'max': '100'
-            }),
         }
 
 
@@ -174,7 +169,7 @@ class QuoteItemForm(forms.ModelForm):
     
     class Meta:
         model = QuoteItem
-        fields = ['product', 'description', 'quantity', 'unit_price', 'vat_rate']
+        fields = ['product', 'description', 'quantity', 'unit_price', 'tax_rate']
         widgets = {
             'product': forms.Select(attrs={
                 'class': 'form-select'
@@ -194,7 +189,7 @@ class QuoteItemForm(forms.ModelForm):
                 'placeholder': '0.00',
                 'step': '0.01'
             }),
-            'vat_rate': forms.NumberInput(attrs={
+            'tax_rate': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'value': '15.00',
                 'step': '0.01'
@@ -208,15 +203,15 @@ class InvoiceForm(forms.ModelForm):
     class Meta:
         model = Invoice
         fields = [
-            'client', 'invoice_date', 'due_date', 'status',
-            'terms', 'notes', 'discount_percentage'
+            'client', 'issue_date', 'due_date', 'status',
+            'terms', 'notes'
         ]
         widgets = {
             'client': forms.Select(attrs={
                 'class': 'form-select',
                 'required': True
             }),
-            'invoice_date': forms.DateInput(attrs={
+            'issue_date': forms.DateInput(attrs={
                 'class': 'form-control',
                 'type': 'date'
             }),
@@ -237,13 +232,6 @@ class InvoiceForm(forms.ModelForm):
                 'rows': 3,
                 'placeholder': 'Additional notes'
             }),
-            'discount_percentage': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'placeholder': '0.00',
-                'step': '0.01',
-                'min': '0',
-                'max': '100'
-            }),
         }
 
 
@@ -252,7 +240,7 @@ class InvoiceItemForm(forms.ModelForm):
     
     class Meta:
         model = InvoiceItem
-        fields = ['product', 'description', 'quantity', 'unit_price', 'vat_rate']
+        fields = ['product', 'description', 'quantity', 'unit_price', 'tax_rate']
         widgets = {
             'product': forms.Select(attrs={
                 'class': 'form-select'
@@ -272,7 +260,7 @@ class InvoiceItemForm(forms.ModelForm):
                 'placeholder': '0.00',
                 'step': '0.01'
             }),
-            'vat_rate': forms.NumberInput(attrs={
+            'tax_rate': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'value': '15.00',
                 'step': '0.01'
@@ -287,7 +275,7 @@ class PaymentForm(forms.ModelForm):
         model = Payment
         fields = [
             'invoice', 'payment_date', 'amount', 'payment_method',
-            'reference', 'notes'
+            'reference_number', 'notes'
         ]
         widgets = {
             'invoice': forms.Select(attrs={
@@ -307,7 +295,7 @@ class PaymentForm(forms.ModelForm):
             'payment_method': forms.Select(attrs={
                 'class': 'form-select'
             }),
-            'reference': forms.TextInput(attrs={
+            'reference_number': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Payment reference/transaction ID'
             }),
@@ -340,14 +328,14 @@ class CreditNoteForm(forms.ModelForm):
     class Meta:
         model = CreditNote
         fields = [
-            'invoice', 'credit_note_date', 'reason', 'notes'
+            'invoice', 'issue_date', 'reason', 'notes'
         ]
         widgets = {
             'invoice': forms.Select(attrs={
                 'class': 'form-select',
                 'required': True
             }),
-            'credit_note_date': forms.DateInput(attrs={
+            'issue_date': forms.DateInput(attrs={
                 'class': 'form-control',
                 'type': 'date'
             }),
@@ -370,7 +358,7 @@ class CreditNoteItemForm(forms.ModelForm):
     
     class Meta:
         model = CreditNoteItem
-        fields = ['product', 'description', 'quantity', 'unit_price', 'vat_rate']
+        fields = ['product', 'description', 'quantity', 'unit_price', 'tax_rate']
         widgets = {
             'product': forms.Select(attrs={
                 'class': 'form-select'
@@ -390,7 +378,7 @@ class CreditNoteItemForm(forms.ModelForm):
                 'placeholder': '0.00',
                 'step': '0.01'
             }),
-            'vat_rate': forms.NumberInput(attrs={
+            'tax_rate': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'value': '15.00',
                 'step': '0.01'
@@ -404,10 +392,10 @@ class CompanySettingsForm(forms.ModelForm):
     class Meta:
         model = CompanySettings
         fields = [
-            'company_name', 'email', 'phone', 'address', 'city',
-            'postal_code', 'vat_number', 'registration_number',
-            'bank_name', 'account_holder', 'account_number',
-            'branch_code', 'swift_code', 'logo'
+            'company_name', 'email', 'phone', 'address',
+            'vat_number', 'registration_number',
+            'bank_name', 'account_name', 'account_number',
+            'account_type', 'branch_code', 'payment_reference_note'
         ]
         widgets = {
             'company_name': forms.TextInput(attrs={
@@ -427,14 +415,6 @@ class CompanySettingsForm(forms.ModelForm):
                 'rows': 2,
                 'placeholder': 'Sunnyacres Shopping Centre, Fish Hoek'
             }),
-            'city': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Cape Town'
-            }),
-            'postal_code': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': '7975'
-            }),
             'vat_number': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': '9415233222'
@@ -445,26 +425,27 @@ class CompanySettingsForm(forms.ModelForm):
             }),
             'bank_name': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Bank Name'
+                'placeholder': 'Nedbank'
             }),
-            'account_holder': forms.TextInput(attrs={
+            'account_name': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Account Holder Name'
+                'placeholder': 'Alpha LPGas'
             }),
             'account_number': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Account Number'
             }),
+            'account_type': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Current'
+            }),
             'branch_code': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Branch Code'
             }),
-            'swift_code': forms.TextInput(attrs={
+            'payment_reference_note': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'SWIFT Code'
-            }),
-            'logo': forms.FileInput(attrs={
-                'class': 'form-control'
+                'placeholder': 'Please use your address as reference'
             }),
         }
 
