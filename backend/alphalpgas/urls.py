@@ -31,6 +31,9 @@ urlpatterns = [
     path('api/accounting/', include('core.urls.accounting')),
     path('api/shop/', include('shop.urls')),
     
+    # Form-based views for accounting
+    path('accounting/', include('core.urls.forms')),
+    
     # Wagtail pages (should be last)
     path('', include(wagtail_urls)),
 ]
