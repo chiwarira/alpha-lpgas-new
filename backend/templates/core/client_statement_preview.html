@@ -1,49 +1,25 @@
 {% extends 'core/base.html' %}
 {% load static %}
 
+{% block title %}Statement - {{ client.name }} - Alpha LPGas{% endblock %}
+
 {% block content %}
 <div class="container mt-4 mb-4">
-    <!-- Filter Form -->
-    <div class="no-print mb-4">
-        <form method="get" class="row g-2 align-items-center justify-content-end">
-            <div class="col-auto">
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text">Start</span>
-                    <input type="date" name="start_date" id="start_date" class="form-control form-control-sm" value="{{ start_date_str }}">
-                    <script>
-                        // Set default date if empty
-                        document.addEventListener('DOMContentLoaded', function() {
-                            var startDateInput = document.getElementById('start_date');
-                            if (!startDateInput.value) {
-                                var today = new Date();
-                                var thirtyDaysAgo = new Date(today);
-                                thirtyDaysAgo.setDate(today.getDate() - 30);
-                                startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
-                            }
-                        });
-                    </script>
-                </div>
+    <!-- Header and Action Buttons -->
+    <div class="print-hide">
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h1><i class="bi bi-file-text"></i> Statement - {{ client.name }}</h1>
             </div>
-            <div class="col-auto">
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text">End</span>
-                    <input type="date" name="end_date" id="end_date" class="form-control form-control-sm" value="{{ end_date_str }}">
-                    <script>
-                        // Set default date if empty
-                        document.addEventListener('DOMContentLoaded', function() {
-                            var endDateInput = document.getElementById('end_date');
-                            if (!endDateInput.value) {
-                                var today = new Date();
-                                endDateInput.value = today.toISOString().split('T')[0];
-                            }
-                        });
-                    </script>
-                </div>
+            <div class="col-md-6 text-end">
+                <button onclick="printStatementWithCustomFilename()" class="btn btn-info">
+                    <i class="bi bi-printer"></i> Print
+                </button>
+                <a href="{% url 'accounting_forms:client_statement' client.pk %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
             </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-sm btn-secondary">Apply Filter</button>
-            </div>
-        </form>
+        </div>
     </div>
 
     <div class="statement-container">
@@ -77,7 +53,7 @@
             }
 
             .logo {
-                max-width: 300px;
+                max-width: 360px;
                 height: auto;
                 margin-bottom: 1.5rem;
             }
@@ -302,7 +278,7 @@
             }
 
             @media print {
-                .no-print, .tagline {
+                .no-print, .print-hide, .navbar-brand, .tagline {
                     display: none !important;
                 }
                 .container {
@@ -424,7 +400,7 @@
         <div class="header">
             <!-- Company Info -->
             <div class="company-section">
-                <img src="{% static 'images/alpha-lpgas-logo.png' %}" alt="Alpha LPGas Logo" class="logo">
+                <img src="{% static 'alpha-lpgas-logo.png' %}" alt="Alpha LPGas Logo" class="logo">
                 <div class="company-details">
                     <div>Company REG No.: 2023/822513/07</div>
                     <div>VAT No.: 9415223222</div>
@@ -486,24 +462,20 @@
             <div class="account-summary">
                 <div class="account-summary-title">Account Summary</div>
                 <div class="account-summary-row">
-                    <div class="account-summary-label">Previous Balance</div>
-                    <div class="account-summary-value">R{{ previous_balance|default:"0.00"|floatformat:2 }}</div>
+                    <div class="account-summary-label">Balance Brought Forward</div>
+                    <div class="account-summary-value">R{{ balance_bf|default:"0.00"|floatformat:2 }}</div>
                 </div>
                 <div class="account-summary-row">
-                    <div class="account-summary-label">Credits</div>
+                    <div class="account-summary-label">Invoices (Period)</div>
+                    <div class="account-summary-value">R{{ total_invoices|default:"0.00"|floatformat:2 }}</div>
+                </div>
+                <div class="account-summary-row">
+                    <div class="account-summary-label">Payments & Credits (Period)</div>
                     <div class="account-summary-value">R{{ total_credits|default:"0.00"|floatformat:2 }}</div>
-                </div>
-                <div class="account-summary-row">
-                    <div class="account-summary-label">Debits</div>
-                    <div class="account-summary-value">R{{ total_debits|default:"0.00"|floatformat:2 }}</div>
                 </div>
                 <div class="account-summary-row account-summary-total">
                     <div class="account-summary-label">Total Balance Due</div>
-                    <div class="account-summary-value">R{{ balance_due|floatformat:2 }}</div>
-                </div>
-                <div class="account-summary-row">
-                    <div class="account-summary-label">Payment Due Date</div>
-                    <div class="account-summary-value">{{ payment_due_date|date:"j-M-Y" }}</div>
+                    <div class="account-summary-value">R{{ current_balance|floatformat:2 }}</div>
                 </div>
             </div>
         </div>
@@ -524,23 +496,36 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for entry in statement_entries %}
-                            <tr {% if 'Balance b/d' in entry.description %}class="table-secondary"{% endif %}>
-                                <td>{{ entry.date|date:"Y-m-d" }}</td>
-                                <td>{% if entry.invoice %}{{ entry.invoice.number }}{% endif %}</td>
-                                <td class="description-cell">{{ entry.description }}</td>
-                                <td class="text-end currency">{% if entry.type == 'Invoice' and 'Balance b/d' not in entry.description %}R{{ entry.amount|floatformat:2 }}{% endif %}</td>
-                                <td class="text-end currency">{% if entry.type == 'Payment' %}R{{ entry.amount|floatformat:2 }}{% endif %}</td>
-                                <td class="text-end currency">R{{ entry.running_balance|floatformat:2 }}</td>
+                            {% if balance_bf %}
+                            <tr class="table-secondary">
+                                <td>{{ start_date|date:"Y-m-d" }}</td>
+                                <td></td>
+                                <td class="description-cell">Balance b/d</td>
+                                <td class="text-end currency"></td>
+                                <td class="text-end currency"></td>
+                                <td class="text-end currency">R{{ balance_bf|floatformat:2 }}</td>
                                 <td class="no-print">
-                                    {% if 'Balance b/d' in entry.description %}
-                                        <span class="badge bg-secondary">B/D</span>
-                                    {% elif entry.invoice and entry.invoice.status %}
-                                        <span class="badge {% if entry.invoice.status == 'paid' %}bg-success{% elif entry.invoice.status == 'partially_paid' %}bg-warning{% else %}bg-danger{% endif %}">
-                                            {{ entry.invoice.get_status_display }}
+                                    <span class="badge bg-secondary">B/D</span>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% for trans in transactions %}
+                            <tr>
+                                <td>{{ trans.date|date:"Y-m-d" }}</td>
+                                <td>{{ trans.reference }}</td>
+                                <td class="description-cell">{{ trans.description }}</td>
+                                <td class="text-end currency">{% if trans.debit %}R{{ trans.debit|floatformat:2 }}{% endif %}</td>
+                                <td class="text-end currency">{% if trans.credit %}R{{ trans.credit|floatformat:2 }}{% endif %}</td>
+                                <td class="text-end currency">R{{ trans.balance|floatformat:2 }}</td>
+                                <td class="no-print">
+                                    {% if trans.type == 'invoice' %}
+                                        <span class="badge {% if trans.object.status == 'paid' %}bg-success{% elif trans.object.status == 'partially_paid' %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ trans.object.get_status_display }}
                                         </span>
-                                    {% elif entry.type == 'Payment' %}
+                                    {% elif trans.type == 'payment' %}
                                         <span class="badge bg-success">Payment</span>
+                                    {% elif trans.type == 'credit_note' %}
+                                        <span class="badge bg-info">Credit Note</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -570,13 +555,13 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td class="credit-label">0.00</td>
-                        <td>0.00</td>
-                        <td>0.00</td>
-                        <td>0.00</td>
-                        <td>0.00</td>
-                        <td>R{{ total_balance|default:"0.00"|floatformat:2 }}</td>
-                        <td class="total-due">R{{ total_balance|default:"0.00"|floatformat:2 }}</td>
+                        <td class="credit-label">R{{ aging.credit|default:"0.00"|floatformat:2 }}</td>
+                        <td>R{{ aging.over_90|default:"0.00"|floatformat:2 }}</td>
+                        <td>R{{ aging.days_61_90|default:"0.00"|floatformat:2 }}</td>
+                        <td>R{{ aging.days_31_60|default:"0.00"|floatformat:2 }}</td>
+                        <td>R{{ aging.days_1_30|default:"0.00"|floatformat:2 }}</td>
+                        <td>R{{ aging.current|default:"0.00"|floatformat:2 }}</td>
+                        <td class="total-due">R{{ current_balance|default:"0.00"|floatformat:2 }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -601,17 +586,6 @@
             </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="mt-4 text-end no-print">
-            <div class="btn-group" role="group">
-                <button onclick="printStatementWithCustomFilename()" class="btn btn-primary">
-                    <i class="bi bi-printer"></i> Print
-                </button>
-                <a href="{% url 'accounting_forms:client_statement' client.pk %}" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> Back
-                </a>
-            </div>
-        </div>
     </div>
 </div>
 {% endblock %}

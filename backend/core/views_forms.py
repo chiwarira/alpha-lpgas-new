@@ -221,6 +221,54 @@ def client_statement_preview(request, pk, start_date, end_date):
     total_invoices = sum(t['debit'] for t in transactions)
     total_credits = sum(t['credit'] for t in transactions)
     
+    # Calculate aging buckets
+    from datetime import date, timedelta
+    today = date.today()
+    
+    aging = {
+        'current': Decimal('0.00'),
+        'days_1_30': Decimal('0.00'),
+        'days_31_60': Decimal('0.00'),
+        'days_61_90': Decimal('0.00'),
+        'over_90': Decimal('0.00'),
+        'credit': Decimal('0.00')
+    }
+    
+    # Get all unpaid/partially paid invoices for this client
+    unpaid_invoices = Invoice.objects.filter(
+        client=client
+    ).exclude(status__in=['paid', 'cancelled', 'draft'])
+    
+    for invoice in unpaid_invoices:
+        balance = invoice.balance
+        if balance > 0:
+            # Use due_date for aging calculation
+            reference_date = invoice.due_date
+            days_overdue = (today - reference_date).days
+            
+            if days_overdue < 0:
+                # Not yet due
+                aging['current'] += balance
+            elif days_overdue >= 1 and days_overdue <= 30:
+                # 1-30 days overdue
+                aging['days_1_30'] += balance
+            elif days_overdue >= 31 and days_overdue <= 60:
+                # 31-60 days overdue
+                aging['days_31_60'] += balance
+            elif days_overdue >= 61 and days_overdue <= 90:
+                # 61-90 days overdue
+                aging['days_61_90'] += balance
+            else:
+                # Over 90 days overdue
+                aging['over_90'] += balance
+        elif balance < 0:
+            # Credit balance
+            aging['credit'] += abs(balance)
+    
+    # Calculate total from aging buckets
+    aging_total = (aging['current'] + aging['days_1_30'] + aging['days_31_60'] + 
+                   aging['days_61_90'] + aging['over_90'] - aging['credit'])
+    
     return render(request, 'core/client_statement_preview.html', {
         'client': client,
         'start_date': start_date,
@@ -229,7 +277,8 @@ def client_statement_preview(request, pk, start_date, end_date):
         'transactions': transactions,
         'total_invoices': total_invoices,
         'total_credits': total_credits,
-        'current_balance': running_balance
+        'current_balance': running_balance,
+        'aging': aging
     })
 
 
@@ -399,6 +448,8 @@ def quote_edit(request, pk):
             
             messages.success(request, f'Quote {quote.quote_number} updated successfully!')
             return redirect('accounting_forms:quote_detail', pk=quote.pk)
+        else:
+            messages.error(request, 'Please correct the errors below.')
     else:
         form = QuoteForm(instance=quote)
         formset = QuoteItemFormSet(instance=quote)
@@ -505,6 +556,8 @@ def invoice_edit(request, pk):
             
             messages.success(request, f'Invoice {invoice.invoice_number} updated successfully!')
             return redirect('accounting_forms:invoice_detail', pk=invoice.pk)
+        else:
+            messages.error(request, 'Please correct the errors below.')
     else:
         form = InvoiceForm(instance=invoice)
         formset = InvoiceItemFormSet(instance=invoice)

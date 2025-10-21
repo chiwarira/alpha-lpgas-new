@@ -1,0 +1,214 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Quote {{ quote.quote_number }} - Alpha LPGas{% endblock %}
+{% block nav_quotes %}active{% endblock %}
+
+{% block content %}
+<style>
+.quote-preview {
+    background: white;
+    padding: 40px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    max-width: 210mm;
+    margin: 0 auto;
+}
+.company-logo {
+    max-width: 360px;
+    height: auto;
+}
+.company-name {
+    color: #0033CC;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+.quote-title {
+    font-size: 1.75rem;
+    font-weight: bold;
+    text-align: center;
+    margin: 20px 0;
+}
+.section-heading {
+    color: #0033CC;
+    font-weight: bold;
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+}
+.small-text {
+    font-size: 0.85rem;
+}
+.quote-info-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+.quote-info-label {
+    font-weight: 500;
+    width: 100px;
+    text-align: left;
+    padding-right: 1rem;
+    white-space: nowrap;
+}
+.quote-info-value {
+    width: 150px;
+    text-align: left;
+    font-weight: bold;
+    white-space: nowrap;
+}
+.footer-message {
+    color: #CC0066;
+    font-style: italic;
+    text-align: center;
+    margin-top: 30px;
+}
+.print-hide {
+    margin-bottom: 20px;
+}
+@media print {
+    .print-hide { display: none; }
+    .quote-preview { box-shadow: none; padding: 20px; }
+}
+</style>
+
+<div class="print-hide">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1><i class="bi bi-file-earmark-text"></i> Quote {{ quote.quote_number }}</h1>
+        </div>
+        <div class="col-md-6 text-end">
+            <button onclick="window.print()" class="btn btn-info">
+                <i class="bi bi-printer"></i> Print
+            </button>
+            <a href="{% url 'accounting_forms:quote_pdf' quote.pk %}" class="btn btn-danger">
+                <i class="bi bi-file-pdf"></i> Download PDF
+            </a>
+            <a href="{% url 'accounting_forms:quote_edit' quote.pk %}" class="btn btn-primary">
+                <i class="bi bi-pencil"></i> Edit
+            </a>
+            <a href="{% url 'accounting_forms:quote_list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="quote-preview">
+
+    <!-- Header with Logo and Quote Details -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <img src="{% static 'alpha-lpgas-logo.png' %}" alt="Alpha LPGas" class="company-logo mb-2">
+            <div class="company-name">ALPHA LPGas</div>
+            <div class="small-text">
+                Reg No: 2023/822513/07<br>
+                VAT No: 9415233222<br>
+                Tel: 074 454 5665<br>
+                Email: info@alphalpgas.co.za
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="quote-info-row">
+                <div class="quote-info-label">Quote No:</div>
+                <div class="quote-info-value">{{ quote.quote_number }}</div>
+            </div>
+            <div class="quote-info-row">
+                <div class="quote-info-label">Issue Date:</div>
+                <div class="quote-info-value">{{ quote.issue_date|date:"F d, Y" }}</div>
+            </div>
+            <div class="quote-info-row">
+                <div class="quote-info-label">Valid Until:</div>
+                <div class="quote-info-value">{{ quote.expiry_date|date:"F d, Y" }}</div>
+            </div>
+            <div class="quote-info-row">
+                <div class="quote-info-label">Status:</div>
+                <div class="quote-info-value">{{ quote.get_status_display|upper }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quote Title -->
+    <div class="quote-title">QUOTATION</div>
+
+    <!-- Client Information -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="section-heading">Client Information</div>
+            <div class="small-text">
+                <strong>Name:</strong> {{ quote.client.name }}<br>
+                <strong>Address:</strong> {{ quote.client.address }}<br>
+                <strong>Phone:</strong> {{ quote.client.phone }}<br>
+                <strong>Email:</strong> {{ quote.client.email|default:"No email provided" }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quote Items -->
+    <div class="section-heading">Quote Items</div>
+    <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered">
+            <thead style="background-color: #E8E8E8;">
+                <tr class="small-text">
+                    <th>Code</th>
+                    <th>Description</th>
+                    <th class="text-end">Quantity</th>
+                    <th class="text-end">Price (incl. VAT)</th>
+                    <th class="text-end">VAT</th>
+                    <th class="text-end">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in quote.items.all %}
+                <tr class="small-text">
+                    <td>P001</td>
+                    <td>{{ item.description }}</td>
+                    <td class="text-end">{{ item.quantity }}</td>
+                    <td class="text-end">R{{ item.unit_price|floatformat:2 }}</td>
+                    <td class="text-end">R{{ item.tax_amount|floatformat:2 }}</td>
+                    <td class="text-end">R{{ item.total|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Totals -->
+    <div class="row">
+        <div class="col-md-8"></div>
+        <div class="col-md-4">
+            <table class="table table-sm small-text">
+                <tr>
+                    <td class="text-end"><strong>Total VAT:</strong></td>
+                    <td class="text-end">R{{ quote.tax_amount|floatformat:2 }}</td>
+                </tr>
+                <tr style="border-top: 2px solid black;">
+                    <td class="text-end"><strong>Total:</strong></td>
+                    <td class="text-end"><strong>R{{ quote.total_amount|floatformat:2 }}</strong></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    {% if quote.notes or quote.terms %}
+    <div class="mt-4 small-text">
+        {% if quote.notes %}
+        <div class="mb-3">
+            <strong>Notes:</strong><br>
+            {{ quote.notes|linebreaks }}
+        </div>
+        {% endif %}
+        {% if quote.terms %}
+        <div class="mb-3">
+            <strong>Terms & Conditions:</strong><br>
+            {{ quote.terms|linebreaks }}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Footer Message -->
+    <div class="footer-message">
+        Always striving for customer satisfaction!
+    </div>
+</div>
+{% endblock %}

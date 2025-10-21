@@ -637,9 +637,7 @@ select.note-field {
 
 /* Print styles */
 @media print {
-    .no-print,
-    .print-hide,
-    .navbar-brand {
+    .no-print {
         display: none !important;
     }
     
@@ -962,7 +960,7 @@ select.note-field {
 </style>
 {% endblock %}
 
-{% block title %}Quote {{ quote.quote_number }} - Alpha LPGas{% endblock %}
+{% block title %}Invoice {{ invoice.invoice_number }} - Alpha LPGas{% endblock %}
 
 {% block content %}
 <!-- Include Django's CSRF token -->
@@ -974,23 +972,26 @@ select.note-field {
     <div class="print-hide">
         <div class="row mb-4">
             <div class="col-md-6">
-                <h1><i class="bi bi-file-earmark-text"></i> Quote {{ quote.quote_number }}</h1>
+                <h1><i class="bi bi-receipt"></i> Invoice {{ invoice.invoice_number }}</h1>
             </div>
             <div class="col-md-6 text-end">
-                <button onclick="printQuoteWithCustomFilename()" class="btn btn-info">
+                <button onclick="printInvoiceWithCustomFilename()" class="btn btn-info">
                     <i class="bi bi-printer"></i> Print
                 </button>
-                <a href="{% url 'accounting_forms:quote_edit' quote.pk %}" class="btn btn-primary">
+                <a href="{% url 'accounting_forms:invoice_pdf' invoice.pk %}" class="btn btn-danger">
+                    <i class="bi bi-file-pdf"></i> Download PDF
+                </a>
+                <a href="{% url 'accounting_forms:invoice_edit' invoice.pk %}" class="btn btn-primary">
                     <i class="bi bi-pencil"></i> Edit
                 </a>
-                <a href="{% url 'accounting_forms:quote_list' %}" class="btn btn-secondary">
+                <a href="{% url 'accounting_forms:invoice_list' %}" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i> Back
                 </a>
             </div>
         </div>
     </div>
 
-    <!-- Quote Header -->
+    <!-- Invoice Header -->
     <div class="header">
         <div class="company-section">
             <img src="{% static 'alpha-lpgas-logo.png' %}" alt="Alpha LPGas Logo" class="logo">
@@ -1004,80 +1005,117 @@ select.note-field {
         </div>
         <div class="invoice-details">
             <div class="invoice-info-row">
-                <div class="invoice-info-label">Quote No:</div>
-                <div class="invoice-info-value">{{ quote.quote_number }}</div>
+                <div class="invoice-info-label">Invoice No:</div>
+                <div class="invoice-info-value">{{ invoice.invoice_number }}</div>
             </div>
+            {% if invoice.delivery_note %}
+            <div class="invoice-info-row">
+                <div class="invoice-info-label">Delivery Note:</div>
+                <div class="invoice-info-value">{{ invoice.delivery_note }}</div>
+            </div>
+            {% endif %}
             <div class="invoice-info-row">
                 <div class="invoice-info-label">Issue Date:</div>
-                <div class="invoice-info-value">{{ quote.issue_date }}</div>
+                <div class="invoice-info-value">{{ invoice.issue_date }}</div>
             </div>
             <div class="invoice-info-row">
-                <div class="invoice-info-label">Valid Until:</div>
-                <div class="invoice-info-value">{{ quote.expiry_date }}</div>
+                <div class="invoice-info-label">Due Date:</div>
+                <div class="invoice-info-value">{{ invoice.due_date|default:invoice.issue_date }}</div>
             </div>
             <div class="invoice-info-row status-row">
                 <div class="invoice-info-label">Status:</div>
                 <div class="invoice-info-value">
-                    <span class="status-badge status-{{ quote.status }}">{{ quote.get_status_display }}</span>
+                    <span class="status-badge status-{{ invoice.status }}">{{ invoice.get_status_display }}</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Quote Title -->
-    <div class="invoice-title">QUOTATION</div>
+    <!-- Invoice Title -->
+    <div class="invoice-title">INVOICE</div>
 
-    <!-- Client Information -->
+    <!-- Client and Banking Info -->
     <div class="info-section">
-        <div class="client-info" style="max-width: 100%; margin-right: 0;">
+        <!-- Client Information -->
+        <div class="client-info">
             <div class="client-info-title">Client Information</div>
             <div class="client-info-row">
                 <div class="client-info-label">Name:</div>
-                <div class="client-info-value">{{ quote.client.name }}</div>
+                <div class="client-info-value">{{ invoice.client.name }}</div>
             </div>
-            {% if quote.client.company_name %}
+            {% if invoice.client.company_name %}
             <div class="client-info-row">
                 <div class="client-info-label">Company:</div>
-                <div class="client-info-value">{{ quote.client.company_name }}</div>
+                <div class="client-info-value">{{ invoice.client.company_name }}</div>
             </div>
             {% endif %}
-            {% if quote.client.company_reg_no %}
+            {% if invoice.client.company_reg_no %}
             <div class="client-info-row">
                 <div class="client-info-label">Reg. No.:</div>
-                <div class="client-info-value">{{ quote.client.company_reg_no }}</div>
+                <div class="client-info-value">{{ invoice.client.company_reg_no }}</div>
             </div>
             {% endif %}
-            {% if quote.client.vat_number %}
+            {% if invoice.client.vat_number %}
             <div class="client-info-row">
                 <div class="client-info-label">VAT Number:</div>
-                <div class="client-info-value">{{ quote.client.vat_number }}</div>
+                <div class="client-info-value">{{ invoice.client.vat_number }}</div>
             </div>
             {% endif %}
             <div class="client-info-row">
                 <div class="client-info-label">Address:</div>
-                <div class="client-info-value">{{ quote.client.address|default:'' }}</div>
+                <div class="client-info-value">{{ invoice.client.address|default:'' }}</div>
             </div>
             <div class="client-info-row">
                 <div class="client-info-label">Phone:</div>
-                <div class="client-info-value">{{ quote.client.phone }}</div>
+                <div class="client-info-value">{{ invoice.client.phone }}</div>
             </div>
             <div class="client-info-row">
                 <div class="client-info-label">Email:</div>
                 <div class="client-info-value">
-                    {% if quote.client.email %}
-                    {{ quote.client.email }}
+                    {% if invoice.client.email %}
+                    {{ invoice.client.email }}
                     {% else %}
                     <span class="text-muted">No email provided</span>
                     {% endif %}
                 </div>
             </div>
         </div>
+
+        <!-- Banking Details -->
+        <div class="banking-info">
+            <div class="banking-info-content">
+                <div class="banking-info-title">Banking Details</div>
+                <div class="banking-info-row">
+                    <div class="banking-info-label">Name:</div>
+                    <div class="banking-info-value">Alpha LPGas</div>
+                </div>
+                <div class="banking-info-row">
+                    <div class="banking-info-label">Bank:</div>
+                    <div class="banking-info-value">Nedbank</div>
+                </div>
+                <div class="banking-info-row">
+                    <div class="banking-info-label">Acc. No:</div>
+                    <div class="banking-info-value">1191 646 707</div>
+                </div>
+                <div class="banking-info-row">
+                    <div class="banking-info-label">Acc. Type:</div>
+                    <div class="banking-info-value">Current</div>
+                </div>
+                <div class="banking-info-row">
+                    <div class="banking-info-label">Branch Code:</div>
+                    <div class="banking-info-value">125009</div>
+                </div>
+            </div>
+            <div class="banking-reference">
+                <span style="color: #e01b84; font-size: 1.105em;">Please use your address as reference</span>
+            </div>
+        </div>
     </div>
 
-    <!-- Quote Items -->
+    <!-- Invoice Items -->
     <div class="card">
         <div class="card-header">
-            <h5 class="card-title mb-0">Quote Items</h5>
+            <h5 class="card-title mb-0">Invoice Items</h5>
         </div>
         <div class="card-body">
             <!-- Desktop Table View -->
@@ -1093,7 +1131,7 @@ select.note-field {
                     </tr>
                 </thead>
                 <tbody>
-                    {% for item in quote.items.all %}
+                    {% for item in invoice.items.all %}
                     <tr>
                         <td>{{ item.product.code }}</td>
                         <td>{{ item.description|default:item.product.name }}</td>
@@ -1108,20 +1146,20 @@ select.note-field {
                     <tr>
                         <td colspan="4"></td>
                         <td style="text-align: right;"><strong>Total VAT:</strong></td>
-                        <td style="text-align: right;">R{{ quote.tax_amount|floatformat:2 }}</td>
+                        <td style="text-align: right;">R{{ invoice.tax_amount|floatformat:2 }}</td>
                     </tr>
 
                     <tr>
                         <td colspan="4"></td>
                         <td style="text-align: right;"><strong>Total:</strong></td>
-                        <td style="text-align: right;">R{{ quote.total_amount|floatformat:2 }}</td>
+                        <td style="text-align: right;">R{{ invoice.total_amount|floatformat:2 }}</td>
                     </tr>
                 </tfoot>
             </table>
             
             <!-- Mobile Card View -->
             <div class="mobile-card-table">
-                {% for item in quote.items.all %}
+                {% for item in invoice.items.all %}
                 <div class="item-card">
                     <div class="item-card-header">
                         <div>{{ item.description|default:item.product.name }}</div>
@@ -1149,12 +1187,12 @@ select.note-field {
                 <div class="mobile-totals">
                     <div class="mobile-total-row">
                         <div><strong>Total VAT:</strong></div>
-                        <div>R{{ quote.tax_amount|floatformat:2 }}</div>
+                        <div>R{{ invoice.tax_amount|floatformat:2 }}</div>
                     </div>
 
                     <div class="mobile-total-row mobile-grand-total">
                         <div><strong>TOTAL:</strong></div>
-                        <div>R{{ quote.total_amount|floatformat:2 }}</div>
+                        <div>R{{ invoice.total_amount|floatformat:2 }}</div>
                     </div>
                 </div>
             </div>
@@ -1166,19 +1204,19 @@ select.note-field {
         <!-- Customer Notes -->
         <div class="customer-notes">
             <div class="customer-notes-title">Customer Notes</div>
-            {% if quote.notes %}
+            {% if invoice.notes %}
             <div class="customer-notes-row">
                 <div class="customer-notes-label">Notes</div>
                 <div class="customer-notes-value">
-                    <div class="form-control-plaintext">{{ quote.notes|linebreaksbr }}</div>
+                    <div class="form-control-plaintext">{{ invoice.notes|linebreaksbr }}</div>
                 </div>
             </div>
             {% endif %}
-            {% if quote.terms %}
+            {% if invoice.terms %}
             <div class="customer-notes-row">
                 <div class="customer-notes-label">Terms</div>
                 <div class="customer-notes-value">
-                    <div class="form-control-plaintext">{{ quote.terms|linebreaksbr }}</div>
+                    <div class="form-control-plaintext">{{ invoice.terms|linebreaksbr }}</div>
                 </div>
             </div>
             {% endif %}
@@ -1210,16 +1248,16 @@ select.note-field {
         return cookieValue;
     }
     
-    // Function to print quote with custom filename
-    function printQuoteWithCustomFilename() {
-        // Get quote number and client name
-        const quoteNumber = "{{ quote.quote_number }}";
-        const clientName = "{{ quote.client.name }}";
+    // Function to print invoice with custom filename
+    function printInvoiceWithCustomFilename() {
+        // Get invoice number and client name
+        const invoiceNumber = "{{ invoice.invoice_number }}";
+        const clientName = "{{ invoice.client.name }}";
         
         // Set the document title to be used as the filename when saving
-        // Format: {QT-001} - {Client Name}
+        // Format: {INV-001} - {Client Name}
         const originalTitle = document.title;
-        document.title = `${quoteNumber} - ${clientName}`;
+        document.title = `${invoiceNumber} - ${clientName}`;
         
         // Print the document
         window.print();

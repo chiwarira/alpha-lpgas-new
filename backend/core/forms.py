@@ -161,6 +161,11 @@ class QuoteForm(forms.ModelForm):
                 'placeholder': 'Additional notes'
             }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Customize client dropdown to show name and address
+        self.fields['client'].label_from_instance = lambda obj: f"{obj.name} - {obj.address}" if obj.address else obj.name
 
 
 class QuoteItemForm(forms.ModelForm):
@@ -220,6 +225,11 @@ class InvoiceForm(forms.ModelForm):
                 'placeholder': 'Additional notes'
             }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Customize client dropdown to show name and address
+        self.fields['client'].label_from_instance = lambda obj: f"{obj.name} - {obj.address}" if obj.address else obj.name
 
 
 class InvoiceItemForm(forms.ModelForm):
@@ -432,7 +442,7 @@ QuoteItemFormSet = inlineformset_factory(
     Quote,
     QuoteItem,
     form=QuoteItemForm,
-    extra=1,
+    extra=0,
     can_delete=True,
     min_num=1,
     validate_min=True
@@ -442,7 +452,7 @@ InvoiceItemFormSet = inlineformset_factory(
     Invoice,
     InvoiceItem,
     form=InvoiceItemForm,
-    extra=1,
+    extra=0,
     can_delete=True,
     min_num=1,
     validate_min=True
