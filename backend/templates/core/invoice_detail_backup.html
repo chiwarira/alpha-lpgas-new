@@ -1,0 +1,223 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Invoice {{ invoice.invoice_number }} - Alpha LPGas{% endblock %}
+{% block nav_invoices %}active{% endblock %}
+
+{% block content %}
+<style>
+.invoice-preview {
+    background: white;
+    padding: 40px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    max-width: 210mm;
+    margin: 0 auto;
+}
+.company-logo {
+    max-width: 150px;
+    height: auto;
+}
+.company-name {
+    color: #0033CC;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+.invoice-title {
+    font-size: 1.75rem;
+    font-weight: bold;
+    text-align: center;
+    margin: 20px 0;
+}
+.section-heading {
+    color: #0033CC;
+    font-weight: bold;
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+}
+.small-text {
+    font-size: 0.85rem;
+}
+.footer-message {
+    color: #CC0066;
+    font-style: italic;
+    text-align: center;
+    margin-top: 30px;
+}
+.print-hide {
+    margin-bottom: 20px;
+}
+@media print {
+    .print-hide { display: none; }
+    .invoice-preview { box-shadow: none; padding: 20px; }
+}
+</style>
+
+<div class="print-hide">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1><i class="bi bi-receipt"></i> Invoice {{ invoice.invoice_number }}</h1>
+        </div>
+        <div class="col-md-6 text-end">
+            <button onclick="window.print()" class="btn btn-info">
+                <i class="bi bi-printer"></i> Print
+            </button>
+            <a href="{% url 'accounting_forms:invoice_pdf' invoice.pk %}" class="btn btn-danger">
+                <i class="bi bi-file-pdf"></i> Download PDF
+            </a>
+            <a href="{% url 'accounting_forms:invoice_edit' invoice.pk %}" class="btn btn-primary">
+                <i class="bi bi-pencil"></i> Edit
+            </a>
+            <a href="{% url 'accounting_forms:invoice_list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="invoice-preview">
+
+    <!-- Header with Logo and Invoice Details -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <img src="{% static 'alpha-lpgas-logo.png' %}" alt="Alpha LPGas" class="company-logo mb-2">
+            <div class="company-name">ALPHA LPGas</div>
+            <div class="small-text">
+                Reg No: 2023/822513/07<br>
+                VAT No: 9415233222<br>
+                Tel: 074 454 5665<br>
+                Email: info@alphalpgas.co.za
+            </div>
+        </div>
+        <div class="col-md-6 text-end small-text">
+            <strong>Invoice No:</strong><br>{{ invoice.invoice_number }}<br><br>
+            <strong>Issue Date:</strong><br>{{ invoice.issue_date|date:"F d, Y" }}<br><br>
+            <strong>Due Date:</strong><br>{{ invoice.due_date|date:"F d, Y" }}<br><br>
+            <strong>Status:</strong><br>{{ invoice.get_status_display|upper }}
+        </div>
+    </div>
+
+    <!-- Invoice Title -->
+    <div class="invoice-title">INVOICE</div>
+
+    <!-- Client Information and Banking Details -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="section-heading">Client Information</div>
+            <div class="small-text">
+                <strong>Name:</strong> {{ invoice.client.name }}<br>
+                <strong>Address:</strong> {{ invoice.client.address }}<br>
+                <strong>Phone:</strong> {{ invoice.client.phone }}<br>
+                <strong>Email:</strong> {{ invoice.client.email|default:"No email provided" }}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="section-heading">Banking Details</div>
+            <div class="small-text">
+                <strong>Name:</strong> Alpha LPGas<br>
+                <strong>Bank:</strong> Nedbank<br>
+                <strong>Acc No:</strong> 1191 646 707<br>
+                <strong>Acc Type:</strong> Current<br>
+                <strong>Branch Code:</strong> 125009<br>
+                <span style="color: #CC0066;"><em>Please use your address as reference</em></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Items -->
+    <div class="section-heading">Invoice Items</div>
+    <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered">
+            <thead style="background-color: #E8E8E8;">
+                <tr class="small-text">
+                    <th>Code</th>
+                    <th>Description</th>
+                    <th class="text-end">Quantity</th>
+                    <th class="text-end">Price (incl. VAT)</th>
+                    <th class="text-end">VAT</th>
+                    <th class="text-end">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice.items.all %}
+                <tr class="small-text">
+                    <td>P001</td>
+                    <td>{{ item.description }}</td>
+                    <td class="text-end">{{ item.quantity }}</td>
+                    <td class="text-end">R{{ item.unit_price|floatformat:2 }}</td>
+                    <td class="text-end">R{{ item.tax_amount|floatformat:2 }}</td>
+                    <td class="text-end">R{{ item.total|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Totals -->
+    <div class="row">
+        <div class="col-md-8"></div>
+        <div class="col-md-4">
+            <table class="table table-sm small-text">
+                <tr>
+                    <td class="text-end"><strong>Total VAT:</strong></td>
+                    <td class="text-end">R{{ invoice.tax_amount|floatformat:2 }}</td>
+                </tr>
+                <tr style="border-top: 2px solid black;">
+                    <td class="text-end"><strong>Total:</strong></td>
+                    <td class="text-end"><strong>R{{ invoice.total_amount|floatformat:2 }}</strong></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Customer Notes -->
+    <div class="section-heading mt-4">Customer Notes</div>
+    <table class="table table-sm table-borderless small-text">
+        <tr>
+            <td style="width: 150px;"><strong>Payment Method:</strong></td>
+            <td>{% if invoice.payments.exists %}{{ invoice.payments.first.get_payment_method_display }}{% else %}Not specified{% endif %}</td>
+        </tr>
+        <tr>
+            <td><strong>Cylinders Collected:</strong></td>
+            <td>Not specified</td>
+        </tr>
+        <tr>
+            <td><strong>Notes:</strong></td>
+            <td>{{ invoice.notes|default:"-" }}</td>
+        </tr>
+    </table>
+
+    <!-- Footer Message -->
+    <div class="footer-message">
+        Always striving for customer satisfaction!
+    </div>
+</div>
+
+<!-- Payments Sidebar (Print Hidden) -->
+<div class="print-hide mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Payments</h5>
+        </div>
+        <div class="card-body">
+            {% if invoice.payments.exists %}
+            {% for payment in invoice.payments.all %}
+            <div class="mb-3 pb-3 border-bottom">
+                <strong>{{ payment.payment_number }}</strong><br>
+                <small class="text-muted">{{ payment.payment_date|date:"Y-m-d" }}</small><br>
+                <strong class="text-success">R {{ payment.amount|floatformat:2 }}</strong><br>
+                <small>{{ payment.get_payment_method_display }}</small>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="text-muted">No payments recorded</p>
+            {% endif %}
+            
+            {% if invoice.balance > 0 %}
+            <a href="{% url 'accounting_forms:payment_create_for_invoice' invoice.pk %}" class="btn btn-success btn-sm w-100">
+                <i class="bi bi-plus-circle"></i> Record Payment
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

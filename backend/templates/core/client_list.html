@@ -62,12 +62,37 @@
                 <h1><i class="bi bi-people-fill"></i> Clients</h1>
             </div>
             <div class="col-md-6 text-end">
+                <button type="button" class="btn btn-danger" id="bulk-delete-btn" style="display:none;">
+                    <i class="bi bi-trash"></i> Delete Selected (<span id="selected-count">0</span>)
+                </button>
                 <a href="{% url 'accounting_forms:client_create' %}" class="btn btn-primary">
                     <i class="bi bi-plus-circle"></i> New Client
                 </a>
                 <a href="{% url 'accounting_forms:dashboard' %}" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i> Back to Dashboard
                 </a>
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="position-relative">
+                    <input type="text" id="search-input" class="form-control" 
+                           placeholder="Search by name, email, phone, city, or address..." 
+                           value="{{ search_query }}" autofocus>
+                    <div id="search-spinner" class="position-absolute top-50 end-0 translate-middle-y me-3" style="display: none;">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Searching...</span>
+                        </div>
+                    </div>
+                </div>
+                <small class="text-muted">Search updates automatically as you type</small>
+            </div>
+            <div class="col-md-6">
+                <div id="search-results-info" class="alert alert-info mb-0" style="display: none;">
+                    <span id="results-text"></span>
+                </div>
             </div>
         </div>
 
@@ -87,76 +112,106 @@
         <div class="card">
             <div class="card-body">
                 {% if clients %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Customer ID</th>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Phone</th>
-                                <th>City</th>
-                                <th>Status</th>
-                                <th>Created</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for client in clients %}
-                            <tr>
-                                <td><code>{{ client.customer_id }}</code></td>
-                                <td><strong>{{ client.name }}</strong></td>
-                                <td>
-                                    {% if client.email %}
-                                    <a href="mailto:{{ client.email }}">{{ client.email }}</a>
-                                    {% else %}
-                                    <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if client.phone %}
-                                    <a href="tel:{{ client.phone }}">{{ client.phone }}</a>
-                                    {% else %}
-                                    <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ client.city|default:"-" }}</td>
-                                <td>
-                                    {% if client.is_active %}
-                                    <span class="badge bg-success">Active</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">Inactive</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ client.created_at|date:"Y-m-d" }}</td>
-                                <td>
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <a href="{% url 'accounting_forms:client_detail' client.pk %}" 
-                                           class="btn btn-outline-primary" title="View">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        <a href="{% url 'accounting_forms:client_edit' client.pk %}" 
-                                           class="btn btn-outline-secondary" title="Edit">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                <form id="bulk-delete-form" method="post" action="{% url 'accounting_forms:client_bulk_delete' %}">
+                    {% csrf_token %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 40px;">
+                                        <input type="checkbox" class="form-check-input" id="select-all">
+                                    </th>
+                                    <th>Customer ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Address</th>
+                                    <th>City</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for client in clients %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" class="form-check-input client-checkbox" 
+                                               name="client_ids" value="{{ client.id }}">
+                                    </td>
+                                    <td><code>{{ client.customer_id }}</code></td>
+                                    <td><strong>{{ client.name }}</strong></td>
+                                    <td>
+                                        {% if client.email %}
+                                        <a href="mailto:{{ client.email }}">{{ client.email }}</a>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if client.phone %}
+                                        <a href="tel:{{ client.phone }}">{{ client.phone }}</a>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if client.address %}
+                                        <small>{{ client.address|truncatewords:5 }}</small>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ client.city|default:"-" }}</td>
+                                    <td>
+                                        {% if client.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ client.created_at|date:"Y-m-d" }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{% url 'accounting_forms:client_detail' client.pk %}" 
+                                               class="btn btn-outline-primary" title="View">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="{% url 'accounting_forms:client_edit' client.pk %}" 
+                                               class="btn btn-outline-secondary" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{% url 'accounting_forms:client_delete' client.pk %}" 
+                                               class="btn btn-outline-danger" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
                 <div class="mt-3">
                     <p class="text-muted">Total: {{ clients.count }} client{{ clients.count|pluralize }}</p>
                 </div>
                 {% else %}
                 <div class="text-center py-5">
                     <i class="bi bi-people" style="font-size: 4rem; color: #ccc;"></i>
+                    {% if search_query %}
+                    <h3 class="mt-3">No Clients Found</h3>
+                    <p class="text-muted">No clients match your search "{{ search_query }}"</p>
+                    <a href="{% url 'accounting_forms:client_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Clear Search
+                    </a>
+                    {% else %}
                     <h3 class="mt-3">No Clients Yet</h3>
                     <p class="text-muted">Get started by creating your first client</p>
                     <a href="{% url 'accounting_forms:client_create' %}" class="btn btn-primary">
                         <i class="bi bi-plus-circle"></i> Create First Client
                     </a>
+                    {% endif %}
                 </div>
                 {% endif %}
             </div>
@@ -164,5 +219,151 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // Real-time AJAX search functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('search-input');
+        const searchSpinner = document.getElementById('search-spinner');
+        const searchResultsInfo = document.getElementById('search-results-info');
+        const resultsText = document.getElementById('results-text');
+        const tableContainer = document.querySelector('.table-responsive');
+        const emptyState = document.querySelector('.text-center.py-5');
+        let searchTimeout;
+
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
+
+            // Show spinner
+            searchSpinner.style.display = 'block';
+
+            // Debounce search - wait 300ms after user stops typing
+            searchTimeout = setTimeout(function() {
+                performSearch(query);
+            }, 300);
+        });
+
+        function performSearch(query) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('search', query);
+
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.text())
+            .then(html => {
+                // Parse the HTML response
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Extract the table content
+                const newTableContainer = doc.querySelector('.table-responsive');
+                const newEmptyState = doc.querySelector('.text-center.py-5');
+                const clientCount = doc.querySelectorAll('tbody tr').length;
+
+                // Update the table or empty state
+                if (newTableContainer) {
+                    if (tableContainer) {
+                        tableContainer.innerHTML = newTableContainer.innerHTML;
+                    }
+                    if (emptyState) {
+                        emptyState.style.display = 'none';
+                    }
+                } else if (newEmptyState) {
+                    if (emptyState) {
+                        emptyState.innerHTML = newEmptyState.innerHTML;
+                        emptyState.style.display = 'block';
+                    }
+                    if (tableContainer) {
+                        tableContainer.style.display = 'none';
+                    }
+                }
+
+                // Update results info
+                if (query) {
+                    searchResultsInfo.style.display = 'block';
+                    resultsText.textContent = `Found ${clientCount} result${clientCount !== 1 ? 's' : ''} for "${query}"`;
+                } else {
+                    searchResultsInfo.style.display = 'none';
+                }
+
+                // Hide spinner
+                searchSpinner.style.display = 'none';
+
+                // Re-initialize bulk delete functionality
+                initBulkDelete();
+
+                // Update URL without reload
+                if (query) {
+                    window.history.pushState({}, '', url);
+                } else {
+                    window.history.pushState({}, '', window.location.pathname);
+                }
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+                searchSpinner.style.display = 'none';
+            });
+        }
+
+        // Initialize bulk delete functionality
+        initBulkDelete();
+    });
+
+    // Bulk delete functionality
+    function initBulkDelete() {
+        const selectAll = document.getElementById('select-all');
+        const checkboxes = document.querySelectorAll('.client-checkbox');
+        const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+        const selectedCount = document.getElementById('selected-count');
+        const bulkDeleteForm = document.getElementById('bulk-delete-form');
+
+        // Select all functionality
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+                updateBulkDeleteButton();
+            });
+        }
+
+        // Individual checkbox change
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateBulkDeleteButton);
+        });
+
+        // Update bulk delete button visibility and count
+        function updateBulkDeleteButton() {
+            const checkedCount = document.querySelectorAll('.client-checkbox:checked').length;
+            selectedCount.textContent = checkedCount;
+            
+            if (checkedCount > 0) {
+                bulkDeleteBtn.style.display = 'inline-block';
+            } else {
+                bulkDeleteBtn.style.display = 'none';
+            }
+
+            // Update select all checkbox state
+            if (selectAll) {
+                selectAll.checked = checkedCount === checkboxes.length && checkedCount > 0;
+            }
+        }
+
+        // Bulk delete button click
+        if (bulkDeleteBtn) {
+            bulkDeleteBtn.addEventListener('click', function() {
+                const checkedCount = document.querySelectorAll('.client-checkbox:checked').length;
+                if (checkedCount > 0) {
+                    if (confirm(`Are you sure you want to delete ${checkedCount} client(s)? This action cannot be undone.`)) {
+                        bulkDeleteForm.submit();
+                    }
+                }
+            });
+        }
+    }
+    </script>
 </body>
 </html>

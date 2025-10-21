@@ -1,0 +1,156 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Generate Statement - {{ client.name }} - Alpha LPGas{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-file-text"></i> Generate Statement</h1>
+        <p class="text-muted">Client: <strong>{{ client.name }}</strong> ({{ client.customer_id }})</p>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:client_detail' client.pk %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Client
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Select Statement Period</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Note:</strong> The statement will include all invoices, payments, and credit notes within the selected date range. 
+                        A balance brought forward will be calculated from transactions before the start date.
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="start_date" class="form-label">Start Date *</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" 
+                                   value="{{ default_start|date:'Y-m-d' }}" required>
+                            <small class="text-muted">Beginning of statement period</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="end_date" class="form-label">End Date *</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" 
+                                   value="{{ default_end|date:'Y-m-d' }}" required>
+                            <small class="text-muted">End of statement period</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6>Quick Date Ranges:</h6>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setCurrentMonth()">
+                                This Month
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setLastMonth()">
+                                Last Month
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setLast3Months()">
+                                Last 3 Months
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setYearToDate()">
+                                Year to Date
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <button type="submit" name="action" value="preview" class="btn btn-primary btn-lg w-100">
+                                <i class="bi bi-eye"></i> Preview Statement
+                            </button>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <button type="submit" name="action" value="download" class="btn btn-success btn-lg w-100">
+                                <i class="bi bi-file-pdf"></i> Download PDF
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Client Information</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Name:</strong><br>{{ client.name }}</p>
+                <p><strong>Customer ID:</strong><br>{{ client.customer_id }}</p>
+                <p><strong>Email:</strong><br>{{ client.email }}</p>
+                <p><strong>Phone:</strong><br>{{ client.phone }}</p>
+                <p><strong>Address:</strong><br>
+                    {{ client.address }}<br>
+                    {{ client.city }}, {{ client.postal_code }}
+                </p>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">Statement Features</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li><i class="bi bi-check-circle text-success"></i> Balance brought forward</li>
+                    <li><i class="bi bi-check-circle text-success"></i> All invoices in period</li>
+                    <li><i class="bi bi-check-circle text-success"></i> All payments received</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Credit notes applied</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Running balance</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Current balance due</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function setCurrentMonth() {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    document.getElementById('start_date').value = formatDate(firstDay);
+    document.getElementById('end_date').value = formatDate(today);
+}
+
+function setLastMonth() {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const lastDay = new Date(today.getFullYear(), today.getMonth(), 0);
+    document.getElementById('start_date').value = formatDate(firstDay);
+    document.getElementById('end_date').value = formatDate(lastDay);
+}
+
+function setLast3Months() {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth() - 3, 1);
+    document.getElementById('start_date').value = formatDate(firstDay);
+    document.getElementById('end_date').value = formatDate(today);
+}
+
+function setYearToDate() {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), 0, 1);
+    document.getElementById('start_date').value = formatDate(firstDay);
+    document.getElementById('end_date').value = formatDate(today);
+}
+
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+</script>
+{% endblock %}

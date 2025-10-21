@@ -18,6 +18,28 @@
     </div>
 </div>
 
+<!-- Search Bar -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="position-relative">
+            <input type="text" id="search-input" class="form-control" 
+                   placeholder="Search by quote #, client name, customer ID, or status..." 
+                   value="{{ search_query }}" autofocus>
+            <div id="search-spinner" class="position-absolute top-50 end-0 translate-middle-y me-3" style="display: none;">
+                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Searching...</span>
+                </div>
+            </div>
+        </div>
+        <small class="text-muted">Search updates automatically as you type</small>
+    </div>
+    <div class="col-md-6">
+        <div id="search-results-info" class="alert alert-info mb-0" style="display: none;">
+            <span id="results-text"></span>
+        </div>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-body">
         {% if quotes %}
@@ -74,13 +96,101 @@
         {% else %}
         <div class="text-center py-5">
             <i class="bi bi-file-earmark-text" style="font-size: 4rem; color: #ccc;"></i>
+            {% if search_query %}
+            <h3 class="mt-3">No Quotes Found</h3>
+            <p class="text-muted">No quotes match your search "{{ search_query }}"</p>
+            <a href="{% url 'accounting_forms:quote_list' %}" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i> Clear Search
+            </a>
+            {% else %}
             <h3 class="mt-3">No Quotes Yet</h3>
             <p class="text-muted">Create your first quote</p>
             <a href="{% url 'accounting_forms:quote_create' %}" class="btn btn-primary">
                 <i class="bi bi-plus-circle"></i> Create First Quote
             </a>
+            {% endif %}
         </div>
         {% endif %}
     </div>
 </div>
+
+<script>
+// Real-time AJAX search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-input');
+    const searchSpinner = document.getElementById('search-spinner');
+    const searchResultsInfo = document.getElementById('search-results-info');
+    const resultsText = document.getElementById('results-text');
+    const tableContainer = document.querySelector('.table-responsive');
+    const emptyState = document.querySelector('.text-center.py-5');
+    let searchTimeout;
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+
+        searchSpinner.style.display = 'block';
+
+        searchTimeout = setTimeout(function() {
+            performSearch(query);
+        }, 300);
+    });
+
+    function performSearch(query) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('search', query);
+
+        fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            const newTableContainer = doc.querySelector('.table-responsive');
+            const newEmptyState = doc.querySelector('.text-center.py-5');
+            const quoteCount = doc.querySelectorAll('tbody tr').length;
+
+            if (newTableContainer) {
+                if (tableContainer) {
+                    tableContainer.outerHTML = newTableContainer.outerHTML;
+                }
+                if (emptyState) {
+                    emptyState.style.display = 'none';
+                }
+            } else if (newEmptyState) {
+                if (emptyState) {
+                    emptyState.innerHTML = newEmptyState.innerHTML;
+                    emptyState.style.display = 'block';
+                }
+                if (tableContainer) {
+                    tableContainer.style.display = 'none';
+                }
+            }
+
+            if (query) {
+                searchResultsInfo.style.display = 'block';
+                resultsText.textContent = `Found ${quoteCount} result${quoteCount !== 1 ? 's' : ''} for "${query}"`;
+            } else {
+                searchResultsInfo.style.display = 'none';
+            }
+
+            searchSpinner.style.display = 'none';
+
+            if (query) {
+                window.history.pushState({}, '', url);
+            } else {
+                window.history.pushState({}, '', window.location.pathname);
+            }
+        })
+        .catch(error => {
+            console.error('Search error:', error);
+            searchSpinner.style.display = 'none';
+        });
+    }
+});
+</script>
 {% endblock %}

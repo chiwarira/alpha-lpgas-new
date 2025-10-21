@@ -1,139 +1,2080 @@
 {% extends 'core/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Caveat&display=swap" rel="stylesheet">
+<style>
+/* Customer notes save indicator */
+.save-indicator {
+    display: inline-block;
+    margin-left: 10px;
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.save-indicator.visible {
+    opacity: 1;
+}
+
+.save-indicator.saving {
+    background: url('{% static "images/loading-spinner.gif" %}') no-repeat center center;
+    background-size: 20px 20px;
+}
+
+/* Loading pulse animation for autosave status */
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+.saving-text {
+    animation: pulse 1.5s infinite;
+    color: #0275d8 !important;
+}
+
+/* Fade out animation for autosave status */
+@keyframes fadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.fade-out {
+    animation: fadeOut 0.5s forwards;
+    animation-delay: 2.5s;
+}
+
+.retry-button {
+    background-color: #f0ad4e;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    padding: 2px 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.retry-button:hover {
+    background-color: #ec971f;
+}
+
+.save-indicator.saved {
+    color: green;
+    position: relative;
+}
+
+.save-indicator.saved::after {
+    content: "✓";
+    position: absolute;
+    top: -5px;
+    left: 0;
+    font-size: 18px;
+}
+
+.save-indicator.error {
+    color: red;
+    position: relative;
+}
+
+.save-indicator.error::after {
+    content: "✗";
+    position: absolute;
+    top: -5px;
+    left: 0;
+    font-size: 18px;
+}
+
+/* Notification toast */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.toast {
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 4px;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    transform: translateY(100px);
+    opacity: 0;
+    transition: transform 0.4s ease, opacity 0.4s ease;
+}
+
+.toast.visible {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.toast.success {
+    border-left: 4px solid #28a745;
+}
+
+.toast.error {
+    border-left: 4px solid #dc3545;
+}
+
+.toast-icon {
+    margin-right: 10px;
+    font-size: 18px;
+}
+
+.toast-message {
+    flex: 1;
+}
+
+/* Make notes textarea look better */
+textarea.note-field {
+    min-height: 100px;
+    width: 100%;
+    resize: vertical;
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+}
+
+select.note-field {
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    background-color: white;
+}
+
+.note-field:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.note-field.saving {
+    background-color: #f8f9fa;
+}
+
+/* Base styles */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.tagline {
+    font-size: 1.2rem;
+    color: #666;
+    text-align: center;
+    width: 100%;
+    padding: 0.75rem 0;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+}
+
+.company-section {
+    flex: 1;
+    max-width: 50%;
+}
+
+.logo {
+    max-width: 360px;
+    height: auto;
+    margin-bottom: 1.5rem;
+}
+
+.company-details {
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.invoice-details {
+    min-width: 350px;
+    text-align: right;
+}
+
+.invoice-info-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.invoice-info-label {
+    font-weight: 500;
+    width: 120px;
+    text-align: left;
+    padding-right: 1rem;
+}
+
+.invoice-info-value {
+    width: 120px;
+    text-align: left;
+    font-weight: bold;
+}
+
+.invoice-info-row.status-row {
+    margin-top: 0.75rem;
+    margin-bottom: 0;
+}
+
+.invoice-info-row.status-row .invoice-info-value {
+    text-align: right;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.status-unpaid {
+    background-color: #fde8e8;
+    color: #dc3545;
+    border: 1px solid #fad7d7;
+}
+
+.status-badge.status-partially-paid {
+    background-color: #fff8e6;
+    color: #b77f00;
+    border: 1px solid #ffe7a0;
+}
+
+.status-badge.status-paid {
+    background-color: #e6f7e6;
+    color: #198754;
+    border: 1px solid #c3e6cb;
+}
+
+.invoice-title {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.info-section {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+}
+
+.client-info {
+    flex: 1;
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    margin-right: 1rem;
+}
+
+.client-info-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+.client-info-row {
+    display: flex;
+    margin-bottom: 0.5rem;
+}
+
+.client-info-label {
+    width: 100px;
+    font-weight: 500;
+    color: #6c757d;
+}
+
+.client-info-value {
+    flex: 1;
+}
+
+.banking-info {
+    width: 350px;
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+}
+
+.banking-info-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    color: #495057;
+    text-align: center;
+}
+
+.banking-info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.banking-info-label {
+    font-weight: 500;
+    color: #6c757d;
+}
+
+.banking-info-value {
+    font-weight: bold;
+    text-align: right;
+}
+
+.banking-reference {
+    margin-top: 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #dee2e6;
+    font-style: italic;
+    text-align: center;
+    color: #6c757d;
+}
+
+.table {
+    width: 100%;
+    margin-bottom: 2rem;
+    color: #212529;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: 0.75rem;
+    vertical-align: top;
+    border-top: 1px solid #dee2e6;
+}
+
+.table thead th {
+    vertical-align: bottom;
+    border-bottom: 2px solid #dee2e6;
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.table tbody + tbody {
+    border-top: 2px solid #dee2e6;
+}
+
+.table tfoot tr:first-child td {
+    border-top: 2px solid #dee2e6;
+}
+
+.total-row {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.total-amount {
+    color: #198754;
+}
+
+.notes-section {
+    margin-top: 2rem;
+}
+
+.customer-notes {
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+}
+
+.customer-notes-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+.customer-notes-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.customer-notes-label {
+    width: 200px;
+    font-weight: 500;
+    color: #6c757d;
+}
+
+.customer-notes-value {
+    flex: 1;
+}
+
+.customer-notes-value select,
+.customer-notes-value input,
+.customer-notes-value textarea {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+}
+
+.customer-notes-value textarea {
+    min-height: 100px;
+}
+
+/* Card-based responsive tables for mobile */
+.mobile-card-table {
+    display: none; /* Hidden by default, shown only on mobile */
+}
+
+.desktop-table {
+    display: table; /* Shown by default, hidden on mobile */
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
+    .header {
+        flex-direction: column;
+    }
+
+    .company-section {
+        max-width: 100%;
+        margin-bottom: 1.5rem;
+    }
+
+    .invoice-details {
+        min-width: auto;
+        width: 100%;
+        text-align: left;
+    }
+
+    .invoice-info-row {
+        justify-content: flex-start;
+    }
+
+    .invoice-info-label,
+    .invoice-info-value {
+        width: auto;
+    }
+
+    .invoice-title {
+        font-size: 1.5rem;
+        text-align: center;
+    }
+
+    .info-section {
+        flex-direction: column;
+    }
+
+    .banking-info {
+        width: 100%;
+        margin: 2rem 0 0;
+    }
+
+    .banking-info-title {
+        text-align: left;
+    }
+
+    .banking-info-row {
+        justify-content: flex-start;
+    }
+
+    .banking-info-label {
+        text-align: left;
+    }
+
+    .banking-info-value {
+        text-align: left;
+    }
+
+    .banking-reference {
+        text-align: left;
+    }
+
+    .customer-notes {
+        padding: 1rem;
+    }
+
+    .customer-notes-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .customer-notes-label {
+        width: 100%;
+        margin-bottom: 0.25rem;
+    }
+
+    /* Make tables responsive */
+    .table-responsive {
+        margin-bottom: 1rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table {
+        font-size: 0.9rem;
+    }
+
+    .table th,
+    .table td {
+        white-space: nowrap;
+        min-width: 100px;
+    }
+
+    /* Improve button layout on mobile */
+    .btn-group {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn-group .btn {
+        margin: 0.25rem 0;
+        width: 100%;
+    }
+
+    .btn-group .btn i {
+        width: 20px;
+        text-align: center;
+        margin-right: 0.5rem;
+    }
+    
+    /* Card-based layout for invoice items on mobile */
+    .mobile-card-table {
+        display: block;
+    }
+    
+    .desktop-table {
+        display: none;
+    }
+    
+    .item-card {
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background-color: #fff;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .item-card-header {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+    }
+    
+    .item-card-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+    
+    .item-card-label {
+        font-weight: 500;
+        color: #555;
+    }
+    
+    .item-card-value {
+        text-align: right;
+    }
+    
+    .item-card-total {
+        border-top: 1px solid #eee;
+        padding-top: 0.5rem;
+        margin-top: 0.5rem;
+        font-weight: bold;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .mobile-totals {
+        border-top: 2px solid #dee2e6;
+        padding-top: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .mobile-total-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+    
+    .mobile-grand-total {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid #dee2e6;
+    }
+}
+
+/* Desktop styles - ensure mobile card view is hidden and table is visible */
+@media (min-width: 769px) {
+    .mobile-card-table {
+        display: none;
+    }
+    
+    .desktop-table {
+        display: table;
+    }
+}
+
+/* Print styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    /* Optimize for single-page printing */
+    body {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: #fff;
+        font-size: 10pt; /* Reduce base font size for printing */
+    }
+    
+    .container {
+        width: 97% !important;
+        max-width: 97% !important;
+        padding: 0.125cm !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+    
+    /* Force desktop view for mobile-responsive elements */
+    @media (max-width: 768px) {
+        .mobile-card-table {
+            display: none !important;
+        }
+        
+        .desktop-table {
+            display: table !important;
+        }
+        
+        .mobile-card-list {
+            display: none !important;
+        }
+    }
+    
+    /* Ensure desktop table is visible regardless of screen size */
+    .mobile-card-table {
+        display: none !important;
+    }
+    
+    .desktop-table {
+        display: table !important;
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    /* Compact header for printing */
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.5cm;
+        page-break-inside: avoid;
+    }
+    
+    .company-section {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .logo {
+        max-width: 300px;
+        height: auto;
+        margin-bottom: 10px;
+    }
+    
+    .company-details {
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+    
+    .invoice-details {
+        min-width: 4cm;
+        text-align: right;
+    }
+    
+    .invoice-info-row {
+        margin-bottom: 0.1cm;
+        font-size: 9pt;
+    }
+    
+    /* Compact invoice title */
+    .invoice-title {
+        font-size: 9pt; /* Reduced to 2/3 of original 14pt */
+        font-weight: bold;
+        margin: 0.2cm 0;
+        text-align: center;
+        transform: translateX(1cm); /* Move slightly to the right */
+    }
+    
+    /* Force side-by-side layout for client and banking info */
+    .info-section {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        margin-bottom: 0.5cm;
+        page-break-inside: avoid;
+        width: 100%;
+        align-items: stretch !important; /* Make items stretch to equal height */
+    }
+    
+    .client-info {
+        flex: 1 !important;
+        background-color: #f8f9fa !important;
+        border: 1px solid #dee2e6;
+        padding: 0.3cm;
+        border-radius: 0.2cm;
+        font-size: 9pt;
+        margin-right: 0.5cm !important;
+        width: 55% !important;
+        float: left !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important; /* Allow height to adjust to content */
+    }
+    
+    .banking-info {
+        width: 40% !important;
+        background-color: #f8f9fa !important;
+        border: 1px solid #dee2e6;
+        padding: 0.3cm;
+        border-radius: 0.2cm;
+        font-size: 9pt;
+        float: right !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important; /* Allow height to adjust to content */
+    }
+    
+    .client-info-title, .banking-info-title {
+        font-size: 10pt;
+        margin-bottom: 0.2cm;
+        font-weight: bold;
+    }
+    
+    .client-info-row, .banking-info-row {
+        margin-bottom: 0.1cm;
+    }
+    
+    .client-info-row {
+        display: flex;
+    }
+    
+    .client-info-label {
+        width: 2cm;
+        font-weight: 500;
+    }
+    
+    .client-info-value {
+        flex: 1;
+    }
+    
+    .banking-info-row {
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .banking-info-label {
+        font-weight: 500;
+    }
+    
+    .banking-info-value {
+        font-weight: bold;
+        text-align: right;
+    }
+    
+    .banking-reference {
+        margin-top: 0.2cm;
+        padding-top: 0.2cm;
+        border-top: 1px solid #dee2e6;
+        font-style: italic;
+        text-align: center;
+        font-size: 8pt;
+    }
+    
+    /* Compact table for printing */
+    .table {
+        width: 100%;
+        margin-bottom: 0.5cm;
+        border-collapse: collapse;
+    }
+    
+    .table th {
+        background-color: #f1f1f1 !important;
+        color: #000 !important;
+        padding: 0.2cm;
+        border-bottom: 1px solid #dee2e6;
+        text-align: left;
+        font-size: 9pt;
+    }
+    
+    .table td {
+        padding: 0.15cm 0.2cm;
+        border-top: 1px solid #dee2e6;
+        text-align: left;
+        font-size: 9pt;
+    }
+    
+    /* Compact cards for printing */
+    .card {
+        border: 1px solid #dee2e6;
+        margin-bottom: 0.5cm;
+        page-break-inside: avoid;
+    }
+    
+    .card-header {
+        background-color: #f8f9fa !important;
+        border-bottom: 1px solid #dee2e6;
+        padding: 0.2cm;
+        font-weight: bold;
+        font-size: 10pt;
+    }
+    
+    .card-body {
+        padding: 0.3cm;
+    }
+    
+    /* Compact totals section */
+    .totals-section {
+        margin-top: 0.3cm;
+        page-break-inside: avoid;
+    }
+    
+    .total-row {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 0.1cm;
+        font-size: 9pt;
+    }
+    
+    .total-label {
+        width: 3cm;
+        text-align: right;
+        padding-right: 0.3cm;
+        font-weight: 500;
+    }
+    
+    .total-value {
+        width: 2cm;
+        text-align: right;
+        font-weight: bold;
+    }
+    
+    /* Compact notes section */
+    .notes-section {
+        margin-top: 0.3cm;
+        font-size: 9pt;
+    }
+    
+    .customer-notes {
+        background-color: #f8f9fa !important;
+        border: 1px solid #dee2e6;
+        padding: 0.3cm;
+        border-radius: 0.2cm;
+    }
+    
+    .customer-notes-title {
+        font-size: 10pt;
+        margin-bottom: 0.2cm;
+    }
+    
+    /* Hide empty notes row in print view */
+    .notes-text-row:has(textarea:empty),
+    .notes-text-row:has(textarea:placeholder-shown),
+    .notes-text-row:has(textarea.empty-notes:not([value]):not([data-value]):not(:focus):not(:not([value]):not([data-value]):not(:placeholder-shown))) {
+        display: none !important;
+    }
+    
+    /* Hide form controls in print view */
+    select, textarea {
+        border: none !important;
+        background: transparent !important;
+        -webkit-appearance: none !important;
+        appearance: none !important;
+        padding: 0 !important;
+        resize: none !important;
+    }
+    
+    /* Remove interactive elements from print */
+    .customer-notes select,
+    .customer-notes textarea {
+        pointer-events: none !important;
+    }
+    
+    /* Avoid page breaks inside critical elements */
+    .page-break {
+        page-break-after: always;
+    }
+    
+    /* Scale down large tables if needed */
+    @page {
+        size: A4;
+        margin: 0.5cm;
+    }
+    
+    /* Push banking reference to bottom of container */
+    .banking-info {
+        position: relative !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+    }
+    
+    .banking-info-content {
+        flex: 1 !important;
+    }
+    
+    .banking-reference {
+        margin-top: 0.2cm;
+        padding-top: 0.2cm;
+        border-top: 1px solid #dee2e6;
+        font-style: italic;
+        text-align: center;
+        font-size: 8pt;
+    }
+}
+</style>
+{% endblock %}
 
 {% block title %}Invoice {{ invoice.invoice_number }} - Alpha LPGas{% endblock %}
-{% block nav_invoices %}active{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-6">
-        <h1><i class="bi bi-receipt"></i> Invoice {{ invoice.invoice_number }}</h1>
-        <p class="text-muted">{{ invoice.client.name }}</p>
+<!-- Include Django's CSRF token -->
+{% csrf_token %}
+<!-- CSRF Meta Tag for better security -->
+<meta name="csrf-token" content="{{ csrf_token }}">
+<div class="container mt-4">
+    <!-- Action Buttons -->
+    <div class="mb-4 text-end no-print">
+        <div class="btn-group" role="group">
+            <button onclick="printInvoiceWithCustomFilename()" class="btn btn-primary">
+                <i class="bi bi-printer"></i> Print
+            </button>
+            <a href="{% url 'accounting_forms:invoice_pdf' invoice.pk %}" class="btn btn-danger">
+                <i class="bi bi-file-pdf"></i> Download PDF
+            </a>
+            <a href="{% url 'accounting_forms:invoice_list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Invoices
+            </a>
+            <a href="{% url 'accounting_forms:invoice_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus"></i> New Invoice
+            </a>
+            <a href="{% url 'accounting_forms:invoice_edit' invoice.pk %}" class="btn btn-warning">
+                <i class="bi bi-pencil"></i> Edit
+            </a>
+            <a href="{% url 'accounting_forms:payment_create_for_invoice' invoice.pk %}" class="btn btn-success">
+                <i class="bi bi-cash"></i> Add Payment
+            </a>
+        </div>
     </div>
-    <div class="col-md-6 text-end">
-        <a href="{% url 'accounting_forms:invoice_pdf' invoice.pk %}" class="btn btn-danger">
-            <i class="bi bi-file-pdf"></i> Download PDF
-        </a>
-        <a href="{% url 'accounting_forms:invoice_edit' invoice.pk %}" class="btn btn-primary">
-            <i class="bi bi-pencil"></i> Edit
-        </a>
-        <a href="{% url 'accounting_forms:invoice_list' %}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Back
-        </a>
-    </div>
-</div>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Invoice Details</h5>
+    <!-- Invoice Header -->
+    <div class="header">
+        <div class="company-section">
+            <img src="{% static 'alpha-lpgas-logo.png' %}" alt="Alpha LPGas Logo" class="logo">
+            <div class="company-details">
+                Alpha LPGas<br>
+                Reg No: 2023/822513/07<br>
+                VAT No: 9415223222<br>
+                Tel: 074 454 5665<br>
+                Email: info@alphalpgas.co.za<br>
             </div>
-            <div class="card-body">
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <strong>Issue Date:</strong> {{ invoice.issue_date|date:"F d, Y" }}
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Due Date:</strong> {{ invoice.due_date|date:"F d, Y" }}
-                    </div>
+        </div>
+        <div class="invoice-details">
+            <div class="invoice-info-row">
+                <div class="invoice-info-label">Invoice No:</div>
+                <div class="invoice-info-value">{{ invoice.invoice_number }}</div>
+            </div>
+            {% if invoice.delivery_note %}
+            <div class="invoice-info-row">
+                <div class="invoice-info-label">Delivery Note:</div>
+                <div class="invoice-info-value">{{ invoice.delivery_note }}</div>
+            </div>
+            {% endif %}
+            <div class="invoice-info-row">
+                <div class="invoice-info-label">Issue Date:</div>
+                <div class="invoice-info-value">{{ invoice.issue_date }}</div>
+            </div>
+            <div class="invoice-info-row">
+                <div class="invoice-info-label">Due Date:</div>
+                <div class="invoice-info-value">{{ invoice.due_date|default:invoice.issue_date }}</div>
+            </div>
+            <div class="invoice-info-row status-row">
+                <div class="invoice-info-label">Status:</div>
+                <div class="invoice-info-value">
+                    <span class="status-badge status-{{ invoice.status }}">{{ invoice.get_status_display }}</span>
                 </div>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <strong>Status:</strong>
-                        {% if invoice.status == 'paid' %}
-                        <span class="badge bg-success">Paid</span>
-                        {% elif invoice.status == 'partially_paid' %}
-                        <span class="badge bg-info">Partially Paid</span>
-                        {% else %}
-                        <span class="badge bg-warning">{{ invoice.get_status_display }}</span>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <h6 class="mt-4">Line Items</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>Description</th>
-                                <th class="text-end">Qty</th>
-                                <th class="text-end">Unit Price</th>
-                                <th class="text-end">Tax</th>
-                                <th class="text-end">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in invoice.items.all %}
-                            <tr>
-                                <td>{{ item.description }}</td>
-                                <td class="text-end">{{ item.quantity }}</td>
-                                <td class="text-end">R {{ item.unit_price|floatformat:2 }}</td>
-                                <td class="text-end">{{ item.tax_rate }}%</td>
-                                <td class="text-end">R {{ item.total|floatformat:2 }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <td colspan="4" class="text-end"><strong>Subtotal:</strong></td>
-                                <td class="text-end">R {{ invoice.subtotal|floatformat:2 }}</td>
-                            </tr>
-                            <tr>
-                                <td colspan="4" class="text-end"><strong>Tax:</strong></td>
-                                <td class="text-end">R {{ invoice.tax_amount|floatformat:2 }}</td>
-                            </tr>
-                            <tr class="table-primary">
-                                <td colspan="4" class="text-end"><strong>Total:</strong></td>
-                                <td class="text-end"><strong>R {{ invoice.total_amount|floatformat:2 }}</strong></td>
-                            </tr>
-                            <tr class="table-success">
-                                <td colspan="4" class="text-end"><strong>Paid:</strong></td>
-                                <td class="text-end"><strong>R {{ invoice.paid_amount|floatformat:2 }}</strong></td>
-                            </tr>
-                            <tr class="table-warning">
-                                <td colspan="4" class="text-end"><strong>Balance Due:</strong></td>
-                                <td class="text-end"><strong>R {{ invoice.balance|floatformat:2 }}</strong></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-
-                {% if invoice.notes %}
-                <div class="mt-3">
-                    <strong>Notes:</strong>
-                    <p>{{ invoice.notes|linebreaks }}</p>
-                </div>
-                {% endif %}
             </div>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Payments</h5>
+    <!-- Invoice Title -->
+    <div class="invoice-title">INVOICE</div>
+
+    <!-- Client and Banking Info -->
+    <div class="info-section">
+        <!-- Client Information -->
+        <div class="client-info">
+            <div class="client-info-title">Client Information</div>
+            <div class="client-info-row">
+                <div class="client-info-label">Name:</div>
+                <div class="client-info-value">{{ invoice.client.name }}</div>
             </div>
-            <div class="card-body">
-                {% if payments %}
-                {% for payment in payments %}
-                <div class="mb-3 pb-3 border-bottom">
-                    <strong>{{ payment.payment_number }}</strong><br>
-                    <small class="text-muted">{{ payment.payment_date|date:"Y-m-d" }}</small><br>
-                    <strong class="text-success">R {{ payment.amount|floatformat:2 }}</strong><br>
-                    <small>{{ payment.get_payment_method_display }}</small>
+            {% if invoice.client.company_name %}
+            <div class="client-info-row">
+                <div class="client-info-label">Company:</div>
+                <div class="client-info-value">{{ invoice.client.company_name }}</div>
+            </div>
+            {% endif %}
+            {% if invoice.client.company_reg_no %}
+            <div class="client-info-row">
+                <div class="client-info-label">Reg. No.:</div>
+                <div class="client-info-value">{{ invoice.client.company_reg_no }}</div>
+            </div>
+            {% endif %}
+            {% if invoice.client.vat_number %}
+            <div class="client-info-row">
+                <div class="client-info-label">VAT Number:</div>
+                <div class="client-info-value">{{ invoice.client.vat_number }}</div>
+            </div>
+            {% endif %}
+            <div class="client-info-row">
+                <div class="client-info-label">Address:</div>
+                <div class="client-info-value">{{ invoice.client.address|default:'' }}</div>
+            </div>
+            <div class="client-info-row">
+                <div class="client-info-label">Phone:</div>
+                <div class="client-info-value">{{ invoice.client.phone }}</div>
+            </div>
+            <div class="client-info-row">
+                <div class="client-info-label">Email:</div>
+                <div class="client-info-value">
+                    {% if invoice.client.email %}
+                    {{ invoice.client.email }}
+                    {% else %}
+                    <span class="text-muted">No email provided</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Banking Details -->
+        <div class="banking-info">
+            <div class="banking-info-content">
+                <div class="banking-info-title">Banking Details</div>
+                <div class="banking-info-row">
+                    <div class="banking-info-label">Name:</div>
+                    <div class="banking-info-value">Alpha LPGas</div>
+                </div>
+                <div class="banking-info-row">
+                    <div class="banking-info-label">Bank:</div>
+                    <div class="banking-info-value">Nedbank</div>
+                </div>
+                <div class="banking-info-row">
+                    <div class="banking-info-label">Acc. No:</div>
+                    <div class="banking-info-value">1191 646 707</div>
+                </div>
+                <div class="banking-info-row">
+                    <div class="banking-info-label">Acc. Type:</div>
+                    <div class="banking-info-value">Current</div>
+                </div>
+                <div class="banking-info-row">
+                    <div class="banking-info-label">Branch Code:</div>
+                    <div class="banking-info-value">125009</div>
+                </div>
+            </div>
+            <div class="banking-reference">
+                <span style="color: #e01b84; font-size: 1.105em;">Please use your address as reference</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Items -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Invoice Items</h5>
+        </div>
+        <div class="card-body">
+            <!-- Desktop Table View -->
+            <table class="table desktop-table">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Description</th>
+                        <th>Quantity</th>
+                        <th style="text-align: right;">Price (incl. VAT)</th>
+                        <th style="text-align: right;">VAT</th>
+                        <th style="text-align: right;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in invoice.items.all %}
+                    <tr>
+                        <td>{{ item.product.code }}</td>
+                        <td>{{ item.description|default:item.product.name }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td style="text-align: right;">R{{ item.unit_price|floatformat:2 }}</td>
+                        <td style="text-align: right;">R{{ item.tax_amount|floatformat:2 }}</td>
+                        <td style="text-align: right;">R{{ item.total|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4"></td>
+                        <td style="text-align: right;"><strong>Total VAT:</strong></td>
+                        <td style="text-align: right;">R{{ invoice.tax_amount|floatformat:2 }}</td>
+                    </tr>
+
+                    <tr>
+                        <td colspan="4"></td>
+                        <td style="text-align: right;"><strong>Total:</strong></td>
+                        <td style="text-align: right;">R{{ invoice.total_amount|floatformat:2 }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+            
+            <!-- Mobile Card View -->
+            <div class="mobile-card-table">
+                {% for item in invoice.items.all %}
+                <div class="item-card">
+                    <div class="item-card-header">
+                        <div>{{ item.description|default:item.product.name }}</div>
+                        <div>{{ item.product.code }}</div>
+                    </div>
+                    <div class="item-card-row">
+                        <div class="item-card-label">Quantity:</div>
+                        <div class="item-card-value">{{ item.quantity }}</div>
+                    </div>
+                    <div class="item-card-row">
+                        <div class="item-card-label">Price (incl. VAT):</div>
+                        <div class="item-card-value">R{{ item.unit_price|floatformat:2 }}</div>
+                    </div>
+                    <div class="item-card-row">
+                        <div class="item-card-label">VAT:</div>
+                        <div class="item-card-value">R{{ item.tax_amount|floatformat:2 }}</div>
+                    </div>
+                    <div class="item-card-total">
+                        <div>Total:</div>
+                        <div>R{{ item.total|floatformat:2 }}</div>
+                    </div>
                 </div>
                 {% endfor %}
-                {% else %}
-                <p class="text-muted">No payments recorded</p>
-                {% endif %}
                 
-                {% if invoice.balance > 0 %}
-                <a href="{% url 'accounting_forms:payment_create_for_invoice' invoice.pk %}" class="btn btn-success btn-sm w-100">
-                    <i class="bi bi-plus-circle"></i> Record Payment
-                </a>
-                {% endif %}
+                <div class="mobile-totals">
+                    <div class="mobile-total-row">
+                        <div><strong>Total VAT:</strong></div>
+                        <div>R{{ invoice.tax_amount|floatformat:2 }}</div>
+                    </div>
+
+                    <div class="mobile-total-row mobile-grand-total">
+                        <div><strong>TOTAL:</strong></div>
+                        <div>R{{ invoice.total_amount|floatformat:2 }}</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Notes Section -->
+    <div class="notes-section">
+        <!-- Customer Notes -->
+        <div class="customer-notes">
+            <div class="customer-notes-title">Customer Notes</div>
+            {% if invoice.notes %}
+            <div class="customer-notes-row">
+                <div class="customer-notes-label">Notes</div>
+                <div class="customer-notes-value">
+                    <div class="form-control-plaintext">{{ invoice.notes|linebreaksbr }}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% if invoice.terms %}
+            <div class="customer-notes-row">
+                <div class="customer-notes-label">Terms</div>
+                <div class="customer-notes-value">
+                    <div class="form-control-plaintext">{{ invoice.terms|linebreaksbr }}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
+
+<!-- Footer Section -->
+<div class="footer-section text-center" style="margin-top: 2rem; margin-bottom: 1rem;">
+    <p style="font-family: 'Caveat', cursive; color: #e01b84; font-size: 1.56rem;">Always striving for customer satisfaction!</p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Function to get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Function to print invoice with custom filename
+    function printInvoiceWithCustomFilename() {
+        // Get invoice number and client name
+        const invoiceNumber = "{{ invoice.invoice_number }}";
+        const clientName = "{{ invoice.client.name }}";
+        
+        // Set the document title to be used as the filename when saving
+        // Format: {INV-001} - {Client Name}
+        const originalTitle = document.title;
+        document.title = `${invoiceNumber} - ${clientName}`;
+        
+        // Print the document
+        window.print();
+        
+        // Restore the original title after printing
+        setTimeout(() => {
+            document.title = originalTitle;
+        }, 1000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Create toast container for notifications
+        const toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container';
+        document.body.appendChild(toastContainer);
+
+        // Get the absolute site URL (considers any context path)
+        const siteUrl = window.location.origin;
+        const pathParts = window.location.pathname.split('/');
+        const possibleAppPaths = ['core', 'app', 'accounting'];
+        let basePath = '';
+        
+        // Check if we're in a subpath deployment
+        for (const part of pathParts) {
+            if (possibleAppPaths.includes(part)) {
+                basePath = `/${part}`;
+                break;
+            }
+        }
+        
+        console.log('Site URL:', siteUrl);
+        console.log('Base path:', basePath || 'No base path detected');
+
+        // Verify that the invoice ID is present
+        const invoiceIdElement = document.getElementById('invoice-id');
+        if (!invoiceIdElement) {
+            console.error('Invoice ID element not found. Autosave functionality will not work properly.');
+            showToast('Warning: Autosave functionality may not work properly', 'error', 5000);
+        } else {
+            console.log('Invoice ID found:', invoiceIdElement.value);
+        }
+        
+        // DEBUG MODE - Enable for verbose logging
+        const DEBUG = true;
+        
+        // Debug logger function
+        function debugLog(...args) {
+            if (DEBUG) {
+                console.log('[AUTOSAVE DEBUG]', ...args);
+            }
+        }
+        
+        debugLog('Initializing autosave functionality');
+        
+        // Function to show toast notifications
+        function showToast(message, type = 'success', duration = 3000) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icon = document.createElement('span');
+            icon.className = 'toast-icon';
+            icon.innerHTML = type === 'success' ? '✓' : '✗';
+            
+            const messageEl = document.createElement('span');
+            messageEl.className = 'toast-message';
+            messageEl.textContent = message;
+            
+            toast.appendChild(icon);
+            toast.appendChild(messageEl);
+            toastContainer.appendChild(toast);
+            
+            // Show the toast
+            setTimeout(() => {
+                toast.classList.add('visible');
+            }, 10);
+            
+            // Hide and remove the toast after duration
+            setTimeout(() => {
+                toast.classList.remove('visible');
+                setTimeout(() => {
+                    toastContainer.removeChild(toast);
+                }, 400);
+            }, duration);
+        }
+        
+        // Customer notes save functionality
+        const noteFields = document.querySelectorAll('.note-field');
+        debugLog(`Found ${noteFields.length} note fields`, noteFields);
+        
+        // List all note fields for debugging
+        noteFields.forEach((field, index) => {
+            debugLog(`Field ${index}:`, {
+                name: field.name,
+                id: field.id,
+                type: field.tagName,
+                value: field.value
+            });
+        });
+        
+        // Function to initialize note fields with proper styling and event handling
+        function initializeNoteFields() {
+            console.log('Initializing note fields...');
+            noteFields.forEach(field => {
+                // Add appropriate styling based on field content
+                if (field.tagName === 'TEXTAREA') {
+                    if (field.value.trim() === '') {
+                        field.classList.add('empty-notes');
+                    } else {
+                        field.classList.remove('empty-notes');
+                    }
+                    
+                    // Add input event to update styling when content changes
+                    field.addEventListener('input', function() {
+                        if (this.value.trim() === '') {
+                            this.classList.add('empty-notes');
+                        } else {
+                            this.classList.remove('empty-notes');
+                        }
+                    });
+                }
+                
+                // Ensure save indicators are properly initialized
+                const container = field.closest('.customer-notes-value');
+                if (container) {
+                    const indicator = container.querySelector('.save-indicator');
+                    if (indicator) {
+                        indicator.className = 'save-indicator';
+                    }
+                }
+            });
+            console.log('Note fields initialization complete');
+        }
+        
+        // Enhanced CSRF token handling
+        function getCsrfToken() {
+            // Try different methods to get the CSRF token
+            // First try to get it from meta tag (fastest)
+            let token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            if (token && token !== '{{ csrf_token }}' && token.length > 10) {
+                debugLog('CSRF token found in meta tag');
+                return token;
+            }
+            
+            // Next try the hidden input field
+            token = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+            if (token && token.length > 10) {
+                debugLog('CSRF token found in hidden input field');
+                return token;
+            }
+            
+            // Create a hidden input with the csrf token if it doesn't exist
+            const csrfToken = '{{ csrf_token }}';
+            if (csrfToken && csrfToken.length > 10 && csrfToken !== 'None') {
+                debugLog('Creating hidden input field with Django-provided CSRF token');
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'csrfmiddlewaretoken';
+                input.value = csrfToken;
+                document.body.appendChild(input);
+                return csrfToken;
+            }
+            
+            // Get from cookie as a last resort
+            const cookies = document.cookie.split(';');
+            debugLog('Searching for CSRF token in cookies:', cookies);
+            
+            for (const cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrftoken') {
+                    debugLog('CSRF token found in cookies');
+                    return value;
+                }
+            }
+            
+            debugLog('No CSRF token found, using Django template token');
+            return '{{ csrf_token }}';
+        }
+        
+        const csrfToken = getCsrfToken();
+        debugLog('CSRF Token:', csrfToken ? 'Valid token found' : 'No valid token');
+        
+        // Validate CSRF token
+        if (!csrfToken || csrfToken === 'None' || csrfToken === '') {
+            console.error('CSRF token not found. Autosave will not work.');
+            showToast('Error: CSRF token missing. Autosave disabled.', 'error', 5000);
+        } else {
+            console.log('CSRF token found and ready for use');
+        }
+        
+        // Show autosave status indicators
+        const autosaveStatus = document.getElementById('autosave-status');
+        const autosaveStatusPayment = document.getElementById('autosave-status-payment');
+        if (autosaveStatus) {
+            autosaveStatus.style.display = 'block';
+        }
+        if (autosaveStatusPayment) {
+            autosaveStatusPayment.style.display = 'block';
+        }
+        
+        // Add a hidden CSRF token field if it doesn't exist
+        if (!document.querySelector('[name=csrfmiddlewaretoken]')) {
+            const csrfField = document.createElement('input');
+            csrfField.type = 'hidden';
+            csrfField.name = 'csrfmiddlewaretoken';
+            csrfField.value = csrfToken;
+            document.body.appendChild(csrfField);
+        }
+        
+        // Track field changes to avoid unnecessary saves
+        const fieldValues = {};
+        noteFields.forEach(field => {
+            fieldValues[field.name] = field.value;
+            debugLog(`Initialized field value for ${field.name}:`, field.value);
+        });
+        
+        // Create debounced version of saveField for text inputs (delay of 1 second)
+        const debouncedSave = debounce(function(field) {
+            saveField(field);
+        }, 1000);
+        
+        // Add a hidden CSRF token field if it doesn't exist - this is important for AJAX
+        if (!document.querySelector('[name=csrfmiddlewaretoken]')) {
+            debugLog('Creating hidden CSRF token field');
+            const csrfField = document.createElement('input');
+            csrfField.type = 'hidden';
+            csrfField.name = 'csrfmiddlewaretoken';
+            csrfField.value = csrfToken;
+            document.querySelector('form') ? 
+                document.querySelector('form').appendChild(csrfField) : 
+                document.body.appendChild(csrfField);
+            debugLog('Hidden CSRF token field created');
+        }
+        
+        // Set up debounce function to limit API calls
+        function debounce(func, wait) {
+            let timeout;
+            return function() {
+                const context = this;
+                const args = arguments;
+                debugLog(`Debouncing function call, will execute in ${wait}ms`);
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    debugLog('Executing debounced function');
+                    func.apply(context, args);
+                }, wait);
+            };
+        }
+        
+        // Track save attempts and retries
+        const saveAttempts = {};
+        const MAX_RETRIES = 3;
+        const RETRY_DELAY = 2000; // 2 seconds
+        
+        // Function to save changes to a field with retry logic
+        function saveField(field, isRetry = false) {
+            // Log the save attempt for debugging
+            console.log(`Attempting to save field: ${field.name}, value: ${field.value}, isRetry: ${isRetry}`);
+            
+            // Check if value has actually changed
+            if (!isRetry && fieldValues[field.name] === field.value) {
+                console.log(`No change detected for ${field.name}, skipping save`);
+                return; // No change, don't save
+            }
+            
+            // Reset retry count for field if this is a new save (not a retry)
+            if (!isRetry) {
+                saveAttempts[field.name] = 0;
+            }
+            
+            // Increment retry counter
+            saveAttempts[field.name]++;
+            
+            // Debug log field change
+            debugLog(`Field "${field.name}" value changed:`, {
+                'old': fieldValues[field.name],
+                'new': field.value,
+                'changed': fieldValues[field.name] !== field.value,
+                'attempt': saveAttempts[field.name]
+            });
+            
+            // Update stored value (only on first attempt)
+            if (saveAttempts[field.name] === 1) {
+                fieldValues[field.name] = field.value;
+            }
+            
+            const fieldName = field.name;
+            const fieldValue = field.value;
+            const indicator = field.parentElement.querySelector('.save-indicator');
+            
+            if (!indicator) {
+                console.error(`Save indicator not found for field ${fieldName}`);
+                showToast(`Error: Save indicator missing for ${fieldName}`, 'error');
+                return;
+            }
+            
+            // Remove any retry button
+            const existingRetryButton = field.parentElement.querySelector('.retry-button');
+            if (existingRetryButton) {
+                existingRetryButton.remove();
+            }
+            
+            // Add saving styles
+            field.classList.add('saving');
+            indicator.className = 'save-indicator saving visible';
+            debugLog(`Added saving styles to field "${fieldName}"`);
+            
+            // Ensure we have the invoice ID
+            const invoiceId = document.getElementById('invoice-id')?.value || '{{ invoice.id }}';
+            debugLog('Invoice ID:', invoiceId);
+            
+            if (!invoiceId) {
+                console.error('Cannot save: Missing invoice ID');
+                field.classList.remove('saving');
+                indicator.className = 'save-indicator error visible';
+                showToast('Error: Could not save changes - missing invoice ID', 'error');
+                setTimeout(() => {
+                    indicator.className = 'save-indicator';
+                }, 3000);
+                return;
+            }
+            
+            // Prepare the data for the API call
+            const data = {};
+            
+            // Special handling for cylinders_collected to ensure it's sent as an integer
+            if (fieldName === 'cylinders_collected') {
+                // Use the stored numeric value if available
+                if (field._numericValue !== undefined) {
+                    data[fieldName] = field._numericValue;
+                    console.log(`Using pre-parsed numeric value for cylinders_collected: ${data[fieldName]}`);
+                } else {
+                    // Fallback to parsing the string value
+                    data[fieldName] = parseInt(fieldValue, 10);
+                    console.log(`Converting cylinders_collected from string '${fieldValue}' to integer ${data[fieldName]}`);
+                }
+                
+                // Ensure we're sending a valid number
+                if (isNaN(data[fieldName])) {
+                    console.error(`Failed to convert cylinders_collected to a valid number: '${fieldValue}'`);
+                    showError(`Failed to save cylinders collected: Invalid number format`);
+                    return;
+                }
+            } else {
+                data[fieldName] = fieldValue;
+            }
+            
+            // Log for debugging
+            console.log(`Saving field ${fieldName} with value:`, fieldValue);
+            
+            // Status indicator for the specific field type
+            let statusText = '';
+            let statusElement = null;
+            
+            if (fieldName === 'notes') {
+                statusElement = document.getElementById('autosave-status');
+                statusText = 'Saving notes...';
+            } else if (fieldName === 'payment_method') {
+                statusElement = document.getElementById('autosave-status-payment');
+                statusText = 'Saving payment method...';
+            } else if (fieldName === 'cylinders_collected') {
+                statusElement = document.getElementById('autosave-status-cylinders');
+                statusText = 'Saving cylinders collected...';
+            }
+            
+            if (statusElement) {
+                statusElement.style.display = 'block'; // Ensure it's visible
+                statusElement.textContent = `${statusText} ${isRetry ? '(Retry attempt ' + saveAttempts[fieldName] + ')' : ''}`;
+                statusElement.className = 'autosave-status saving-text small mt-2';
+            }
+            
+            // Refresh CSRF token before making the request
+            const freshCsrfToken = getCsrfToken();
+            
+            // Build the API URL - simplified approach for reliability
+            let apiUrl = `/api/invoices/${invoiceId}/update-notes/`;
+            
+            // Log the constructed URL
+            console.log(`API URL for saving ${fieldName}: ${apiUrl}`);
+            
+            // Ensure we're using an absolute URL if needed
+            if (window.location.pathname.includes('/invoices/')) {
+                // Extract the base path from the current URL
+                const currentPath = window.location.pathname;
+                const invoicesIndex = currentPath.indexOf('/invoices/');
+                if (invoicesIndex > 0) {
+                    const basePath = currentPath.substring(0, invoicesIndex);
+                    apiUrl = `${basePath}/api/invoices/${invoiceId}/update-notes/`;
+                    console.log(`Using base path from current URL: ${basePath}`);
+                }
+            }
+            
+            debugLog('Possible API URLs:', []);
+            debugLog('Selected API URL:', apiUrl);
+            debugLog('Request data:', data);
+            
+            // Record start time for performance logging
+            const startTime = Date.now();
+            
+            // Try using a direct form POST as an alternative method if fetch doesn't work
+            if (DEBUG) {
+                // Create a fallback image ping for diagnostics (doesn't actually save data)
+                const diagnosticUrl = `/api/diagnostics/ping?field=${encodeURIComponent(fieldName)}&value=${encodeURIComponent(fieldValue)}&time=${Date.now()}`;
+                const img = new Image();
+                img.src = diagnosticUrl;
+                debugLog('Diagnostic ping sent to:', diagnosticUrl);
+            }
+            
+            debugLog('Sending AJAX request to', apiUrl);
+            debugLog('Headers:', {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken ? 'Set' : 'Missing'
+            });
+
+            // Make the actual fetch request
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': freshCsrfToken,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest' // Helps some servers identify AJAX requests
+                },
+                body: JSON.stringify(data),
+                credentials: 'same-origin' // Include cookies for CSRF authentication
+            })
+            .then(response => {
+                // Log response status and timing
+                const requestTime = Date.now() - startTime;
+                console.log(`API response received in ${requestTime}ms with status: ${response.status}`);
+                // Check if the response is OK (status in 200-299 range)
+                if (!response.ok) {
+                    console.error(`Server error: ${response.status} ${response.statusText}`);
+                    
+                    // Handle different types of errors based on status code
+                    return response.text().then(errorText => {
+                        console.error(`Error saving ${fieldName}:`, errorText);
+                        
+                        // Try to parse the error response as JSON
+                        let errorDetails = '';
+                        try {
+                            const errorJson = JSON.parse(errorText);
+                            if (errorJson.error) {
+                                errorDetails = errorJson.error;
+                                if (errorJson.details) {
+                                    errorDetails += ` (${errorJson.details})`;
+                                }
+                            }
+                        } catch (e) {
+                            // If not JSON, use the raw text
+                            errorDetails = errorText;
+                        }
+                        
+                        // Show a user-friendly error message
+                        showError(`Failed to save ${fieldName.replace('_', ' ')}: ${errorDetails}`, fieldName);
+                        
+                        throw new Error(`Server error (${response.status}): ${response.statusText}`);
+                    });
+                }
+                
+                // If response is OK, try to parse it as JSON
+                return response.json().catch(jsonError => {
+                    console.error('Error parsing JSON response:', jsonError);
+                    throw new Error('Invalid response format from server');
+                });
+            })
+            .then(data => {
+                // Log the complete response data in a collapsed group for easy debugging
+                console.groupCollapsed('API Response Data');
+                console.log(data);
+                console.groupEnd();
+                
+                // Remove saving styles
+                field.classList.remove('saving');
+                
+                if (data.success) {
+                    // Show success indicator
+                    indicator.className = 'save-indicator saved visible';
+                    
+                    // Update status text
+                    if (statusElement) {
+                        statusElement.textContent = 'Changes saved successfully';
+                        statusElement.className = 'autosave-status text-success small mt-2';
+                        
+                        // Reset after delay
+                        setTimeout(() => {
+                            statusElement.textContent = 'Changes will be saved automatically';
+                            statusElement.className = 'autosave-status text-muted small mt-2';
+                        }, 3000);
+                    }
+                    
+                    // Remove the indicator after 2 seconds
+                    setTimeout(() => {
+                        indicator.className = 'save-indicator';
+                    }, 2000);
+                    
+                    // Show success toast for significant fields
+                    if (fieldName === 'notes' && fieldValue.length > 0) {
+                        showToast('Notes saved successfully', 'success');
+                    } else if (fieldName === 'payment_method') {
+                        const methodLabels = {
+                            'eft': 'EFT',
+                            'card': 'Card',
+                            'cash': 'Cash'
+                        };
+                        const methodLabel = methodLabels[fieldValue] || fieldValue;
+                        showToast(`Payment method updated to ${methodLabel}`, 'success');
+                    } else if (fieldName === 'cylinders_collected') {
+                        showToast(`Cylinders collected updated to ${fieldValue}`, 'success');
+                    }
+                } else {
+                    // Show error indicator
+                    indicator.className = 'save-indicator error visible';
+                    console.error('Error saving field:', data.error);
+                    
+                    // Update status text
+                    if (statusElement) {
+                        statusElement.textContent = 'Error saving changes';
+                        statusElement.className = 'autosave-status text-danger small mt-2';
+                        
+                        // Reset after delay
+                        setTimeout(() => {
+                            statusElement.textContent = 'Changes will be saved automatically';
+                            statusElement.className = 'autosave-status text-muted small mt-2';
+                        }, 5000);
+                    }
+                    
+                    // Show error toast with details if available
+                    const errorMessage = data.details || data.error || 'Unknown error';
+                    showToast(`Error saving ${fieldName}: ${errorMessage}`, 'error');
+                    
+                    // Reset the field value to original if save failed
+                    field.value = fieldValues[fieldName];
+                    
+                    // Remove the indicator after 3 seconds
+                    setTimeout(() => {
+                        indicator.className = 'save-indicator';
+                    }, 3000);
+                }
+            })
+            .catch(error => {
+                // Log detailed error information
+                console.group('API Request Error');
+                console.error('Error object:', error);
+                console.error('Error message:', error.message);
+                console.error('Requested URL:', apiUrl);
+                console.error('Request data:', data);
+                console.error('Attempt:', saveAttempts[fieldName]);
+                console.groupEnd();
+                
+                // Remove saving styles
+                field.classList.remove('saving');
+                
+                // Show error indicator
+                indicator.className = 'save-indicator error visible';
+                
+                // Check if we should retry
+                if (saveAttempts[fieldName] < MAX_RETRIES) {
+                    // Show retry status
+                    if (statusElement) {
+                        statusElement.textContent = `Save failed. Retrying in ${RETRY_DELAY/1000} seconds...`;
+                        statusElement.className = 'autosave-status text-warning small mt-2';
+                    }
+                    
+                    // Auto-retry after delay
+                    setTimeout(() => {
+                        debugLog(`Auto-retrying save for ${fieldName}, attempt ${saveAttempts[fieldName] + 1}`);
+                        saveField(field, true); // Pass true to indicate this is a retry
+                    }, RETRY_DELAY);
+                    
+                    return;
+                }
+                
+                // If we've reached max retries, reset field to previous value
+                field.value = fieldValues[field.name];
+                
+                // Add a manual retry button
+                const retryButton = document.createElement('button');
+                retryButton.textContent = 'Retry';
+                retryButton.className = 'retry-button';
+                retryButton.onclick = (e) => {
+                    e.preventDefault();
+                    saveAttempts[fieldName] = 0; // Reset retry count
+                    saveField(field, false); // Try again
+                    retryButton.remove();
+                };
+                field.parentElement.appendChild(retryButton);
+                
+                // Update status text
+                if (statusElement) {
+                    statusElement.textContent = 'Error saving changes';
+                    statusElement.className = 'autosave-status text-danger small mt-2';
+                    
+                    // Reset after delay
+                    setTimeout(() => {
+                        statusElement.textContent = 'Changes will be saved automatically';
+                        statusElement.className = 'autosave-status text-muted small mt-2 fade-out';
+                    }, 5000);
+                }
+                
+                // Get response status if available
+                let statusCode = null;
+                if (error.response) {
+                    statusCode = error.response.status;
+                }
+                
+                // Show error toast with appropriate message
+                const errorMsg = error.message || 'Failed to save changes';
+                let toastMessage = `Error saving changes: ${errorMsg}`;
+                
+                // Check if it's a network error
+                if (!navigator.onLine || error.name === 'NetworkError') {
+                    toastMessage = 'Network error: Please check your internet connection';
+                }
+                // Handle CSRF failure specially
+                else if (statusCode === 403 || errorMsg.includes('CSRF') || errorMsg.includes('csrf')) {
+                    toastMessage = 'Your session has expired. The page will refresh to restore your session.';
+                    showToast(toastMessage, 'error', 3000);
+                    
+                    console.error('CSRF validation failed. Refreshing page in 3 seconds');
+                    
+                    // Reload the page after a delay to get a fresh CSRF token
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                    return;
+                }
+                // Handle URL-related errors
+                else if (errorMsg.includes('API endpoint not found') || errorMsg.includes('URL')) {
+                    toastMessage = 'Configuration error: API endpoint not found. Please contact support.';
+                }
+                
+                showToast(toastMessage, 'error');
+                
+                // Remove the indicator after 3 seconds
+                setTimeout(() => {
+                    indicator.className = 'save-indicator';
+                }, 3000);
+            });
+        }
+        
+        // Set up event listeners for each note field
+        noteFields.forEach(field => {
+            if (field.tagName === 'TEXTAREA') {
+                field.addEventListener('input', function() {
+                    debouncedSave(this);
+                });
+                
+                // Also save on blur for immediate save when field loses focus
+                field.addEventListener('blur', function() {
+                    if (fieldValues[this.name] !== this.value) {
+                        saveField(this);
+                    }
+                });
+                
+                // Add placeholder text for better UX
+                if (!field.placeholder) {
+                    field.placeholder = "Enter notes here...";
+                }
+            } else if (field.tagName === 'SELECT') {
+                // Special handling for cylinders_collected field
+                if (field.name === 'cylinders_collected') {
+                    console.log(`Setting up event listener for cylinders_collected select field`);
+                    field.addEventListener('change', function() {
+                        console.log(`Cylinders collected changed to: ${this.value} (${typeof this.value})`);
+                        // Ensure we're sending a number, not a string
+                        const numValue = parseInt(this.value, 10);
+                        console.log(`Parsed value: ${numValue} (${typeof numValue})`);
+                        // Store the parsed value back in the field for saving
+                        this._numericValue = numValue;
+                        saveField(this);
+                    });
+                } else {
+                    field.addEventListener('change', function() {
+                        saveField(this);
+                    });
+                }
+            }
+            
+            // Add tooltip for form fields
+            field.title = "Changes are saved automatically";
+        });
+        
+        // Function to show error messages to the user
+        function showError(message, fieldName = null) {
+            console.error(message);
+            
+            // Display error message to the user
+            const errorElement = document.createElement('div');
+            errorElement.className = 'alert alert-danger mt-2 p-2';
+            errorElement.style.fontSize = '0.85rem';
+            errorElement.textContent = message;
+            
+            // Find the appropriate place to show the error
+            if (fieldName) {
+                const field = document.querySelector(`[name="${fieldName}"]`);
+                if (field) {
+                    // Find the parent container and append the error
+                    const container = field.closest('.customer-notes-value');
+                    if (container) {
+                        // Remove any existing error messages
+                        const existingErrors = container.querySelectorAll('.alert-danger');
+                        existingErrors.forEach(el => el.remove());
+                        
+                        // Add the new error message
+                        container.appendChild(errorElement);
+                        
+                        // Auto-remove after 5 seconds
+                        setTimeout(() => {
+                            errorElement.remove();
+                        }, 5000);
+                        return;
+                    }
+                }
+            }
+            
+            // Fallback: Show at the top of the notes section
+            const notesSection = document.querySelector('.customer-notes-section');
+            if (notesSection) {
+                // Remove any existing error messages
+                const existingErrors = notesSection.querySelectorAll('.alert-danger');
+                existingErrors.forEach(el => el.remove());
+                
+                // Add the new error message at the top
+                notesSection.insertBefore(errorElement, notesSection.firstChild);
+                
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    errorElement.remove();
+                }, 5000);
+            }
+        }
+        
+        // Initialize the note fields
+        initializeNoteFields();
+        
+        // Hide initial autosave messages after 3 seconds
+        const autoSaveMessages = document.querySelectorAll('.autosave-status');
+        autoSaveMessages.forEach(message => {
+            if (message.textContent === 'Changes will be saved automatically') {
+                message.classList.add('fade-out');
+            }
+        });
+        
+        // WhatsApp sharing functionality with Google Drive integration
+        $('.whatsapp-share').on('click', function(e) {
+            e.preventDefault();
+            
+            const invoiceId = $(this).data('invoice');
+            const clientName = $(this).data('client');
+            const invoiceNumber = $(this).data('number');
+            const invoiceAmount = $(this).data('amount');
+            const clientId = $(this).data('client-id');
+            const clientPhone = $(this).data('client-phone');
+            
+            console.log('WhatsApp share clicked for invoice');
+            
+            // Show a loading toast
+            showToast('Preparing invoice for WhatsApp and Google Drive...', 'info');
+            
+            // Call our new API endpoint to save PDF to Google Drive
+            $.ajax({
+                url: '/api/whatsapp-share/invoice/' + invoiceId + '/',
+                method: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    if (data.success) {
+                        // Get the message template with placeholders replaced
+                        let message = data.template;
+                        
+                        // Google Drive functionality is still used for saving, but link is not added to message
+                        if (data.google_drive && data.google_drive.success) {
+                            showToast('Invoice saved to Google Drive', 'success');
+                        } else if (data.google_drive && !data.google_drive.success) {
+                            console.warn('Google Drive upload failed:', data.google_drive.error);
+                            showToast('Google Drive upload failed: ' + data.google_drive.error, 'warning');
+                        }
+                        
+                        // Handle phone number formatting
+                        let phone = clientPhone ? clientPhone.trim() : '';
+                        
+                        if (!phone) {
+                            // Default to no phone number - will just create a WhatsApp message without a recipient
+                            console.log('No phone number available for client');
+                        } else {
+                            // Format the phone number for WhatsApp (remove spaces, ensure it starts with country code)
+                            phone = phone.replace(/\s+/g, '');
+                            if (!phone.startsWith('+')) phone = '+27' + phone.replace(/^0/, '');
+                        }
+                        
+                        // Create WhatsApp URL with the client's phone number if available
+                        let whatsappUrl;
+                        if (phone) {
+                            whatsappUrl = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(message);
+                        } else {
+                            // If no phone number, just create a generic WhatsApp share
+                            whatsappUrl = 'https://wa.me/?text=' + encodeURIComponent(message);
+                        }
+                        
+                        // Open WhatsApp in a new window
+                        const newWindow = window.open(whatsappUrl, '_blank');
+                        
+                        if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                            // Show toast notification instead of alert
+                            showToast('Please allow pop-ups to open WhatsApp.', 'warning');
+                        } else {
+                            showToast('WhatsApp opened successfully', 'success');
+                        }
+                    } else {
+                        console.error('Error preparing WhatsApp share:', data.error);
+                        showToast('Error: ' + data.error, 'error');
+                    }
+                },
+                error: function(error) {
+                    console.error('Error with WhatsApp share API:', error);
+                    showToast('Could not prepare WhatsApp message', 'error');
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

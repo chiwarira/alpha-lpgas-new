@@ -157,6 +157,33 @@ class Quote(models.Model):
     def __str__(self):
         return f"Quote {self.quote_number} - {self.client.name}"
 
+    def save(self, *args, **kwargs):
+        """Override save to auto-generate quote number"""
+        if not self.quote_number:
+            # Generate quote number: QT-YYYYMMDD-XXX
+            from datetime import date
+            today = date.today()
+            prefix = f"QT-{today.strftime('%Y%m%d')}"
+            
+            # Get the last quote number for today
+            last_quote = Quote.objects.filter(
+                quote_number__startswith=prefix
+            ).order_by('quote_number').last()
+            
+            if last_quote:
+                # Extract the sequence number and increment
+                try:
+                    last_seq = int(last_quote.quote_number.split('-')[-1])
+                    new_seq = last_seq + 1
+                except (ValueError, IndexError):
+                    new_seq = 1
+            else:
+                new_seq = 1
+            
+            self.quote_number = f"{prefix}-{new_seq:03d}"
+        
+        super().save(*args, **kwargs)
+
     def calculate_totals(self):
         """Calculate subtotal, VAT, and total from line items (VAT-inclusive)"""
         items = self.items.all()
@@ -223,7 +250,30 @@ class Invoice(models.Model):
         return f"Invoice {self.invoice_number} - {self.client.name}"
 
     def save(self, *args, **kwargs):
-        """Override save to ensure balance is calculated"""
+        """Override save to auto-generate invoice number and calculate balance"""
+        if not self.invoice_number:
+            # Generate invoice number: INV-YYYYMMDD-XXX
+            from datetime import date
+            today = date.today()
+            prefix = f"INV-{today.strftime('%Y%m%d')}"
+            
+            # Get the last invoice number for today
+            last_invoice = Invoice.objects.filter(
+                invoice_number__startswith=prefix
+            ).order_by('invoice_number').last()
+            
+            if last_invoice:
+                # Extract the sequence number and increment
+                try:
+                    last_seq = int(last_invoice.invoice_number.split('-')[-1])
+                    new_seq = last_seq + 1
+                except (ValueError, IndexError):
+                    new_seq = 1
+            else:
+                new_seq = 1
+            
+            self.invoice_number = f"{prefix}-{new_seq:03d}"
+        
         self.balance = self.total_amount - self.paid_amount
         super().save(*args, **kwargs)
 
@@ -272,7 +322,6 @@ class Payment(models.Model):
         ('cash', 'Cash'),
         ('card', 'Card'),
         ('eft', 'EFT'),
-        ('yoco', 'YOCO'),
     ]
 
     payment_number = models.CharField(max_length=50, unique=True)
@@ -293,6 +342,30 @@ class Payment(models.Model):
         return f"Payment {self.payment_number} - {self.amount}"
 
     def save(self, *args, **kwargs):
+        """Override save to auto-generate payment number"""
+        if not self.payment_number:
+            # Generate payment number: PAY-YYYYMMDD-XXX
+            from datetime import date
+            today = date.today()
+            prefix = f"PAY-{today.strftime('%Y%m%d')}"
+            
+            # Get the last payment number for today
+            last_payment = Payment.objects.filter(
+                payment_number__startswith=prefix
+            ).order_by('payment_number').last()
+            
+            if last_payment:
+                # Extract the sequence number and increment
+                try:
+                    last_seq = int(last_payment.payment_number.split('-')[-1])
+                    new_seq = last_seq + 1
+                except (ValueError, IndexError):
+                    new_seq = 1
+            else:
+                new_seq = 1
+            
+            self.payment_number = f"{prefix}-{new_seq:03d}"
+        
         super().save(*args, **kwargs)
         # Update invoice paid amount and status
         self.invoice.paid_amount = sum(p.amount for p in self.invoice.payments.all())
@@ -327,6 +400,33 @@ class CreditNote(models.Model):
 
     def __str__(self):
         return f"Credit Note {self.credit_note_number} - {self.client.name}"
+
+    def save(self, *args, **kwargs):
+        """Override save to auto-generate credit note number"""
+        if not self.credit_note_number:
+            # Generate credit note number: CN-YYYYMMDD-XXX
+            from datetime import date
+            today = date.today()
+            prefix = f"CN-{today.strftime('%Y%m%d')}"
+            
+            # Get the last credit note number for today
+            last_cn = CreditNote.objects.filter(
+                credit_note_number__startswith=prefix
+            ).order_by('credit_note_number').last()
+            
+            if last_cn:
+                # Extract the sequence number and increment
+                try:
+                    last_seq = int(last_cn.credit_note_number.split('-')[-1])
+                    new_seq = last_seq + 1
+                except (ValueError, IndexError):
+                    new_seq = 1
+            else:
+                new_seq = 1
+            
+            self.credit_note_number = f"{prefix}-{new_seq:03d}"
+        
+        super().save(*args, **kwargs)
 
     def calculate_totals(self):
         """Calculate subtotal, VAT, and total from line items (VAT-inclusive)"""

@@ -132,8 +132,7 @@ class QuoteForm(forms.ModelForm):
     class Meta:
         model = Quote
         fields = [
-            'client', 'issue_date', 'expiry_date', 'status',
-            'terms', 'notes'
+            'client', 'issue_date', 'expiry_date', 'status', 'terms', 'notes'
         ]
         widgets = {
             'client': forms.Select(attrs={
@@ -169,30 +168,18 @@ class QuoteItemForm(forms.ModelForm):
     
     class Meta:
         model = QuoteItem
-        fields = ['product', 'description', 'quantity', 'unit_price', 'tax_rate']
+        fields = ['product', 'quantity']
         widgets = {
             'product': forms.Select(attrs={
-                'class': 'form-select'
-            }),
-            'description': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Item description'
+                'class': 'form-select product-select',
+                'required': True
             }),
             'quantity': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': '1',
-                'step': '0.01',
-                'min': '0.01'
-            }),
-            'unit_price': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'placeholder': '0.00',
-                'step': '0.01'
-            }),
-            'tax_rate': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'value': '15.00',
-                'step': '0.01'
+                'step': '1',
+                'min': '1',
+                'value': '1'
             }),
         }
 
@@ -240,30 +227,18 @@ class InvoiceItemForm(forms.ModelForm):
     
     class Meta:
         model = InvoiceItem
-        fields = ['product', 'description', 'quantity', 'unit_price', 'tax_rate']
+        fields = ['product', 'quantity']
         widgets = {
             'product': forms.Select(attrs={
-                'class': 'form-select'
-            }),
-            'description': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Item description'
+                'class': 'form-select product-select',
+                'required': True
             }),
             'quantity': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': '1',
-                'step': '0.01',
-                'min': '0.01'
-            }),
-            'unit_price': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'placeholder': '0.00',
-                'step': '0.01'
-            }),
-            'tax_rate': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'value': '15.00',
-                'step': '0.01'
+                'step': '1',
+                'min': '1',
+                'value': '1'
             }),
         }
 

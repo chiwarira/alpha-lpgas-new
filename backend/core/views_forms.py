@@ -3,7 +3,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponse
 from django.db import transaction
-from .models import Client, Product, Quote, Invoice, Payment, CreditNote
+from django.db.models import Sum
+from django.views.decorators.http import require_http_methods
+from datetime import date, timedelta
+from .models import Client, Product, Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote
 from .forms import (
     ClientForm, ProductForm, QuoteForm, QuoteItemFormSet,
     InvoiceForm, InvoiceItemFormSet, PaymentForm,
@@ -14,9 +17,28 @@ from .forms import (
 # Client Views
 @login_required
 def client_list(request):
-    """List all clients"""
-    clients = Client.objects.all().order_by('-created_at')
-    return render(request, 'core/client_list.html', {'clients': clients})
+    """List all clients with search functionality"""
+    search_query = request.GET.get('search', '')
+    
+    clients = Client.objects.all()
+    
+    if search_query:
+        from django.db.models import Q
+        clients = clients.filter(
+            Q(name__icontains=search_query) |
+            Q(customer_id__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(phone__icontains=search_query) |
+            Q(city__icontains=search_query) |
+            Q(address__icontains=search_query)
+        )
+    
+    clients = clients.order_by('-created_at')
+    
+    return render(request, 'core/client_list.html', {
+        'clients': clients,
+        'search_query': search_query
+    })
 
 
 @login_required
@@ -27,7 +49,7 @@ def client_create(request):
         if form.is_valid():
             client = form.save()
             messages.success(request, f'Client "{client.name}" created successfully!')
-            return redirect('client_detail', pk=client.pk)
+            return redirect('accounting_forms:client_detail', pk=client.pk)
     else:
         form = ClientForm()
     
@@ -47,7 +69,7 @@ def client_edit(request, pk):
         if form.is_valid():
             client = form.save()
             messages.success(request, f'Client "{client.name}" updated successfully!')
-            return redirect('client_detail', pk=client.pk)
+            return redirect('accounting_forms:client_detail', pk=client.pk)
     else:
         form = ClientForm(instance=client)
     
@@ -72,6 +94,177 @@ def client_detail(request, pk):
     })
 
 
+@login_required
+def client_statement(request, pk):
+    """Generate client statement for a date range"""
+    client = get_object_or_404(Client, pk=pk)
+    
+    if request.method == 'POST':
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+        action = request.POST.get('action', 'preview')
+        
+        if start_date and end_date:
+            from datetime import datetime
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            
+            if action == 'download':
+                # Generate PDF statement
+                from .pdf_generator import generate_client_statement_pdf
+                pdf = generate_client_statement_pdf(client, start_date, end_date)
+                
+                response = HttpResponse(pdf, content_type='application/pdf')
+                response['Content-Disposition'] = f'attachment; filename="statement_{client.customer_id}_{start_date}_{end_date}.pdf"'
+                return response
+            else:
+                # Preview statement
+                return redirect('accounting_forms:client_statement_preview', pk=pk, start_date=start_date.strftime('%Y-%m-%d'), end_date=end_date.strftime('%Y-%m-%d'))
+    
+    # Default date range: current month
+    from datetime import date
+    today = date.today()
+    start_of_month = date(today.year, today.month, 1)
+    
+    return render(request, 'core/client_statement_form.html', {
+        'client': client,
+        'default_start': start_of_month,
+        'default_end': today
+    })
+
+
+@login_required
+def client_statement_preview(request, pk, start_date, end_date):
+    """Preview client statement before downloading"""
+    from datetime import datetime
+    from decimal import Decimal
+    
+    client = get_object_or_404(Client, pk=pk)
+    start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+    end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+    
+    # Calculate balance brought forward
+    balance_bf_invoices = Invoice.objects.filter(
+        client=client,
+        issue_date__lt=start_date
+    )
+    
+    balance_bf = Decimal('0.00')
+    for inv in balance_bf_invoices:
+        balance_bf += inv.balance
+    
+    # Get all transactions in the period
+    invoices = Invoice.objects.filter(
+        client=client,
+        issue_date__gte=start_date,
+        issue_date__lte=end_date
+    ).order_by('issue_date')
+    
+    payments = Payment.objects.filter(
+        invoice__client=client,
+        payment_date__gte=start_date,
+        payment_date__lte=end_date
+    ).order_by('payment_date')
+    
+    credit_notes = CreditNote.objects.filter(
+        client=client,
+        issue_date__gte=start_date,
+        issue_date__lte=end_date
+    ).order_by('issue_date')
+    
+    # Combine and sort all transactions
+    transactions = []
+    
+    for inv in invoices:
+        transactions.append({
+            'date': inv.issue_date,
+            'type': 'invoice',
+            'description': 'Invoice',
+            'reference': inv.invoice_number,
+            'debit': inv.total_amount,
+            'credit': Decimal('0.00'),
+            'object': inv
+        })
+    
+    for pmt in payments:
+        transactions.append({
+            'date': pmt.payment_date,
+            'type': 'payment',
+            'description': f'Payment - {pmt.get_payment_method_display()}',
+            'reference': pmt.payment_number,
+            'debit': Decimal('0.00'),
+            'credit': pmt.amount,
+            'object': pmt
+        })
+    
+    for cn in credit_notes:
+        transactions.append({
+            'date': cn.issue_date,
+            'type': 'credit_note',
+            'description': 'Credit Note',
+            'reference': cn.credit_note_number,
+            'debit': Decimal('0.00'),
+            'credit': cn.total_amount,
+            'object': cn
+        })
+    
+    # Sort by date
+    transactions.sort(key=lambda x: x['date'])
+    
+    # Calculate running balance
+    running_balance = balance_bf
+    for trans in transactions:
+        running_balance += trans['debit'] - trans['credit']
+        trans['balance'] = running_balance
+    
+    # Calculate totals
+    total_invoices = sum(t['debit'] for t in transactions)
+    total_credits = sum(t['credit'] for t in transactions)
+    
+    return render(request, 'core/client_statement_preview.html', {
+        'client': client,
+        'start_date': start_date,
+        'end_date': end_date,
+        'balance_bf': balance_bf,
+        'transactions': transactions,
+        'total_invoices': total_invoices,
+        'total_credits': total_credits,
+        'current_balance': running_balance
+    })
+
+
+@login_required
+def client_delete(request, pk):
+    """Delete a client"""
+    client = get_object_or_404(Client, pk=pk)
+    
+    if request.method == 'POST':
+        client_name = client.name
+        client.delete()
+        messages.success(request, f'Client "{client_name}" deleted successfully!')
+        return redirect('accounting_forms:client_list')
+    
+    return render(request, 'core/client_confirm_delete.html', {
+        'client': client
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def client_bulk_delete(request):
+    """Bulk delete clients"""
+    client_ids = request.POST.getlist('client_ids')
+    
+    if client_ids:
+        count = Client.objects.filter(id__in=client_ids).count()
+        Client.objects.filter(id__in=client_ids).delete()
+        messages.success(request, f'{count} client(s) deleted successfully!')
+    else:
+        messages.warning(request, 'No clients selected for deletion.')
+    
+    return redirect('accounting_forms:client_list')
+
+
 # Product Views
 @login_required
 def product_list(request):
@@ -88,7 +281,7 @@ def product_create(request):
         if form.is_valid():
             product = form.save()
             messages.success(request, f'Product "{product.name}" created successfully!')
-            return redirect('product_list')
+            return redirect('accounting_forms:product_list')
     else:
         form = ProductForm()
     
@@ -108,7 +301,7 @@ def product_edit(request, pk):
         if form.is_valid():
             product = form.save()
             messages.success(request, f'Product "{product.name}" updated successfully!')
-            return redirect('product_list')
+            return redirect('accounting_forms:product_list')
     else:
         form = ProductForm(instance=product)
     
@@ -122,9 +315,26 @@ def product_edit(request, pk):
 # Quote Views
 @login_required
 def quote_list(request):
-    """List all quotes"""
-    quotes = Quote.objects.all().order_by('-issue_date')
-    return render(request, 'core/quote_list.html', {'quotes': quotes})
+    """List all quotes with search functionality"""
+    search_query = request.GET.get('search', '')
+    
+    quotes = Quote.objects.all()
+    
+    if search_query:
+        from django.db.models import Q
+        quotes = quotes.filter(
+            Q(quote_number__icontains=search_query) |
+            Q(client__name__icontains=search_query) |
+            Q(client__customer_id__icontains=search_query) |
+            Q(status__icontains=search_query)
+        )
+    
+    quotes = quotes.order_by('-issue_date')
+    
+    return render(request, 'core/quote_list.html', {
+        'quotes': quotes,
+        'search_query': search_query
+    })
 
 
 @login_required
@@ -140,16 +350,30 @@ def quote_create(request):
             quote.created_by = request.user
             quote.save()
             
-            formset.instance = quote
-            formset.save()
+            # Save items and populate from product
+            for item_form in formset:
+                if item_form.cleaned_data and not item_form.cleaned_data.get('DELETE', False):
+                    item = item_form.save(commit=False)
+                    item.quote = quote
+                    if item.product:
+                        # Auto-populate from product
+                        item.description = item.product.description
+                        item.unit_price = item.product.unit_price
+                        item.tax_rate = item.product.tax_rate
+                    item.save()
             
             quote.calculate_totals()
             
-            messages.success(request, f'Quote {quote.quote_number} created successfully!')
-            return redirect('quote_detail', pk=quote.pk)
+            messages.success(request, f'Quote {quote.quote_number} for {quote.client.name} created successfully!')
+            return redirect('accounting_forms:quote_detail', pk=quote.pk)
     else:
-        form = QuoteForm()
-        formset = QuoteItemFormSet()
+        # Set default dates
+        initial_data = {
+            'issue_date': date.today(),
+            'expiry_date': date.today() + timedelta(days=7)
+        }
+        form = QuoteForm(initial=initial_data)
+        formset = QuoteItemFormSet(queryset=QuoteItem.objects.none())
     
     return render(request, 'core/quote_form.html', {
         'form': form,
@@ -174,7 +398,7 @@ def quote_edit(request, pk):
             quote.calculate_totals()
             
             messages.success(request, f'Quote {quote.quote_number} updated successfully!')
-            return redirect('quote_detail', pk=quote.pk)
+            return redirect('accounting_forms:quote_detail', pk=quote.pk)
     else:
         form = QuoteForm(instance=quote)
         formset = QuoteItemFormSet(instance=quote)
@@ -197,9 +421,26 @@ def quote_detail(request, pk):
 # Invoice Views
 @login_required
 def invoice_list(request):
-    """List all invoices"""
-    invoices = Invoice.objects.all().order_by('-issue_date')
-    return render(request, 'core/invoice_list.html', {'invoices': invoices})
+    """List all invoices with search functionality"""
+    search_query = request.GET.get('search', '')
+    
+    invoices = Invoice.objects.all()
+    
+    if search_query:
+        from django.db.models import Q
+        invoices = invoices.filter(
+            Q(invoice_number__icontains=search_query) |
+            Q(client__name__icontains=search_query) |
+            Q(client__customer_id__icontains=search_query) |
+            Q(status__icontains=search_query)
+        )
+    
+    invoices = invoices.order_by('-issue_date')
+    
+    return render(request, 'core/invoice_list.html', {
+        'invoices': invoices,
+        'search_query': search_query
+    })
 
 
 @login_required
@@ -215,16 +456,30 @@ def invoice_create(request):
             invoice.created_by = request.user
             invoice.save()
             
-            formset.instance = invoice
-            formset.save()
+            # Save items and populate from product
+            for item_form in formset:
+                if item_form.cleaned_data and not item_form.cleaned_data.get('DELETE', False):
+                    item = item_form.save(commit=False)
+                    item.invoice = invoice
+                    if item.product:
+                        # Auto-populate from product
+                        item.description = item.product.description
+                        item.unit_price = item.product.unit_price
+                        item.tax_rate = item.product.tax_rate
+                    item.save()
             
             invoice.calculate_totals()
             
-            messages.success(request, f'Invoice {invoice.invoice_number} created successfully!')
-            return redirect('invoice_detail', pk=invoice.pk)
+            messages.success(request, f'Invoice {invoice.invoice_number} for {invoice.client.name} created successfully!')
+            return redirect('accounting_forms:invoice_detail', pk=invoice.pk)
     else:
-        form = InvoiceForm()
-        formset = InvoiceItemFormSet()
+        # Set default dates
+        initial_data = {
+            'issue_date': date.today(),
+            'due_date': date.today() + timedelta(days=30)
+        }
+        form = InvoiceForm(initial=initial_data)
+        formset = InvoiceItemFormSet(queryset=InvoiceItem.objects.none())
     
     return render(request, 'core/invoice_form.html', {
         'form': form,
@@ -249,7 +504,7 @@ def invoice_edit(request, pk):
             invoice.calculate_totals()
             
             messages.success(request, f'Invoice {invoice.invoice_number} updated successfully!')
-            return redirect('invoice_detail', pk=invoice.pk)
+            return redirect('accounting_forms:invoice_detail', pk=invoice.pk)
     else:
         form = InvoiceForm(instance=invoice)
         formset = InvoiceItemFormSet(instance=invoice)
@@ -288,7 +543,7 @@ def payment_create(request, invoice_pk=None):
         if form.is_valid():
             payment = form.save()
             messages.success(request, f'Payment of R{payment.amount} recorded successfully!')
-            return redirect('invoice_detail', pk=payment.invoice.pk)
+            return redirect('accounting_forms:invoice_detail', pk=payment.invoice.pk)
     else:
         form = PaymentForm(initial=initial)
     
@@ -323,7 +578,7 @@ def credit_note_create(request, invoice_pk=None):
             credit_note.calculate_totals()
             
             messages.success(request, f'Credit Note {credit_note.credit_note_number} created successfully!')
-            return redirect('credit_note_detail', pk=credit_note.pk)
+            return redirect('accounting_forms:credit_note_detail', pk=credit_note.pk)
     else:
         form = CreditNoteForm(initial=initial)
         formset = CreditNoteItemFormSet()

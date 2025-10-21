@@ -79,32 +79,20 @@
                 {% for form in formset %}
                 <div class="card mb-3 formset-form">
                     <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4 mb-2">
-                                <label class="form-label">Product</label>
-                                {{ form.product }}
-                            </div>
+                        <div class="row align-items-end">
                             <div class="col-md-8 mb-2">
-                                <label class="form-label">Description</label>
-                                {{ form.description }}
+                                <label class="form-label">Product *</label>
+                                {{ form.product }}
+                                <small class="text-muted">Description, price, and tax rate will be auto-filled from the product</small>
                             </div>
-                        </div>
-                        <div class="row">
                             <div class="col-md-3 mb-2">
-                                <label class="form-label">Quantity</label>
+                                <label class="form-label">Quantity *</label>
                                 {{ form.quantity }}
                             </div>
-                            <div class="col-md-3 mb-2">
-                                <label class="form-label">Unit Price</label>
-                                {{ form.unit_price }}
-                            </div>
-                            <div class="col-md-3 mb-2">
-                                <label class="form-label">Tax Rate (%)</label>
-                                {{ form.tax_rate }}
-                            </div>
-                            <div class="col-md-3 mb-2">
-                                <label class="form-label">&nbsp;</label>
-                                <button type="button" class="btn btn-danger btn-sm w-100 remove-form">Remove</button>
+                            <div class="col-md-1 mb-2">
+                                <button type="button" class="btn btn-danger btn-sm w-100 remove-form">
+                                    <i class="bi bi-trash"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
