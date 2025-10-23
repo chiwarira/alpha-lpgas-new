@@ -62,7 +62,6 @@ INSTALLED_APPS = [
     
     # Local apps
     'core',
-    'shop',
     'cms',
 ]
 

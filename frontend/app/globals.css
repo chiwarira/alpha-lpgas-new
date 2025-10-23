@@ -25,3 +25,16 @@ body {
     )
     rgb(var(--background-start-rgb));
 }
+
+/* Force Yoco popup to appear on top of everything */
+#yoco-sdk-wrapper,
+#yoco-sdk-overlay,
+.yoco-popup-overlay,
+.yoco-popup-container {
+  z-index: 9999 !important;
+}
+
+/* Yoco iframe container */
+iframe[src*="yoco"] {
+  z-index: 9999 !important;
+}

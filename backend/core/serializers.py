@@ -1,9 +1,24 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import (
-    CompanySettings, Client, Product, Quote, QuoteItem, Invoice, InvoiceItem,
-    Payment, CreditNote, CreditNoteItem
+    HeroBanner, CompanySettings, Client, Category, Product, ProductVariant,
+    Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem,
+    DeliveryZone, PromoCode, Order, OrderItem, OrderStatusHistory
 )
+
+
+class HeroBannerSerializer(serializers.ModelSerializer):
+    """Serializer for HeroBanner model"""
+    overlay_rgba = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = HeroBanner
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_overlay_rgba(self, obj):
+        """Get the RGBA color string for the overlay"""
+        return obj.get_overlay_rgba()
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -42,15 +57,31 @@ class ClientSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'customer_id', 'created_at', 'updated_at', 'created_by']
 
 
+class CategorySerializer(serializers.ModelSerializer):
+    """Serializer for Category model"""
+    product_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Category
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_product_count(self, obj):
+        return obj.products.filter(is_active=True).count()
+
+
 class ProductSerializer(serializers.ModelSerializer):
     """Serializer for Product model"""
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    is_on_sale = serializers.ReadOnlyField()
+    discount_percentage = serializers.ReadOnlyField()
+    is_low_stock = serializers.ReadOnlyField()
+    is_out_of_stock = serializers.ReadOnlyField()
+    
     class Meta:
         model = Product
-        fields = [
-            'id', 'name', 'description', 'sku', 'unit_price', 'cost_price',
-            'tax_rate', 'unit', 'is_active', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at', 'slug']
 
 
 class QuoteItemSerializer(serializers.ModelSerializer):
@@ -177,3 +208,65 @@ class CreditNoteSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at', 'created_by', 'created_by_name'
         ]
         read_only_fields = ['id', 'subtotal', 'tax_amount', 'total_amount', 'created_at', 'updated_at', 'created_by']
+
+
+# E-commerce Serializers
+
+class DeliveryZoneSerializer(serializers.ModelSerializer):
+    """Serializer for DeliveryZone model"""
+    class Meta:
+        model = DeliveryZone
+        fields = '__all__'
+
+
+class PromoCodeSerializer(serializers.ModelSerializer):
+    """Serializer for PromoCode model"""
+    is_valid_now = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = PromoCode
+        fields = '__all__'
+    
+    def get_is_valid_now(self, obj):
+        return obj.is_valid()
+
+
+class ProductVariantSerializer(serializers.ModelSerializer):
+    """Serializer for ProductVariant model"""
+    price = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ProductVariant
+        fields = '__all__'
+    
+    def get_price(self, obj):
+        return str(obj.get_price())
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    """Serializer for OrderItem model"""
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    variant_name = serializers.CharField(source='variant.name', read_only=True, allow_null=True)
+    
+    class Meta:
+        model = OrderItem
+        fields = '__all__'
+
+
+class OrderStatusHistorySerializer(serializers.ModelSerializer):
+    """Serializer for OrderStatusHistory model"""
+    class Meta:
+        model = OrderStatusHistory
+        fields = '__all__'
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    """Serializer for Order model"""
+    items = OrderItemSerializer(many=True, read_only=True)
+    status_history = OrderStatusHistorySerializer(many=True, read_only=True)
+    delivery_zone_name = serializers.CharField(source='delivery_zone.name', read_only=True, allow_null=True)
+    
+    class Meta:
+        model = Order
+        fields = '__all__'
+        read_only_fields = ['order_number', 'created_at', 'updated_at']

@@ -20,13 +20,6 @@ def api_root(request, format=None):
                 'google_login': request.build_absolute_uri('/api/auth/google/'),
                 'token_refresh': request.build_absolute_uri('/api/auth/token/refresh/'),
             },
-            'shop': {
-                'products': request.build_absolute_uri('/api/shop/products/'),
-                'categories': request.build_absolute_uri('/api/shop/categories/'),
-                'delivery_zones': request.build_absolute_uri('/api/shop/delivery-zones/'),
-                'orders': request.build_absolute_uri('/api/shop/orders/'),
-                'reviews': request.build_absolute_uri('/api/shop/reviews/'),
-            },
             'accounting': {
                 'clients': request.build_absolute_uri('/api/accounting/clients/'),
                 'products': request.build_absolute_uri('/api/accounting/products/'),

@@ -1,4 +1,4 @@
-from rest_framework import viewsets, filters, status
+from rest_framework import viewsets, filters, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,15 +8,31 @@ from django.contrib.auth.models import User
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from .models import (
-    CompanySettings, Client, Product, Quote, QuoteItem, Invoice, InvoiceItem,
-    Payment, CreditNote, CreditNoteItem
+    HeroBanner, CompanySettings, Client, Category, Product, ProductVariant,
+    Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem,
+    DeliveryZone, PromoCode, Order, OrderItem, OrderStatusHistory
 )
 from .serializers import (
-    CompanySettingsSerializer, UserSerializer, ClientSerializer, ProductSerializer,
+    HeroBannerSerializer, CompanySettingsSerializer, UserSerializer, ClientSerializer, CategorySerializer, ProductSerializer,
     QuoteSerializer, QuoteItemSerializer, InvoiceSerializer,
-    InvoiceItemSerializer, PaymentSerializer, CreditNoteSerializer,
-    CreditNoteItemSerializer
+    InvoiceItemSerializer, PaymentSerializer, CreditNoteSerializer, CreditNoteItemSerializer,
+    DeliveryZoneSerializer, PromoCodeSerializer, ProductVariantSerializer, OrderSerializer, OrderItemSerializer, OrderStatusHistorySerializer
 )
+
+
+class HeroBannerViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing hero banners"""
+    queryset = HeroBanner.objects.filter(is_active=True)
+    serializer_class = HeroBannerSerializer
+    permission_classes = [permissions.AllowAny]  # Public access for website
+    
+    def get_queryset(self):
+        queryset = HeroBanner.objects.all()
+        # Filter by active status
+        is_active = self.request.query_params.get('is_active', None)
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+        return queryset.order_by('order', '-created_at')
 
 
 class CompanySettingsView(APIView):
@@ -173,15 +189,50 @@ class ClientViewSet(viewsets.ModelViewSet):
         })
 
 
+class CategoryViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing product categories"""
+    queryset = Category.objects.filter(is_active=True)
+    serializer_class = CategorySerializer
+    permission_classes = [permissions.AllowAny]  # Public access for e-commerce
+    
+    def get_queryset(self):
+        queryset = Category.objects.all()
+        # Filter by active status if requested
+        is_active = self.request.query_params.get('is_active', None)
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+        return queryset
+
+
 class ProductViewSet(viewsets.ModelViewSet):
     """ViewSet for managing products"""
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.AllowAny]  # Public access for e-commerce
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['is_active']
+    filterset_fields = ['is_active', 'show_on_website', 'is_featured']
     search_fields = ['name', 'description', 'sku']
-    ordering_fields = ['name', 'unit_price', 'created_at']
+    ordering_fields = ['name', 'unit_price', 'created_at', 'order']
+    
+    def get_queryset(self):
+        queryset = Product.objects.all()
+        # Filter by active status
+        is_active = self.request.query_params.get('is_active', None)
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+        # Filter by website visibility
+        show_on_website = self.request.query_params.get('show_on_website', None)
+        if show_on_website is not None:
+            queryset = queryset.filter(show_on_website=show_on_website.lower() == 'true')
+        # Filter by category
+        category = self.request.query_params.get('category', None)
+        if category:
+            queryset = queryset.filter(category__slug=category)
+        # Filter featured products
+        is_featured = self.request.query_params.get('is_featured', None)
+        if is_featured is not None:
+            queryset = queryset.filter(is_featured=is_featured.lower() == 'true')
+        return queryset.select_related('category')
 
 
 class QuoteViewSet(viewsets.ModelViewSet):
@@ -336,3 +387,157 @@ class CreditNoteItemViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['credit_note', 'product']
+
+
+# E-commerce ViewSets
+
+class DeliveryZoneViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing delivery zones"""
+    queryset = DeliveryZone.objects.filter(is_active=True)
+    serializer_class = DeliveryZoneSerializer
+    permission_classes = [permissions.AllowAny]  # Public access for website
+
+
+class PromoCodeViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing promo codes"""
+    queryset = PromoCode.objects.all()
+    serializer_class = PromoCodeSerializer
+    permission_classes = [permissions.AllowAny]  # Public access for validation
+    
+    @action(detail=False, methods=['post'])
+    def validate_code(self, request):
+        """Validate a promo code"""
+        code = request.data.get('code', '').upper()
+        order_total = Decimal(request.data.get('order_total', 0))
+        
+        try:
+            promo = PromoCode.objects.get(code=code)
+            
+            # Check if valid
+            if not promo.is_valid():
+                return Response({'error': 'Promo code is not valid or has expired'}, status=400)
+            
+            # Check minimum order
+            if order_total < promo.minimum_order:
+                return Response({
+                    'error': f'Minimum order amount is R{promo.minimum_order}'
+                }, status=400)
+            
+            # Calculate discount
+            if promo.discount_type == 'percentage':
+                discount = order_total * (promo.discount_value / 100)
+            else:
+                discount = promo.discount_value
+            
+            return Response({
+                'valid': True,
+                'discount_amount': str(discount),
+                'promo_code': PromoCodeSerializer(promo).data
+            })
+        except PromoCode.DoesNotExist:
+            return Response({'error': 'Invalid promo code'}, status=404)
+
+
+class ProductVariantViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing product variants"""
+    queryset = ProductVariant.objects.filter(is_active=True)
+    serializer_class = ProductVariantSerializer
+    permission_classes = [permissions.AllowAny]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['product', 'is_active']
+
+
+class OrderViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing orders"""
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    permission_classes = [permissions.AllowAny]  # Change to IsAuthenticated for production
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['status', 'payment_status', 'payment_method']
+    search_fields = ['order_number', 'customer_name', 'customer_email', 'customer_phone']
+    
+    def create(self, request, *args, **kwargs):
+        """Create order with items"""
+        items_data = request.data.pop('items', [])
+        
+        # Create order
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        order = serializer.save()
+        
+        # Create order items
+        for item_data in items_data:
+            OrderItem.objects.create(
+                order=order,
+                product_id=item_data['product'],
+                variant_id=item_data.get('variant'),
+                quantity=item_data['quantity'],
+                unit_price=item_data['unit_price']
+            )
+        
+        # Create initial status history
+        OrderStatusHistory.objects.create(
+            order=order,
+            status='pending',
+            notes='Order created'
+        )
+        
+        # Increment promo code usage if applicable
+        if order.promo_code:
+            order.promo_code.times_used += 1
+            order.promo_code.save()
+        
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    @action(detail=True, methods=['post'])
+    def update_status(self, request, pk=None):
+        """Update order status"""
+        order = self.get_object()
+        new_status = request.data.get('status')
+        notes = request.data.get('notes', '')
+        
+        if new_status not in dict(Order.STATUS_CHOICES):
+            return Response({'error': 'Invalid status'}, status=400)
+        
+        order.status = new_status
+        
+        # Update delivered_at if status is delivered
+        if new_status == 'delivered':
+            from django.utils import timezone
+            order.delivered_at = timezone.now()
+        
+        order.save()
+        
+        # Create status history entry
+        OrderStatusHistory.objects.create(
+            order=order,
+            status=new_status,
+            notes=notes,
+            created_by=request.user if request.user.is_authenticated else None
+        )
+        
+        return Response(OrderSerializer(order).data)
+    
+    @action(detail=True, methods=['post'])
+    def process_yoco_payment(self, request, pk=None):
+        """Process Yoco payment"""
+        order = self.get_object()
+        payment_id = request.data.get('payment_id')
+        
+        # TODO: Verify payment with Yoco API
+        # For now, just update the order
+        
+        order.yoco_payment_id = payment_id
+        order.payment_status = 'paid'
+        order.status = 'confirmed'
+        order.save()
+        
+        # Create status history
+        OrderStatusHistory.objects.create(
+            order=order,
+            status='confirmed',
+            notes=f'Payment received via Yoco (ID: {payment_id})'
+        )
+        
+        return Response({'success': True, 'order': OrderSerializer(order).data})
