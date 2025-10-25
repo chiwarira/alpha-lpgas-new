@@ -6,7 +6,7 @@ from django.db import transaction
 from django.db.models import Sum
 from django.views.decorators.http import require_http_methods
 from datetime import date, timedelta
-from .models import Client, Product, Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote
+from .models import Client, Product, Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, Order
 from .forms import (
     ClientForm, ProductForm, QuoteForm, QuoteItemFormSet,
     InvoiceForm, InvoiceItemFormSet, PaymentForm,
@@ -687,4 +687,47 @@ def accounting_dashboard(request):
         'recent_invoices': recent_invoices,
         'recent_quotes': recent_quotes,
         'recent_payments': recent_payments,
+    })
+
+
+# Orders Views
+@login_required
+def order_list(request):
+    """List all orders with filtering"""
+    from django.db.models import Q
+    
+    orders = Order.objects.all().select_related('delivery_zone').prefetch_related('items__product', 'items__variant')
+    
+    # Filters
+    search_query = request.GET.get('search', '')
+    status_filter = request.GET.get('status', '')
+    payment_status_filter = request.GET.get('payment_status', '')
+    
+    if search_query:
+        orders = orders.filter(
+            Q(order_number__icontains=search_query) |
+            Q(customer_name__icontains=search_query) |
+            Q(customer_phone__icontains=search_query)
+        )
+    
+    if status_filter:
+        orders = orders.filter(status=status_filter)
+    
+    if payment_status_filter:
+        orders = orders.filter(payment_status=payment_status_filter)
+    
+    orders = orders.order_by('-created_at')
+    
+    # Calculate stats
+    pending_count = Order.objects.filter(status='pending').count()
+    delivered_count = Order.objects.filter(status='delivered').count()
+    total_revenue = Order.objects.filter(payment_status='paid').aggregate(
+        total=Sum('total')
+    )['total'] or 0
+    
+    return render(request, 'core/orders_list.html', {
+        'orders': orders,
+        'pending_count': pending_count,
+        'delivered_count': delivered_count,
+        'total_revenue': total_revenue,
     })

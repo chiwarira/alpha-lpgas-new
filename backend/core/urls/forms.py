@@ -20,6 +20,9 @@ from ..views_forms import (
     
     # Credit Notes
     credit_note_create, credit_note_detail,
+    
+    # Orders
+    order_list,
 )
 
 from ..pdf_generator import download_invoice_pdf, download_quote_pdf
@@ -67,4 +70,7 @@ urlpatterns = [
     path('credit-notes/create/', credit_note_create, name='credit_note_create'),
     path('invoices/<int:invoice_pk>/credit-notes/create/', credit_note_create, name='credit_note_create_for_invoice'),
     path('credit-notes/<int:pk>/', credit_note_detail, name='credit_note_detail'),
+    
+    # Orders
+    path('orders/', order_list, name='order_list'),
 ]

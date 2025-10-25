@@ -1,0 +1,393 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Orders Management - Alpha LPGas{% endblock %}
+
+{% block extra_css %}
+<style>
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .status-pending { background-color: #fef3c7; color: #92400e; }
+    .status-confirmed { background-color: #dbeafe; color: #1e40af; }
+    .status-processing { background-color: #e9d5ff; color: #6b21a8; }
+    .status-out_for_delivery { background-color: #c7d2fe; color: #3730a3; }
+    .status-delivered { background-color: #d1fae5; color: #065f46; }
+    .status-cancelled { background-color: #fee2e2; color: #991b1b; }
+    
+    .payment-pending { background-color: #fef3c7; color: #92400e; }
+    .payment-paid { background-color: #d1fae5; color: #065f46; }
+    .payment-failed { background-color: #fee2e2; color: #991b1b; }
+    .payment-refunded { background-color: #e5e7eb; color: #374151; }
+    
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.5);
+    }
+    .modal.active {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .modal-content {
+        background-color: #fefefe;
+        padding: 0;
+        border-radius: 0.75rem;
+        width: 90%;
+        max-width: 900px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-1">Orders Management</h2>
+                            <p class="text-muted mb-0">View and manage all customer orders</p>
+                        </div>
+                        <a href="{% url 'accounting_forms:dashboard' %}" class="btn btn-primary">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Total Orders</h6>
+                    <h3 class="mb-0" id="total-orders">{{ orders.count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Pending</h6>
+                    <h3 class="mb-0 text-warning" id="pending-orders">{{ pending_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Delivered</h6>
+                    <h3 class="mb-0 text-success" id="delivered-orders">{{ delivered_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Total Revenue</h6>
+                    <h3 class="mb-0 text-primary">R{{ total_revenue|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Search</label>
+                            <input type="text" name="search" class="form-control" placeholder="Order number, customer name, phone..." value="{{ request.GET.search }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Order Status</label>
+                            <select name="status" class="form-select">
+                                <option value="">All Statuses</option>
+                                <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="confirmed" {% if request.GET.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                                <option value="processing" {% if request.GET.status == 'processing' %}selected{% endif %}>Processing</option>
+                                <option value="out_for_delivery" {% if request.GET.status == 'out_for_delivery' %}selected{% endif %}>Out for Delivery</option>
+                                <option value="delivered" {% if request.GET.status == 'delivered' %}selected{% endif %}>Delivered</option>
+                                <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Payment Status</label>
+                            <select name="payment_status" class="form-select">
+                                <option value="">All Payments</option>
+                                <option value="pending" {% if request.GET.payment_status == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="paid" {% if request.GET.payment_status == 'paid' %}selected{% endif %}>Paid</option>
+                                <option value="failed" {% if request.GET.payment_status == 'failed' %}selected{% endif %}>Failed</option>
+                                <option value="refunded" {% if request.GET.payment_status == 'refunded' %}selected{% endif %}>Refunded</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">Filter</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Customer</th>
+                                    <th>Status</th>
+                                    <th>Payment</th>
+                                    <th>Total</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td><strong>{{ order.order_number }}</strong></td>
+                                    <td>
+                                        <div>{{ order.customer_name }}</div>
+                                        <small class="text-muted">{{ order.customer_phone }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge status-{{ order.status }}">
+                                            {{ order.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge payment-{{ order.payment_status }}">
+                                            {{ order.get_payment_status_display }}
+                                        </span>
+                                        <div><small class="text-muted">{{ order.get_payment_method_display }}</small></div>
+                                    </td>
+                                    <td><strong>R{{ order.total|floatformat:2 }}</strong></td>
+                                    <td>
+                                        <div>{{ order.created_at|date:"Y-m-d" }}</div>
+                                        <small class="text-muted">{{ order.created_at|time:"H:i" }}</small>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="viewOrder({{ order.id }})">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-4 text-muted">
+                                        No orders found
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div id="orderModal" class="modal">
+    <div class="modal-content">
+        <div class="bg-primary text-white p-4 rounded-top">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-1">Order Details</h4>
+                    <p class="mb-0" id="modal-order-number"></p>
+                </div>
+                <button type="button" class="btn-close btn-close-white" onclick="closeModal()"></button>
+            </div>
+        </div>
+        <div class="p-4" id="modal-content">
+            <!-- Content loaded via JavaScript -->
+        </div>
+    </div>
+</div>
+
+<script>
+function viewOrder(orderId) {
+    fetch(`/api/accounting/orders/${orderId}/`)
+        .then(response => response.json())
+        .then(order => {
+            document.getElementById('modal-order-number').textContent = order.order_number;
+            
+            let itemsHtml = '';
+            order.items.forEach(item => {
+                itemsHtml += `
+                    <tr>
+                        <td>
+                            <div><strong>${item.product_name}</strong></div>
+                            ${item.variant_name ? `<small class="text-muted">${item.variant_name}</small>` : ''}
+                        </td>
+                        <td>${item.quantity}</td>
+                        <td>R${parseFloat(item.unit_price).toFixed(2)}</td>
+                        <td><strong>R${parseFloat(item.total_price).toFixed(2)}</strong></td>
+                    </tr>
+                `;
+            });
+            
+            const statusButtons = ['pending', 'confirmed', 'processing', 'out_for_delivery', 'delivered', 'cancelled']
+                .map(status => `
+                    <button 
+                        class="btn btn-sm ${order.status === status ? 'btn-primary' : 'btn-outline-secondary'} me-2 mb-2"
+                        onclick="updateOrderStatus(${order.id}, '${status}')"
+                    >
+                        ${status.replace('_', ' ')}
+                    </button>
+                `).join('');
+            
+            document.getElementById('modal-content').innerHTML = `
+                <div class="mb-4">
+                    <h5 class="mb-3">Customer Information</h5>
+                    <div class="row g-3 bg-light p-3 rounded">
+                        <div class="col-md-6">
+                            <small class="text-muted">Name</small>
+                            <div><strong>${order.customer_name}</strong></div>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted">Phone</small>
+                            <div><strong>${order.customer_phone}</strong></div>
+                        </div>
+                        <div class="col-12">
+                            <small class="text-muted">Email</small>
+                            <div><strong>${order.customer_email || 'N/A'}</strong></div>
+                        </div>
+                        <div class="col-12">
+                            <small class="text-muted">Delivery Address</small>
+                            <div><strong>${order.delivery_address}</strong></div>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted">Delivery Zone</small>
+                            <div><strong>${order.delivery_zone_name || 'N/A'}</strong></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h5 class="mb-3">Order Items</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                    <th>Unit Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${itemsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h5 class="mb-3">Order Summary</h5>
+                    <div class="bg-light p-3 rounded">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal:</span>
+                            <strong>R${parseFloat(order.subtotal).toFixed(2)}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Delivery Fee:</span>
+                            <strong>R${parseFloat(order.delivery_fee).toFixed(2)}</strong>
+                        </div>
+                        ${parseFloat(order.discount_amount) > 0 ? `
+                        <div class="d-flex justify-content-between mb-2 text-success">
+                            <span>Discount:</span>
+                            <strong>-R${parseFloat(order.discount_amount).toFixed(2)}</strong>
+                        </div>
+                        ` : ''}
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <h5>Total:</h5>
+                            <h5 class="text-primary">R${parseFloat(order.total).toFixed(2)}</h5>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h5 class="mb-3">Update Order Status</h5>
+                    <div>
+                        ${statusButtons}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('orderModal').classList.add('active');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to load order details');
+        });
+}
+
+function closeModal() {
+    document.getElementById('orderModal').classList.remove('active');
+}
+
+function updateOrderStatus(orderId, newStatus) {
+    if (!confirm(`Update order status to ${newStatus.replace('_', ' ')}?`)) {
+        return;
+    }
+    
+    fetch(`/api/accounting/orders/${orderId}/update_status/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            status: newStatus,
+            notes: `Status updated to ${newStatus}`
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert('Order status updated successfully!');
+        closeModal();
+        location.reload();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to update order status');
+    });
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('orderModal');
+    if (event.target == modal) {
+        closeModal();
+    }
+}
+</script>
+{% endblock %}

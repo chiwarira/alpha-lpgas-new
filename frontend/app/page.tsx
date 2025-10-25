@@ -200,6 +200,9 @@ export default function Home() {
                   </span>
                 )}
               </button>
+              <Link href="/orders" className="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-lg font-semibold transition">
+                📋 Orders
+              </Link>
               <a href="tel:0744545665" className="bg-rose-600 text-white hover:bg-rose-700 px-4 py-2 rounded-lg font-semibold transition">
                 📞 074 454 5665
               </a>
