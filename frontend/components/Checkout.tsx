@@ -31,7 +31,6 @@ interface CheckoutProps {
 }
 
 export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal }: CheckoutProps) {
-  const [step, setStep] = useState(1); // 1: Details, 2: Delivery, 3: Payment
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
   const [selectedZone, setSelectedZone] = useState<DeliveryZone | null>(null);
   const [promoCode, setPromoCode] = useState('');

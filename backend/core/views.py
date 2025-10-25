@@ -522,12 +522,74 @@ class OrderViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def process_yoco_payment(self, request, pk=None):
         """Process Yoco payment"""
+        from django.conf import settings
+        import requests
+        import logging
+        
+        logger = logging.getLogger(__name__)
         order = self.get_object()
         payment_id = request.data.get('payment_id')
         
-        # TODO: Verify payment with Yoco API
-        # For now, just update the order
+        # Verify payment with Yoco API using secret key
+        if settings.YOCO_SECRET_KEY and not settings.DEBUG:
+            # Only verify in production
+            try:
+                # Verify the payment with Yoco
+                headers = {
+                    'Authorization': f'Bearer {settings.YOCO_SECRET_KEY}',
+                    'Content-Type': 'application/json'
+                }
+                
+                # Get payment details from Yoco
+                yoco_response = requests.get(
+                    f'https://api.yoco.com/v1/charges/{payment_id}',
+                    headers=headers,
+                    timeout=10
+                )
+                
+                if yoco_response.status_code == 200:
+                    payment_data = yoco_response.json()
+                    
+                    # Verify payment amount matches order total
+                    expected_amount = int(float(order.total) * 100)  # Convert to cents
+                    actual_amount = payment_data.get('amount')
+                    
+                    if actual_amount != expected_amount:
+                        logger.error(f'Payment amount mismatch: expected {expected_amount}, got {actual_amount}')
+                        return Response({
+                            'error': 'Payment amount mismatch'
+                        }, status=400)
+                    
+                    # Verify payment status
+                    if payment_data.get('status') != 'successful':
+                        logger.error(f'Payment not successful: {payment_data.get("status")}')
+                        return Response({
+                            'error': 'Payment not successful'
+                        }, status=400)
+                else:
+                    logger.error(f'Yoco API returned status {yoco_response.status_code}: {yoco_response.text}')
+                    # In test mode, continue anyway
+                    if settings.DEBUG:
+                        logger.warning('Skipping verification in DEBUG mode')
+                    else:
+                        return Response({
+                            'error': 'Failed to verify payment with Yoco'
+                        }, status=400)
+                    
+            except Exception as e:
+                logger.error(f'Payment verification error: {str(e)}')
+                # In test mode, continue anyway
+                if settings.DEBUG:
+                    logger.warning(f'Skipping verification due to error in DEBUG mode: {str(e)}')
+                else:
+                    return Response({
+                        'error': f'Payment verification failed: {str(e)}'
+                    }, status=400)
+        else:
+            # Skip verification in DEBUG mode or if secret key not set
+            logger.info(f'Skipping Yoco verification (DEBUG={settings.DEBUG}, SECRET_KEY_SET={bool(settings.YOCO_SECRET_KEY)})')
         
+        # Update order
         order.yoco_payment_id = payment_id
         order.payment_status = 'paid'
         order.status = 'confirmed'

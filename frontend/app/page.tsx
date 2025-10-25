@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Checkout from '../components/Checkout';
+import Checkout from '../components/CheckoutSinglePage';
 
 interface Product {
   id: number;
