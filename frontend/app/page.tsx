@@ -39,18 +39,22 @@ interface HeroBanner {
 interface CartItem {
   product: Product;
   quantity: number;
+  includeCylinder?: boolean;
+  cylinderProduct?: Product;
 }
 
 export default function Home() {
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [products, setProducts] = useState<Product[]>([]);
+  const [cylinderProducts, setCylinderProducts] = useState<Product[]>([]);
   const [banner, setBanner] = useState<HeroBanner | null>(null);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<any>(null);
+  const [cylinderSelections, setCylinderSelections] = useState<{[key: number]: boolean}>({});
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -82,7 +86,18 @@ export default function Home() {
         if (productsResponse.ok) {
           const productsData = await productsResponse.json();
           console.log('Fetched products:', productsData);
-          setProducts(productsData.results || productsData);
+          const allProducts = productsData.results || productsData;
+          
+          // Separate gas products and cylinder products
+          const gasProducts = allProducts.filter((p: Product) => 
+            !p.name.toLowerCase().includes('cylinder') && !p.category_name?.toLowerCase().includes('cylinder')
+          );
+          const cylinders = allProducts.filter((p: Product) => 
+            p.name.toLowerCase().includes('cylinder') || p.category_name?.toLowerCase().includes('cylinder')
+          );
+          
+          setProducts(gasProducts);
+          setCylinderProducts(cylinders);
         }
 
         // Fetch hero banner
@@ -115,18 +130,38 @@ export default function Home() {
     return '⚪';
   };
 
+  // Helper function to find matching cylinder for a gas product
+  const findMatchingCylinder = (gasProduct: Product): Product | undefined => {
+    const name = gasProduct.name.toLowerCase();
+    let size = '';
+    
+    if (name.includes('9kg') || name.includes('9 kg')) size = '9kg';
+    else if (name.includes('14kg') || name.includes('14 kg')) size = '14kg';
+    else if (name.includes('19kg') || name.includes('19 kg')) size = '19kg';
+    else if (name.includes('48kg') || name.includes('48 kg')) size = '48kg';
+    
+    if (!size) return undefined;
+    
+    return cylinderProducts.find(cyl => 
+      cyl.name.toLowerCase().includes(size)
+    );
+  };
+
   // Cart functions
   const addToCart = (product: Product) => {
+    const includeCylinder = cylinderSelections[product.id] || false;
+    const cylinderProduct = includeCylinder ? findMatchingCylinder(product) : undefined;
+    
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.product.id === product.id);
       if (existingItem) {
         return prevCart.map(item =>
           item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: item.quantity + 1, includeCylinder, cylinderProduct }
             : item
         );
       }
-      return [...prevCart, { product, quantity: 1 }];
+      return [...prevCart, { product, quantity: 1, includeCylinder, cylinderProduct }];
     });
     setShowCart(true);
   };
@@ -147,7 +182,13 @@ export default function Home() {
   };
 
   const getCartTotal = () => {
-    return cart.reduce((total, item) => total + (parseFloat(item.product.unit_price) * item.quantity), 0);
+    return cart.reduce((total, item) => {
+      let itemTotal = parseFloat(item.product.unit_price) * item.quantity;
+      if (item.includeCylinder && item.cylinderProduct) {
+        itemTotal += parseFloat(item.cylinderProduct.unit_price) * item.quantity;
+      }
+      return total + itemTotal;
+    }, 0);
   };
 
   const getCartCount = () => {
@@ -160,12 +201,23 @@ export default function Home() {
     
     if (product) {
       // Single product order
+      const includeCylinder = cylinderSelections[product.id] || false;
+      const cylinderProduct = includeCylinder ? findMatchingCylinder(product) : undefined;
+      
       message = `Hi! I'd like to order:\n\n${product.name} - R${parseFloat(product.unit_price).toFixed(2)}`;
+      
+      if (includeCylinder && cylinderProduct) {
+        message += `\n+ ${cylinderProduct.name} - R${parseFloat(cylinderProduct.unit_price).toFixed(2)}`;
+        message += `\n\nTotal: R${(parseFloat(product.unit_price) + parseFloat(cylinderProduct.unit_price)).toFixed(2)}`;
+      }
     } else {
       // Cart order
       message = `Hi! I'd like to order:\n\n`;
       cart.forEach(item => {
         message += `${item.quantity}x ${item.product.name} - R${(parseFloat(item.product.unit_price) * item.quantity).toFixed(2)}\n`;
+        if (item.includeCylinder && item.cylinderProduct) {
+          message += `  + ${item.quantity}x ${item.cylinderProduct.name} - R${(parseFloat(item.cylinderProduct.unit_price) * item.quantity).toFixed(2)}\n`;
+        }
       });
       message += `\nTotal: R${getCartTotal().toFixed(2)}`;
     }
@@ -200,9 +252,6 @@ export default function Home() {
                   </span>
                 )}
               </button>
-              <Link href="/orders" className="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-lg font-semibold transition">
-                📋 Orders
-              </Link>
               <a href="tel:0744545665" className="bg-rose-600 text-white hover:bg-rose-700 px-4 py-2 rounded-lg font-semibold transition">
                 📞 074 454 5665
               </a>
@@ -301,8 +350,29 @@ export default function Home() {
                     <h3 className="text-2xl font-bold text-white">{product.name}</h3>
                   </div>
                   <div className="p-6">
-                    <p className="text-gray-600 mb-4">{product.description || 'Quality LPG gas delivery'}</p>
-                    <div className="text-3xl font-bold text-rose-600 mb-6">R{parseFloat(product.unit_price).toFixed(2)}</div>
+                    {/* Cylinder Checkbox */}
+                    {findMatchingCylinder(product) && (
+                      <div className="mb-4 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                        <label className="flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={cylinderSelections[product.id] || false}
+                            onChange={(e) => setCylinderSelections(prev => ({
+                              ...prev,
+                              [product.id]: e.target.checked
+                            }))}
+                            className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 mr-3"
+                          />
+                          <span className="text-sm font-medium text-gray-700">
+                            Add {findMatchingCylinder(product)?.name} (+R{parseFloat(findMatchingCylinder(product)?.unit_price || '0').toFixed(2)})
+                          </span>
+                        </label>
+                      </div>
+                    )}
+                    
+                    <div className="text-3xl font-bold text-rose-600 mb-6">
+                      <span className="text-lg font-normal text-gray-500">from </span>R{parseFloat(product.unit_price).toFixed(2)}
+                    </div>
                     <div className="space-y-3">
                       <button
                         onClick={() => orderViaWhatsApp(product)}
@@ -486,11 +556,17 @@ export default function Home() {
                 <>
                   <div className="space-y-4 mb-6">
                     {cart.map((item) => (
-                      <div key={item.product.id} className="flex gap-4 bg-gray-50 p-4 rounded-lg">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900">{item.product.name}</h3>
-                          <p className="text-rose-600 font-bold">R{parseFloat(item.product.unit_price).toFixed(2)}</p>
-                          <div className="flex items-center gap-2 mt-2">
+                      <div key={item.product.id} className="bg-gray-50 p-4 rounded-lg">
+                        <div className="flex gap-4">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900">{item.product.name}</h3>
+                            <p className="text-rose-600 font-bold">R{parseFloat(item.product.unit_price).toFixed(2)}</p>
+                            {item.includeCylinder && item.cylinderProduct && (
+                              <p className="text-sm text-blue-600 mt-1">
+                                + {item.cylinderProduct.name} (R{parseFloat(item.cylinderProduct.unit_price).toFixed(2)})
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 mt-2">
                             <button
                               onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
                               className="bg-gray-200 hover:bg-gray-300 w-8 h-8 rounded flex items-center justify-center font-bold"
@@ -504,18 +580,19 @@ export default function Home() {
                             >
                               +
                             </button>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex flex-col justify-between items-end">
-                          <button
-                            onClick={() => removeFromCart(item.product.id)}
-                            className="text-rose-600 hover:text-rose-700 font-semibold"
-                          >
-                            Remove
-                          </button>
-                          <p className="font-bold text-gray-900">
-                            R{(parseFloat(item.product.unit_price) * item.quantity).toFixed(2)}
-                          </p>
+                          <div className="flex flex-col justify-between items-end">
+                            <button
+                              onClick={() => removeFromCart(item.product.id)}
+                              className="text-rose-600 hover:text-rose-700 font-semibold"
+                            >
+                              Remove
+                            </button>
+                            <p className="font-bold text-gray-900">
+                              R{(parseFloat(item.product.unit_price) * item.quantity + (item.includeCylinder && item.cylinderProduct ? parseFloat(item.cylinderProduct.unit_price) * item.quantity : 0)).toFixed(2)}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     ))}

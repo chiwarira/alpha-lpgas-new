@@ -12,6 +12,8 @@ interface CartItem {
   product: Product;
   quantity: number;
   variant?: any;
+  includeCylinder?: boolean;
+  cylinderProduct?: Product;
 }
 
 interface DeliveryZone {
@@ -172,12 +174,26 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
         delivery_fee: deliveryFee.toFixed(2),
         discount_amount: discountAmount.toFixed(2),
         total: total.toFixed(2),
-        items: cart.map(item => ({
-          product: item.product.id,
-          variant: item.variant?.id || null,
-          quantity: item.quantity,
-          unit_price: item.product.unit_price
-        }))
+        items: cart.flatMap(item => {
+          const items = [{
+            product: item.product.id,
+            variant: item.variant?.id || null,
+            quantity: item.quantity,
+            unit_price: item.product.unit_price
+          }];
+          
+          // Add cylinder as separate line item if included
+          if (item.includeCylinder && item.cylinderProduct) {
+            items.push({
+              product: item.cylinderProduct.id,
+              variant: null,
+              quantity: item.quantity,
+              unit_price: item.cylinderProduct.unit_price
+            });
+          }
+          
+          return items;
+        })
       };
       
       console.log('Prepared order data:', orderData);
@@ -205,12 +221,26 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
       delivery_fee: deliveryFee.toFixed(2),
       discount_amount: discountAmount.toFixed(2),
       total: total.toFixed(2),
-      items: cart.map(item => ({
-        product: item.product.id,
-        variant: item.variant?.id || null,
-        quantity: item.quantity,
-        unit_price: item.product.unit_price
-      }))
+      items: cart.flatMap(item => {
+        const items = [{
+          product: item.product.id,
+          variant: item.variant?.id || null,
+          quantity: item.quantity,
+          unit_price: item.product.unit_price
+        }];
+        
+        // Add cylinder as separate line item if included
+        if (item.includeCylinder && item.cylinderProduct) {
+          items.push({
+            product: item.cylinderProduct.id,
+            variant: null,
+            quantity: item.quantity,
+            unit_price: item.cylinderProduct.unit_price
+          });
+        }
+        
+        return items;
+      })
     };
 
     try {
