@@ -14,4 +14,4 @@ cmds = ["echo 'Build complete - migrations will run on startup'"]
 cmds = ["echo 'Skipping release phase'"]
 
 [start]
-cmd = "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn alphalpgas.wsgi:application --bind 0.0.0.0:${PORT:-8080} --workers 2 --timeout 120"
+cmd = "sh -c 'python manage.py migrate && python manage.py collectstatic --noinput && gunicorn alphalpgas.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --log-level debug'"
