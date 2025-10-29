@@ -258,6 +258,8 @@ FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 
 # Security Settings (Production)
 if not DEBUG:
+    # Railway uses a proxy, so we need to trust proxy headers
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
