@@ -44,6 +44,7 @@ interface CartItem {
 }
 
 export default function Home() {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [products, setProducts] = useState<Product[]>([]);
@@ -81,7 +82,6 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         // Fetch products
         const productsResponse = await fetch(`${apiUrl}/api/accounting/products/?is_active=true&show_on_website=true`);
         if (productsResponse.ok) {
@@ -341,7 +341,7 @@ export default function Home() {
                   <div className="bg-blue-600 p-8 text-center">
                     {product.main_image ? (
                       <img 
-                        src={product.main_image.startsWith('http') ? product.main_image : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/media/${product.main_image}`} 
+                        src={product.main_image.startsWith('http') ? product.main_image : `${apiUrl}/media/${product.main_image}`} 
                         alt={product.name}
                         className="w-full h-48 object-contain mb-4"
                       />
