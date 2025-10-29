@@ -81,8 +81,9 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         // Fetch products
-        const productsResponse = await fetch('http://localhost:8000/api/accounting/products/?is_active=true&show_on_website=true');
+        const productsResponse = await fetch(`${apiUrl}/api/accounting/products/?is_active=true&show_on_website=true`);
         if (productsResponse.ok) {
           const productsData = await productsResponse.json();
           console.log('Fetched products:', productsData);
@@ -101,7 +102,7 @@ export default function Home() {
         }
 
         // Fetch hero banner
-        const bannerResponse = await fetch('http://localhost:8000/api/accounting/hero-banners/?is_active=true');
+        const bannerResponse = await fetch(`${apiUrl}/api/accounting/hero-banners/?is_active=true`);
         if (bannerResponse.ok) {
           const bannerData = await bannerResponse.json();
           console.log('Fetched banner:', bannerData);
@@ -267,7 +268,7 @@ export default function Home() {
         id="home" 
         className="bg-gradient-to-br from-blue-600 to-blue-800 text-white py-20 relative bg-cover bg-center"
         style={banner?.background_image ? {
-          backgroundImage: `linear-gradient(${banner.overlay_rgba}, ${banner.overlay_rgba}), url(${banner.background_image.startsWith('http') ? banner.background_image : `http://localhost:8000/media/${banner.background_image}`})`
+          backgroundImage: `linear-gradient(${banner.overlay_rgba}, ${banner.overlay_rgba}), url(${banner.background_image.startsWith('http') ? banner.background_image : `${apiUrl}/media/${banner.background_image}`})`
         } : {}}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -340,7 +341,7 @@ export default function Home() {
                   <div className="bg-blue-600 p-8 text-center">
                     {product.main_image ? (
                       <img 
-                        src={product.main_image.startsWith('http') ? product.main_image : `http://localhost:8000/media/${product.main_image}`} 
+                        src={product.main_image.startsWith('http') ? product.main_image : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/media/${product.main_image}`} 
                         alt={product.name}
                         className="w-full h-48 object-contain mb-4"
                       />
