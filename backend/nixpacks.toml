@@ -8,7 +8,10 @@ cmds = [
 ]
 
 [phases.build]
-cmds = ["echo 'Skipping collectstatic during build - will run on start'"]
+cmds = ["echo 'Build complete - migrations will run on startup'"]
+
+[phases.release]
+cmds = ["echo 'Skipping release phase'"]
 
 [start]
 cmd = "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn alphalpgas.wsgi:application --bind 0.0.0.0:$PORT"
