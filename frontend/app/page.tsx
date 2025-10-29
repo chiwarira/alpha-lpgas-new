@@ -233,12 +233,14 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <img src="/alpha-lpgas-logo.svg" alt="Alpha LPGas Logo" className="h-12" />
+              <a href="/" className="cursor-pointer">
+                <img src="/alpha-lpgas-logo.svg" alt="Alpha LPGas Logo" className="h-12" />
+              </a>
             </div>
             <div className="hidden md:flex space-x-8">
-              <a href="#home" className="text-gray-700 hover:text-rose-600 font-semibold transition">Home</a>
+              <a href="/" className="text-gray-700 hover:text-rose-600 font-semibold transition">Home</a>
               <a href="#products" className="text-gray-700 hover:text-rose-600 font-semibold transition">Products</a>
-              <a href="#order" className="text-gray-700 hover:text-rose-600 font-semibold transition">Order</a>
+              <a href="#contact" className="text-gray-700 hover:text-rose-600 font-semibold transition">Contact Us</a>
             </div>
             <div className="flex items-center space-x-4">
               <button 
@@ -278,14 +280,12 @@ export default function Home() {
                 {banner?.subtitle || 'Fast, reliable gas delivery to your doorstep in Fish Hoek and surrounding areas. Order online and get same-day delivery!'}
               </p>
               <div className="flex space-x-4">
-                <a href={banner?.cta_link || '#order'} className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-lg font-bold text-lg transition shadow-lg">
-                  {banner?.cta_text || 'Order Now'}
+                <a href="#products" className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-lg font-bold text-lg transition shadow-lg">
+                  Order Now
                 </a>
-                {banner?.secondary_cta_text && (
-                  <a href={banner.secondary_cta_link || '#products'} className="bg-rose-600 text-white hover:bg-rose-700 px-8 py-4 rounded-lg font-bold text-lg transition shadow-lg">
-                    {banner.secondary_cta_text}
-                  </a>
-                )}
+                <a href="#contact" className="bg-rose-600 text-white hover:bg-rose-700 px-8 py-4 rounded-lg font-bold text-lg transition shadow-lg">
+                  Contact Us
+                </a>
               </div>
             </div>
             <div className="hidden md:block">
@@ -426,106 +426,89 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Order Section */}
-      <section id="order" className="py-20 bg-blue-600 text-white">
+      {/* Contact Section */}
+      <section id="contact" className="py-20 bg-blue-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">Order Now</h2>
-            <p className="text-xl text-white opacity-90">Get your gas delivered today!</p>
+            <h2 className="text-4xl font-bold mb-4">Contact Us</h2>
+            <p className="text-xl text-white opacity-90">Get in touch with us today!</p>
           </div>
           <div className="bg-white rounded-2xl shadow-2xl p-8 text-gray-900">
             <div className="grid md:grid-cols-2 gap-6 mb-6">
               <div>
-                <label className="block text-sm font-semibold mb-2">Select Product</label>
-                <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent">
-                  {loading ? (
-                    <option>Loading products...</option>
-                  ) : products.length === 0 ? (
-                    <option>No products available</option>
-                  ) : (
-                    products.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.name} - R{parseFloat(product.unit_price).toFixed(2)}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">Quantity</label>
-                <input type="number" min="1" defaultValue="1" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent" />
-              </div>
-            </div>
-            <div className="mb-6">
-              <label className="block text-sm font-semibold mb-2">Delivery Address</label>
-              <textarea rows={3} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Enter your delivery address"></textarea>
-            </div>
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-              <div>
                 <label className="block text-sm font-semibold mb-2">Name</label>
-                <input type="text" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent" />
+                <input type="text" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Your name" />
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-2">Phone</label>
-                <input type="tel" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent" />
+                <input type="tel" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Your phone number" />
               </div>
             </div>
-            <button className="w-full bg-rose-600 text-white hover:bg-rose-700 py-4 rounded-lg font-bold text-lg transition shadow-lg">
-              Place Order - Pay Online
+            <div className="mb-6">
+              <label className="block text-sm font-semibold mb-2">Email</label>
+              <input type="email" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Your email address" />
+            </div>
+            <div className="mb-6">
+              <label className="block text-sm font-semibold mb-2">Subject</label>
+              <input type="text" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="What is this regarding?" />
+            </div>
+            <div className="mb-6">
+              <label className="block text-sm font-semibold mb-2">Message</label>
+              <textarea rows={5} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Your message..."></textarea>
+            </div>
+            <button className="w-full bg-blue-600 text-white hover:bg-blue-700 py-4 rounded-lg font-bold text-lg transition shadow-lg">
+              Send Message
             </button>
             <p className="text-center text-sm text-gray-600 mt-4">
-              Or call us at <a href="tel:0744545665" className="text-rose-600 font-semibold">074 454 5665</a>
+              Or call us directly at <a href="tel:0744545665" className="text-blue-600 font-semibold">074 454 5665</a>
             </p>
           </div>
         </div>
       </section>
 
-      {/* Contact Section */}
-      <section id="contact" className="py-20 bg-gray-900 text-white">
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-12">
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
+            {/* Address */}
             <div>
-              <h2 className="text-3xl font-bold mb-6">Contact Us</h2>
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <span className="text-2xl mr-4">📞</span>
-                  <div>
-                    <p className="font-semibold">Phone</p>
-                    <a href="tel:0744545665" className="text-rose-400 hover:text-rose-300">074 454 5665</a>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <span className="text-2xl mr-4">📍</span>
-                  <div>
-                    <p className="font-semibold">Service Area</p>
-                    <p className="text-gray-400">Fish Hoek & Surrounding Areas</p>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <span className="text-2xl mr-4">⏰</span>
-                  <div>
-                    <p className="font-semibold">Operating Hours</p>
-                    <p className="text-gray-400">Mon-Sat: 8AM - 6PM</p>
-                  </div>
-                </div>
+              <h3 className="text-xl font-bold mb-4 text-blue-400">Address</h3>
+              <p className="text-gray-300 leading-relaxed">
+                Sunnyacres Shopping Centre,<br />
+                Sunnydale, Fish Hoek,<br />
+                Cape Town
+              </p>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <h3 className="text-xl font-bold mb-4 text-blue-400">Contact</h3>
+              <div className="space-y-2">
+                <a href="tel:0744545665" className="block text-gray-300 hover:text-blue-400 transition">
+                  📞 074 454 5665
+                </a>
+                <a href="mailto:info@alphalpgas.co.za" className="block text-gray-300 hover:text-blue-400 transition">
+                  ✉️ info@alphalpgas.co.za
+                </a>
               </div>
             </div>
+
+            {/* Trading Hours */}
             <div>
-              <h3 className="text-2xl font-bold mb-6">Quick Links</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <a href="http://localhost:8000/admin" target="_blank" className="text-rose-400 hover:text-rose-300">Admin Panel</a>
-                <a href="http://localhost:8000/api" target="_blank" className="text-rose-400 hover:text-rose-300">API</a>
+              <h3 className="text-xl font-bold mb-4 text-blue-400">Trading Hours</h3>
+              <div className="space-y-1 text-gray-300">
+                <p><span className="font-semibold">Mon – Fri:</span> 8am – 8pm</p>
+                <p><span className="font-semibold">Sat:</span> 8am – 7pm</p>
+                <p><span className="font-semibold">Sun:</span> 8am – 5pm</p>
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-950 text-gray-400 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="italic text-rose-400 text-xl mb-2">Always striving for customer satisfaction!</p>
-          <p>&copy; {new Date().getFullYear()} Alpha LPGas. All rights reserved.</p>
+          {/* Bottom Bar */}
+          <div className="border-t border-gray-700 pt-6 text-center">
+            <p className="italic text-blue-400 text-lg mb-2">Always striving for customer satisfaction!</p>
+            <p className="text-gray-400">&copy; {new Date().getFullYear()} Alpha LPGas. All rights reserved.</p>
+          </div>
         </div>
       </footer>
 

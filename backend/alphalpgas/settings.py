@@ -19,6 +19,17 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
+# Railway-specific settings
+RAILWAY_ENVIRONMENT = config('RAILWAY_ENVIRONMENT', default=None)
+if RAILWAY_ENVIRONMENT:
+    ALLOWED_HOSTS.append('.railway.app')
+    ALLOWED_HOSTS.append('.up.railway.app')
+    # Add your custom domain when you set it up
+    CSRF_TRUSTED_ORIGINS = [
+        'https://*.railway.app',
+        'https://*.up.railway.app',
+    ]
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
