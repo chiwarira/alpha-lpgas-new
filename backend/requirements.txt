@@ -19,6 +19,8 @@ wagtail-localize==1.7
 
 # Image handling
 Pillow==10.4.0
+django-cloudinary-storage==0.3.0
+cloudinary==1.36.0
 
 # Environment variables
 python-decouple==3.8
