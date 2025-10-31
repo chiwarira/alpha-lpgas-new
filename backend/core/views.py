@@ -459,10 +459,14 @@ class OrderViewSet(viewsets.ModelViewSet):
     
     def create(self, request, *args, **kwargs):
         """Create order with items"""
-        items_data = request.data.pop('items', [])
+        # Get items data without modifying request.data
+        items_data = request.data.get('items', [])
+        
+        # Create order data without items
+        order_data = {k: v for k, v in request.data.items() if k != 'items'}
         
         # Create order
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=order_data)
         serializer.is_valid(raise_exception=True)
         order = serializer.save()
         
