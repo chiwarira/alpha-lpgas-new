@@ -477,13 +477,15 @@ class OrderViewSet(viewsets.ModelViewSet):
             print(f"Order created: {order.order_number}")
             
             # Create order items
+            from decimal import Decimal
             for item_data in items_data:
+                print(f"Creating item with unit_price: {item_data['unit_price']} (type: {type(item_data['unit_price'])})")
                 OrderItem.objects.create(
                     order=order,
                     product_id=item_data['product'],
                     variant_id=item_data.get('variant'),
                     quantity=item_data['quantity'],
-                    unit_price=item_data['unit_price']
+                    unit_price=Decimal(str(item_data['unit_price']))
                 )
             
             print(f"Created {len(items_data)} order items")
