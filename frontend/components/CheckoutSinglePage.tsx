@@ -33,6 +33,7 @@ interface CheckoutProps {
 }
 
 export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal }: CheckoutProps) {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
   const [selectedZone, setSelectedZone] = useState<DeliveryZone | null>(null);
   const [promoCode, setPromoCode] = useState('');
@@ -54,7 +55,7 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
 
   // Fetch delivery zones
   useEffect(() => {
-    fetch('http://localhost:8000/api/accounting/delivery-zones/')
+    fetch(`${apiUrl}/api/accounting/delivery-zones/`)
       .then(res => res.json())
       .then(data => setDeliveryZones(data.results || data))
       .catch(err => console.error('Error fetching zones:', err));
@@ -83,7 +84,7 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
 
     const subtotal = getCartTotal();
     try {
-      const response = await fetch('http://localhost:8000/api/accounting/promo-codes/validate_code/', {
+      const response = await fetch(`${apiUrl}/api/accounting/promo-codes/validate_code/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: promoCode.toUpperCase(), order_total: subtotal })
@@ -244,7 +245,7 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
     };
 
     try {
-      const response = await fetch('http://localhost:8000/api/accounting/orders/', {
+      const response = await fetch(`${apiUrl}/api/accounting/orders/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData)
@@ -324,7 +325,7 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
             
             console.log('Order data being sent:', orderWithPayment);
             
-            fetch('http://localhost:8000/api/accounting/orders/', {
+            fetch(`${apiUrl}/api/accounting/orders/`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(orderWithPayment)
@@ -349,7 +350,7 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
             .then(order => {
               console.log('Order created, processing payment...');
               // Update order with payment status
-              return fetch(`http://localhost:8000/api/accounting/orders/${order.id}/process_yoco_payment/`, {
+              return fetch(`${apiUrl}/api/accounting/orders/${order.id}/process_yoco_payment/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ payment_id: result.id })
