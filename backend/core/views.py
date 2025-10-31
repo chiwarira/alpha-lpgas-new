@@ -459,41 +459,54 @@ class OrderViewSet(viewsets.ModelViewSet):
     
     def create(self, request, *args, **kwargs):
         """Create order with items"""
-        # Get items data without modifying request.data
-        items_data = request.data.get('items', [])
-        
-        # Create order data without items
-        order_data = {k: v for k, v in request.data.items() if k != 'items'}
-        
-        # Create order
-        serializer = self.get_serializer(data=order_data)
-        serializer.is_valid(raise_exception=True)
-        order = serializer.save()
-        
-        # Create order items
-        for item_data in items_data:
-            OrderItem.objects.create(
+        try:
+            # Get items data without modifying request.data
+            items_data = request.data.get('items', [])
+            
+            # Create order data without items
+            order_data = {k: v for k, v in request.data.items() if k != 'items'}
+            
+            print(f"Creating order with data: {order_data}")
+            print(f"Items data: {items_data}")
+            
+            # Create order
+            serializer = self.get_serializer(data=order_data)
+            serializer.is_valid(raise_exception=True)
+            order = serializer.save()
+            
+            print(f"Order created: {order.order_number}")
+            
+            # Create order items
+            for item_data in items_data:
+                OrderItem.objects.create(
+                    order=order,
+                    product_id=item_data['product'],
+                    variant_id=item_data.get('variant'),
+                    quantity=item_data['quantity'],
+                    unit_price=item_data['unit_price']
+                )
+            
+            print(f"Created {len(items_data)} order items")
+            
+            # Create initial status history
+            OrderStatusHistory.objects.create(
                 order=order,
-                product_id=item_data['product'],
-                variant_id=item_data.get('variant'),
-                quantity=item_data['quantity'],
-                unit_price=item_data['unit_price']
+                status='pending',
+                notes='Order created'
             )
-        
-        # Create initial status history
-        OrderStatusHistory.objects.create(
-            order=order,
-            status='pending',
-            notes='Order created'
-        )
-        
-        # Increment promo code usage if applicable
-        if order.promo_code:
-            order.promo_code.times_used += 1
-            order.promo_code.save()
-        
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            
+            # Increment promo code usage if applicable
+            if order.promo_code:
+                order.promo_code.times_used += 1
+                order.promo_code.save()
+            
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except Exception as e:
+            print(f"ERROR creating order: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise
     
     @action(detail=True, methods=['post'])
     def update_status(self, request, pk=None):
