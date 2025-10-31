@@ -82,8 +82,12 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        console.log('API URL:', apiUrl);
         // Fetch products
-        const productsResponse = await fetch(`${apiUrl}/api/accounting/products/?is_active=true&show_on_website=true`);
+        const productsUrl = `${apiUrl}/api/accounting/products/?is_active=true&show_on_website=true`;
+        console.log('Fetching products from:', productsUrl);
+        const productsResponse = await fetch(productsUrl);
+        console.log('Products response status:', productsResponse.status);
         if (productsResponse.ok) {
           const productsData = await productsResponse.json();
           console.log('Fetched products:', productsData);
@@ -99,6 +103,8 @@ export default function Home() {
           
           setProducts(gasProducts);
           setCylinderProducts(cylinders);
+        } else {
+          console.error('Failed to fetch products:', productsResponse.status, productsResponse.statusText);
         }
 
         // Fetch hero banner

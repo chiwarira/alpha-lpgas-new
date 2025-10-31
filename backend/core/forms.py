@@ -73,8 +73,13 @@ class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = [
-            'name', 'description', 'sku', 'unit', 'unit_price',
-            'cost_price', 'tax_rate', 'is_active'
+            'name', 'description', 'short_description', 'sku', 'unit', 
+            'category', 'unit_price', 'compare_at_price', 'cost_price', 'tax_rate',
+            'main_image', 'image_2', 'image_3', 'image_4',
+            'weight', 'is_exchange', 'requires_empty_cylinder',
+            'track_inventory', 'stock_quantity', 'low_stock_threshold',
+            'is_active', 'is_featured', 'show_on_website', 'available_for_invoicing',
+            'meta_title', 'meta_description', 'order'
         ]
         widgets = {
             'name': forms.TextInput(attrs={
@@ -83,8 +88,12 @@ class ProductForm(forms.ModelForm):
             }),
             'description': forms.Textarea(attrs={
                 'class': 'form-control',
-                'rows': 3,
-                'placeholder': 'Product description'
+                'rows': 4,
+                'placeholder': 'Full product description'
+            }),
+            'short_description': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Short description for listings'
             }),
             'sku': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -92,11 +101,19 @@ class ProductForm(forms.ModelForm):
             }),
             'unit': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Unit (e.g., kg, piece, hour)'
+                'placeholder': 'Unit (e.g., kg, piece, hour, cylinder)'
+            }),
+            'category': forms.Select(attrs={
+                'class': 'form-select'
             }),
             'unit_price': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': '0.00',
+                'step': '0.01'
+            }),
+            'compare_at_price': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00 (optional - for showing discounts)',
                 'step': '0.01'
             }),
             'cost_price': forms.NumberInput(attrs={
@@ -109,7 +126,66 @@ class ProductForm(forms.ModelForm):
                 'value': '15.00',
                 'step': '0.01'
             }),
+            'main_image': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            }),
+            'image_2': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            }),
+            'image_3': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            }),
+            'image_4': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            }),
+            'weight': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., 9kg, 19kg, 48kg'
+            }),
+            'stock_quantity': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0'
+            }),
+            'low_stock_threshold': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '10'
+            }),
+            'meta_title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'SEO title (optional)'
+            }),
+            'meta_description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'SEO description (optional)'
+            }),
+            'order': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0'
+            }),
             'is_active': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'is_featured': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'show_on_website': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'available_for_invoicing': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'is_exchange': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'requires_empty_cylinder': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'track_inventory': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
             }),
         }
