@@ -43,6 +43,17 @@ interface CartItem {
   cylinderProduct?: Product;
 }
 
+interface Testimonial {
+  id: number;
+  customer_name: string;
+  location: string;
+  company_name?: string;
+  review: string;
+  rating: number;
+  avatar_color: string;
+  initials: string;
+}
+
 export default function Home() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
@@ -50,6 +61,8 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [cylinderProducts, setCylinderProducts] = useState<Product[]>([]);
   const [banner, setBanner] = useState<HeroBanner | null>(null);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [displayedTestimonials, setDisplayedTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
@@ -117,6 +130,19 @@ export default function Home() {
           if (banners.length > 0) {
             setBanner(banners[0]);
           }
+        }
+
+        // Fetch testimonials
+        const testimonialsResponse = await fetch(`${apiUrl}/api/accounting/testimonials/`);
+        if (testimonialsResponse.ok) {
+          const testimonialsData = await testimonialsResponse.json();
+          console.log('Fetched testimonials:', testimonialsData);
+          const allTestimonials = testimonialsData.results || testimonialsData;
+          setTestimonials(allTestimonials);
+          
+          // Randomly select 3 testimonials to display (or all if less than 3)
+          const shuffled = [...allTestimonials].sort(() => 0.5 - Math.random());
+          setDisplayedTestimonials(shuffled.slice(0, 3));
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -247,7 +273,7 @@ export default function Home() {
             <div className="hidden md:flex space-x-8">
               <a href="/" className="text-gray-700 hover:text-rose-600 font-semibold transition">Home</a>
               <a href="#products" className="text-gray-700 hover:text-rose-600 font-semibold transition">Products</a>
-              <a href="#contact" className="text-gray-700 hover:text-rose-600 font-semibold transition">Contact Us</a>
+              <Link href="/contact" className="text-gray-700 hover:text-rose-600 font-semibold transition">Contact Us</Link>
             </div>
             <div className="flex items-center space-x-4">
               <button 
@@ -290,9 +316,9 @@ export default function Home() {
                 <a href="#products" className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-lg font-bold text-lg transition shadow-lg">
                   Order Now
                 </a>
-                <a href="#contact" className="bg-rose-600 text-white hover:bg-rose-700 px-8 py-4 rounded-lg font-bold text-lg transition shadow-lg">
+                <Link href="/contact" className="bg-rose-600 text-white hover:bg-rose-700 px-8 py-4 rounded-lg font-bold text-lg transition shadow-lg">
                   Contact Us
-                </a>
+                </Link>
               </div>
             </div>
             <div className="hidden md:block">
@@ -433,42 +459,67 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Contact Section */}
-      <section id="contact" className="py-20 bg-blue-600 text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">Contact Us</h2>
-            <p className="text-xl text-white opacity-90">Get in touch with us today!</p>
+      {/* Client Testimonials Section - Content managed from Django backend */}
+      <section id="testimonials" className="py-20 bg-gradient-to-br from-blue-50 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">What Our Clients Say</h2>
+            <p className="text-xl text-gray-600">Trusted by families and businesses across Fish Hoek</p>
           </div>
-          <div className="bg-white rounded-2xl shadow-2xl p-8 text-gray-900">
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label className="block text-sm font-semibold mb-2">Name</label>
-                <input type="text" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Your name" />
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            {displayedTestimonials.length > 0 ? (
+              displayedTestimonials.map((testimonial) => {
+                const avatarColors: {[key: string]: string} = {
+                  blue: 'bg-blue-100 text-blue-600',
+                  rose: 'bg-rose-100 text-rose-600',
+                  green: 'bg-green-100 text-green-600',
+                  purple: 'bg-purple-100 text-purple-600',
+                  yellow: 'bg-yellow-100 text-yellow-600',
+                  red: 'bg-red-100 text-red-600',
+                };
+                const colorClass = avatarColors[testimonial.avatar_color] || 'bg-blue-100 text-blue-600';
+
+                return (
+                  <div key={testimonial.id} className="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition">
+                    <div className="flex items-center mb-4">
+                      <div className="flex text-yellow-400">
+                        {[...Array(testimonial.rating)].map((_, i) => (
+                          <svg key={i} className="w-5 h-5 fill-current" viewBox="0 0 20 20">
+                            <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                          </svg>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-gray-600 mb-4 italic">
+                      "{testimonial.review}"
+                    </p>
+                    <div className="flex items-center">
+                      <div className={`w-12 h-12 ${colorClass} rounded-full flex items-center justify-center font-bold text-lg`}>
+                        {testimonial.initials}
+                      </div>
+                      <div className="ml-4">
+                        <p className="font-semibold text-gray-900">{testimonial.customer_name}</p>
+                        <p className="text-sm text-gray-500">{testimonial.location}</p>
+                        {testimonial.company_name && (
+                          <p className="text-xs text-gray-400">{testimonial.company_name}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="col-span-3 text-center text-gray-500 py-12">
+                <p>No testimonials available yet. Check back soon!</p>
               </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">Phone</label>
-                <input type="tel" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Your phone number" />
-              </div>
-            </div>
-            <div className="mb-6">
-              <label className="block text-sm font-semibold mb-2">Email</label>
-              <input type="email" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Your email address" />
-            </div>
-            <div className="mb-6">
-              <label className="block text-sm font-semibold mb-2">Subject</label>
-              <input type="text" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="What is this regarding?" />
-            </div>
-            <div className="mb-6">
-              <label className="block text-sm font-semibold mb-2">Message</label>
-              <textarea rows={5} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Your message..."></textarea>
-            </div>
-            <button className="w-full bg-blue-600 text-white hover:bg-blue-700 py-4 rounded-lg font-bold text-lg transition shadow-lg">
-              Send Message
-            </button>
-            <p className="text-center text-sm text-gray-600 mt-4">
-              Or call us directly at <a href="tel:0744545665" className="text-blue-600 font-semibold">074 454 5665</a>
-            </p>
+            )}
+          </div>
+
+          <div className="text-center mt-12">
+            <Link href="/contact" className="inline-block bg-blue-600 text-white hover:bg-blue-700 px-8 py-4 rounded-lg font-bold text-lg transition shadow-lg">
+              Share Your Experience
+            </Link>
           </div>
         </div>
       </section>

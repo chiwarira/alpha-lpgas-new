@@ -3,6 +3,12 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 
+# Import contact submission model
+from .models_contact import ContactSubmission
+
+# Import testimonial model
+from .models_testimonial import Testimonial
+
 
 class HeroBanner(models.Model):
     """Hero banner for the website homepage"""

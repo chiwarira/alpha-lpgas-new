@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     HeroBanner, CompanySettings, Client, Category, Product, ProductVariant,
     Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem,
-    DeliveryZone, PromoCode, Order, OrderItem, OrderStatusHistory
+    DeliveryZone, PromoCode, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial
 )
 
 
@@ -244,6 +244,60 @@ class OrderAdmin(admin.ModelAdmin):
         }),
         ('Notes', {
             'fields': ('notes',),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(ContactSubmission)
+class ContactSubmissionAdmin(admin.ModelAdmin):
+    list_display = ['name', 'email', 'subject', 'status', 'created_at']
+    list_filter = ['status', 'created_at']
+    search_fields = ['name', 'email', 'subject', 'message']
+    list_editable = ['status']
+    readonly_fields = ['created_at', 'updated_at', 'ip_address', 'user_agent']
+    
+    fieldsets = (
+        ('Contact Information', {
+            'fields': ('name', 'email', 'phone')
+        }),
+        ('Message', {
+            'fields': ('subject', 'message')
+        }),
+        ('Management', {
+            'fields': ('status', 'assigned_to', 'notes', 'resolved_at')
+        }),
+        ('Metadata', {
+            'fields': ('ip_address', 'user_agent', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        # Disable adding submissions through admin (only through API)
+        return False
+
+
+@admin.register(Testimonial)
+class TestimonialAdmin(admin.ModelAdmin):
+    list_display = ['customer_name', 'location', 'rating', 'is_active', 'order', 'created_at']
+    list_filter = ['is_active', 'rating', 'created_at']
+    search_fields = ['customer_name', 'location', 'review', 'company_name']
+    list_editable = ['is_active', 'order']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Customer Information', {
+            'fields': ('customer_name', 'location', 'company_name')
+        }),
+        ('Review', {
+            'fields': ('review', 'rating')
+        }),
+        ('Display Settings', {
+            'fields': ('is_active', 'order', 'avatar_color')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )

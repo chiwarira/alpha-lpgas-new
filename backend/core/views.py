@@ -10,13 +10,14 @@ from decimal import Decimal
 from .models import (
     HeroBanner, CompanySettings, Client, Category, Product, ProductVariant,
     Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem,
-    DeliveryZone, PromoCode, Order, OrderItem, OrderStatusHistory
+    DeliveryZone, PromoCode, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial
 )
 from .serializers import (
     HeroBannerSerializer, CompanySettingsSerializer, UserSerializer, ClientSerializer, CategorySerializer, ProductSerializer,
     QuoteSerializer, QuoteItemSerializer, InvoiceSerializer,
     InvoiceItemSerializer, PaymentSerializer, CreditNoteSerializer, CreditNoteItemSerializer,
-    DeliveryZoneSerializer, PromoCodeSerializer, ProductVariantSerializer, OrderSerializer, OrderItemSerializer, OrderStatusHistorySerializer
+    DeliveryZoneSerializer, PromoCodeSerializer, ProductVariantSerializer, OrderSerializer, OrderItemSerializer, OrderStatusHistorySerializer,
+    ContactSubmissionSerializer, TestimonialSerializer
 )
 
 
@@ -603,3 +604,94 @@ class OrderViewSet(viewsets.ModelViewSet):
         )
         
         return Response({'success': True, 'order': OrderSerializer(order).data})
+
+
+class ContactSubmissionViewSet(viewsets.ModelViewSet):
+    """ViewSet for contact form submissions"""
+    queryset = ContactSubmission.objects.all()
+    serializer_class = ContactSubmissionSerializer
+    permission_classes = [permissions.AllowAny]  # Allow anyone to submit
+    http_method_names = ['get', 'post', 'head', 'options']  # Only allow GET and POST
+    
+    def get_permissions(self):
+        """Only staff can view submissions, anyone can create"""
+        if self.action in ['list', 'retrieve']:
+            return [IsAuthenticated()]
+        return [permissions.AllowAny()]
+    
+    def create(self, request, *args, **kwargs):
+        """Create a new contact submission and send email notification"""
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        
+        # Send email notification (optional)
+        self.send_notification_email(serializer.instance)
+        
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            {'success': True, 'message': 'Thank you for contacting us! We will get back to you soon.'},
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
+    
+    def send_notification_email(self, submission):
+        """Send email notification to admin when new contact form is submitted"""
+        from django.core.mail import send_mail
+        from django.conf import settings
+        
+        print("=" * 50)
+        print("ATTEMPTING TO SEND EMAIL NOTIFICATION")
+        print(f"EMAIL_BACKEND: {settings.EMAIL_BACKEND}")
+        print(f"EMAIL_HOST: {settings.EMAIL_HOST}")
+        print(f"EMAIL_HOST_USER: {settings.EMAIL_HOST_USER}")
+        print(f"DEFAULT_FROM_EMAIL: {settings.DEFAULT_FROM_EMAIL}")
+        print("=" * 50)
+        
+        try:
+            subject = f'New Contact Form Submission: {submission.subject or "No Subject"}'
+            message = f"""
+New contact form submission received:
+
+Name: {submission.name}
+Email: {submission.email}
+Phone: {submission.phone or 'Not provided'}
+Subject: {submission.subject or 'No subject'}
+
+Message:
+{submission.message}
+
+---
+Submitted at: {submission.created_at.strftime('%Y-%m-%d %H:%M:%S')}
+IP Address: {submission.ip_address or 'Unknown'}
+            """
+            
+            print(f"Sending email to: {settings.DEFAULT_FROM_EMAIL}")
+            print(f"Subject: {subject}")
+            
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [settings.DEFAULT_FROM_EMAIL],  # Send to company email
+                fail_silently=False,  # Show errors for debugging
+            )
+            
+            print("✓ Email sent successfully!")
+            
+        except Exception as e:
+            # Log error but don't fail the request
+            print(f"✗ Failed to send contact form notification email: {e}")
+            import traceback
+            traceback.print_exc()
+
+
+class TestimonialViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for testimonials - Read only for public"""
+    queryset = Testimonial.objects.filter(is_active=True)
+    serializer_class = TestimonialSerializer
+    permission_classes = [permissions.AllowAny]  # Public access
+    
+    def get_queryset(self):
+        """Return active testimonials ordered by display order"""
+        return Testimonial.objects.filter(is_active=True).order_by('order', '-created_at')

@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from .models import (
     HeroBanner, CompanySettings, Client, Category, Product, ProductVariant,
     Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem,
-    DeliveryZone, PromoCode, Order, OrderItem, OrderStatusHistory
+    DeliveryZone, PromoCode, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial
 )
 
 
@@ -270,3 +270,43 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = '__all__'
         read_only_fields = ['order_number', 'created_at', 'updated_at']
+
+
+class ContactSubmissionSerializer(serializers.ModelSerializer):
+    """Serializer for ContactSubmission model"""
+    
+    class Meta:
+        model = ContactSubmission
+        fields = ['id', 'name', 'email', 'phone', 'subject', 'message', 'status', 'created_at']
+        read_only_fields = ['id', 'status', 'created_at']
+    
+    def create(self, validated_data):
+        # Get IP address and user agent from request context
+        request = self.context.get('request')
+        if request:
+            validated_data['ip_address'] = self.get_client_ip(request)
+            validated_data['user_agent'] = request.META.get('HTTP_USER_AGENT', '')
+        return super().create(validated_data)
+    
+    def get_client_ip(self, request):
+        """Get client IP address from request"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+
+
+class TestimonialSerializer(serializers.ModelSerializer):
+    """Serializer for Testimonial model"""
+    initials = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Testimonial
+        fields = ['id', 'customer_name', 'location', 'company_name', 'review', 'rating', 'avatar_color', 'initials', 'created_at']
+        read_only_fields = ['id', 'created_at']
+    
+    def get_initials(self, obj):
+        """Get customer initials"""
+        return obj.get_initials()

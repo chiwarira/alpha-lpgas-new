@@ -19,9 +19,11 @@
     <div class="col-md-8">
         <div class="card">
             <div class="card-body">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     
+                    <!-- Basic Information -->
+                    <h5 class="mb-3">Basic Information</h5>
                     <div class="row">
                         <div class="col-md-8 mb-3">
                             <label for="{{ form.name.id_for_label }}" class="form-label">Product Name *</label>
@@ -47,6 +49,34 @@
                         {% endif %}
                     </div>
 
+                    <div class="mb-3">
+                        <label for="{{ form.short_description.id_for_label }}" class="form-label">Short Description</label>
+                        {{ form.short_description }}
+                        {% if form.short_description.errors %}
+                        <div class="text-danger">{{ form.short_description.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.category.id_for_label }}" class="form-label">Category</label>
+                            {{ form.category }}
+                            {% if form.category.errors %}
+                            <div class="text-danger">{{ form.category.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.unit.id_for_label }}" class="form-label">Unit</label>
+                            {{ form.unit }}
+                            {% if form.unit.errors %}
+                            <div class="text-danger">{{ form.unit.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted">e.g., kg, piece, hour, cylinder</small>
+                        </div>
+                    </div>
+
+                    <!-- Pricing -->
+                    <h5 class="mb-3 mt-4">Pricing</h5>
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label for="{{ form.unit_price.id_for_label }}" class="form-label">Unit Price *</label>
@@ -56,13 +86,24 @@
                             {% endif %}
                         </div>
                         <div class="col-md-4 mb-3">
+                            <label for="{{ form.compare_at_price.id_for_label }}" class="form-label">Compare At Price</label>
+                            {{ form.compare_at_price }}
+                            {% if form.compare_at_price.errors %}
+                            <div class="text-danger">{{ form.compare_at_price.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted">For showing discounts</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
                             <label for="{{ form.cost_price.id_for_label }}" class="form-label">Cost Price</label>
                             {{ form.cost_price }}
                             {% if form.cost_price.errors %}
                             <div class="text-danger">{{ form.cost_price.errors }}</div>
                             {% endif %}
                         </div>
-                        <div class="col-md-4 mb-3">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
                             <label for="{{ form.tax_rate.id_for_label }}" class="form-label">Tax Rate (%)</label>
                             {{ form.tax_rate }}
                             {% if form.tax_rate.errors %}
@@ -71,26 +112,164 @@
                         </div>
                     </div>
 
+                    <!-- Images -->
+                    <h5 class="mb-3 mt-4">Product Images</h5>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="{{ form.unit.id_for_label }}" class="form-label">Unit</label>
-                            {{ form.unit }}
-                            {% if form.unit.errors %}
-                            <div class="text-danger">{{ form.unit.errors }}</div>
+                            <label for="{{ form.main_image.id_for_label }}" class="form-label">Main Image</label>
+                            {{ form.main_image }}
+                            {% if form.main_image.errors %}
+                            <div class="text-danger">{{ form.main_image.errors }}</div>
                             {% endif %}
-                            <small class="text-muted">e.g., kg, piece, hour</small>
                         </div>
                         <div class="col-md-6 mb-3">
+                            <label for="{{ form.image_2.id_for_label }}" class="form-label">Image 2</label>
+                            {{ form.image_2 }}
+                            {% if form.image_2.errors %}
+                            <div class="text-danger">{{ form.image_2.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.image_3.id_for_label }}" class="form-label">Image 3</label>
+                            {{ form.image_3 }}
+                            {% if form.image_3.errors %}
+                            <div class="text-danger">{{ form.image_3.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.image_4.id_for_label }}" class="form-label">Image 4</label>
+                            {{ form.image_4 }}
+                            {% if form.image_4.errors %}
+                            <div class="text-danger">{{ form.image_4.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- LPG Specific -->
+                    <h5 class="mb-3 mt-4">LPG Specific Fields</h5>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.weight.id_for_label }}" class="form-label">Weight</label>
+                            {{ form.weight }}
+                            {% if form.weight.errors %}
+                            <div class="text-danger">{{ form.weight.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted">e.g., 9kg, 19kg, 48kg</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
                             <div class="form-check mt-4">
+                                {{ form.is_exchange }}
+                                <label class="form-check-label" for="{{ form.is_exchange.id_for_label }}">
+                                    Is Exchange Product
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check mt-4">
+                                {{ form.requires_empty_cylinder }}
+                                <label class="form-check-label" for="{{ form.requires_empty_cylinder.id_for_label }}">
+                                    Requires Empty Cylinder
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inventory -->
+                    <h5 class="mb-3 mt-4">Inventory Management</h5>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                {{ form.track_inventory }}
+                                <label class="form-check-label" for="{{ form.track_inventory.id_for_label }}">
+                                    Track Inventory
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.stock_quantity.id_for_label }}" class="form-label">Stock Quantity</label>
+                            {{ form.stock_quantity }}
+                            {% if form.stock_quantity.errors %}
+                            <div class="text-danger">{{ form.stock_quantity.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.low_stock_threshold.id_for_label }}" class="form-label">Low Stock Threshold</label>
+                            {{ form.low_stock_threshold }}
+                            {% if form.low_stock_threshold.errors %}
+                            <div class="text-danger">{{ form.low_stock_threshold.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Status & Visibility -->
+                    <h5 class="mb-3 mt-4">Status & Visibility</h5>
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check">
                                 {{ form.is_active }}
                                 <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
                                     Active
                                 </label>
                             </div>
                         </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check">
+                                {{ form.is_featured }}
+                                <label class="form-check-label" for="{{ form.is_featured.id_for_label }}">
+                                    Featured
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check">
+                                {{ form.show_on_website }}
+                                <label class="form-check-label" for="{{ form.show_on_website.id_for_label }}">
+                                    Show on Website
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check">
+                                {{ form.available_for_invoicing }}
+                                <label class="form-check-label" for="{{ form.available_for_invoicing.id_for_label }}">
+                                    Available for Invoicing
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <!-- SEO -->
+                    <h5 class="mb-3 mt-4">SEO (Optional)</h5>
+                    <div class="mb-3">
+                        <label for="{{ form.meta_title.id_for_label }}" class="form-label">Meta Title</label>
+                        {{ form.meta_title }}
+                        {% if form.meta_title.errors %}
+                        <div class="text-danger">{{ form.meta_title.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.meta_description.id_for_label }}" class="form-label">Meta Description</label>
+                        {{ form.meta_description }}
+                        {% if form.meta_description.errors %}
+                        <div class="text-danger">{{ form.meta_description.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Display Order -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.order.id_for_label }}" class="form-label">Display Order</label>
+                            {{ form.order }}
+                            {% if form.order.errors %}
+                            <div class="text-danger">{{ form.order.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted">Lower numbers appear first</small>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
                         <a href="{% url 'accounting_forms:product_list' %}" class="btn btn-secondary">Cancel</a>
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-save"></i> Save Product
