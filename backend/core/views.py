@@ -551,8 +551,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         payment_id = request.data.get('payment_id')
         
         # Verify payment with Yoco API using secret key
-        if settings.YOCO_SECRET_KEY and not settings.DEBUG:
-            # Only verify in production
+        secret_key = getattr(settings, 'YOCO_SECRET_KEY', None)
+        if secret_key and secret_key.startswith('sk_') and not settings.DEBUG:
+            # Only verify in production with valid secret key
             try:
                 # Verify the payment with Yoco
                 headers = {
