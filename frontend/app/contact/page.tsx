@@ -77,9 +77,10 @@ export default function ContactPage() {
               <a href="/#products" className="text-gray-700 hover:text-rose-600 font-semibold transition">Products</a>
               <Link href="/contact" className="text-rose-600 font-semibold">Contact Us</Link>
             </div>
-            <div className="flex items-center space-x-4">
-              <a href="tel:0744545665" className="bg-rose-600 text-white hover:bg-rose-700 px-4 py-2 rounded-lg font-semibold transition">
-                📞 074 454 5665
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <a href="tel:0744545665" className="bg-rose-600 text-white hover:bg-rose-700 px-3 py-2 sm:px-4 rounded-lg font-semibold transition whitespace-nowrap">
+                <span className="hidden sm:inline">📞 074 454 5665</span>
+                <span className="sm:hidden text-xl">📞</span>
               </a>
             </div>
           </div>

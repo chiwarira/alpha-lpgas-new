@@ -389,58 +389,58 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-20 flex items-center justify-center p-4" onClick={onClose}>
-      <div className={`bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto ${showingYoco ? 'opacity-0 pointer-events-none' : ''}`} onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-20 flex items-center justify-center p-2 sm:p-4" onClick={onClose}>
+      <div className={`bg-white rounded-lg sm:rounded-xl max-w-6xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto ${showingYoco ? 'opacity-0 pointer-events-none' : ''}`} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="bg-blue-600 text-white p-6 rounded-t-xl">
+        <div className="bg-blue-600 text-white p-4 sm:p-6 rounded-t-lg sm:rounded-t-xl">
           <div className="flex justify-between items-center">
-            <h2 className="text-3xl font-bold">Checkout</h2>
-            <button onClick={onClose} className="text-white hover:text-gray-200 text-3xl">×</button>
+            <h2 className="text-2xl sm:text-3xl font-bold">Checkout</h2>
+            <button onClick={onClose} className="text-white hover:text-gray-200 text-3xl leading-none">×</button>
           </div>
         </div>
 
         {/* Content - Two Column Layout */}
-        <div className="p-6 grid md:grid-cols-2 gap-8">
+        <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           {/* Left Column - Form */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Customer Details */}
             <div>
-              <h3 className="text-xl font-bold mb-4 pb-2 border-b">👤 Your Details</h3>
-              <div className="space-y-4">
+              <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 pb-2 border-b">👤 Your Details</h3>
+              <div className="space-y-3 sm:space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Full Name *</label>
+                  <label className="block text-sm font-semibold mb-1.5 sm:mb-2">Full Name *</label>
                   <input
                     type="text"
                     name="customer_name"
                     value={formData.customer_name}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 sm:px-4 text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="John Doe"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Phone Number *</label>
+                  <label className="block text-sm font-semibold mb-1.5 sm:mb-2">Phone Number *</label>
                   <input
                     type="tel"
                     name="customer_phone"
                     value={formData.customer_phone}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 sm:px-4 text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="074 454 5665"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Email (Optional)</label>
+                  <label className="block text-sm font-semibold mb-1.5 sm:mb-2">Email (Optional)</label>
                   <input
                     type="email"
                     name="customer_email"
                     value={formData.customer_email}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 sm:px-4 text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="john@example.com"
                   />
                 </div>
@@ -449,15 +449,15 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
 
             {/* Delivery Details */}
             <div>
-              <h3 className="text-xl font-bold mb-4 pb-2 border-b">🚚 Delivery Details</h3>
-              <div className="space-y-4">
+              <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 pb-2 border-b">🚚 Delivery Details</h3>
+              <div className="space-y-3 sm:space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Delivery Address *</label>
+                  <label className="block text-sm font-semibold mb-1.5 sm:mb-2">Delivery Address *</label>
                   <textarea
                     name="delivery_address"
                     value={formData.delivery_address}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 sm:px-4 text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     rows={3}
                     placeholder="123 Main Street, Fish Hoek, Cape Town"
                     required
@@ -465,25 +465,25 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Postal Code</label>
+                  <label className="block text-sm font-semibold mb-1.5 sm:mb-2">Postal Code</label>
                   <input
                     type="text"
                     value={postalCode}
                     onChange={(e) => setPostalCode(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 sm:px-4 text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="7975"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Delivery Zone *</label>
+                  <label className="block text-sm font-semibold mb-1.5 sm:mb-2">Delivery Zone *</label>
                   <select
                     value={selectedZone?.id || ''}
                     onChange={(e) => {
                       const zone = deliveryZones.find(z => z.id === parseInt(e.target.value));
                       setSelectedZone(zone || null);
                     }}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 sm:px-4 text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   >
                     <option value="">Select delivery zone</option>
@@ -501,12 +501,12 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Delivery Notes (Optional)</label>
+                  <label className="block text-sm font-semibold mb-1.5 sm:mb-2">Delivery Notes (Optional)</label>
                   <textarea
                     name="delivery_notes"
                     value={formData.delivery_notes}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 sm:px-4 text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     rows={2}
                     placeholder="Gate code, special instructions, etc."
                   />
@@ -516,50 +516,50 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
 
             {/* Payment Method */}
             <div>
-              <h3 className="text-xl font-bold mb-4 pb-2 border-b">💳 Payment Method</h3>
-              <div className="space-y-3">
-                <label className="flex items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition">
+              <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 pb-2 border-b">💳 Payment Method</h3>
+              <div className="space-y-2 sm:space-y-3">
+                <label className="flex items-center p-3 sm:p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition">
                   <input
                     type="radio"
                     name="payment_method"
                     value="cash"
                     checked={formData.payment_method === 'cash'}
                     onChange={handleInputChange}
-                    className="mr-3"
+                    className="mr-2 sm:mr-3"
                   />
                   <div>
-                    <p className="font-semibold">💵 Cash on Delivery</p>
-                    <p className="text-sm text-gray-600">Pay with cash when your order arrives</p>
+                    <p className="font-semibold text-sm sm:text-base">💵 Cash on Delivery</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Pay with cash when your order arrives</p>
                   </div>
                 </label>
 
-                <label className="flex items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition">
+                <label className="flex items-center p-3 sm:p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition">
                   <input
                     type="radio"
                     name="payment_method"
                     value="eft"
                     checked={formData.payment_method === 'eft'}
                     onChange={handleInputChange}
-                    className="mr-3"
+                    className="mr-2 sm:mr-3"
                   />
                   <div>
-                    <p className="font-semibold">🏦 EFT / Bank Transfer</p>
-                    <p className="text-sm text-gray-600">Pay via electronic funds transfer</p>
+                    <p className="font-semibold text-sm sm:text-base">🏦 EFT / Bank Transfer</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Pay via electronic funds transfer</p>
                   </div>
                 </label>
 
-                <label className="flex items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition">
+                <label className="flex items-center p-3 sm:p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition">
                   <input
                     type="radio"
                     name="payment_method"
                     value="yoco"
                     checked={formData.payment_method === 'yoco'}
                     onChange={handleInputChange}
-                    className="mr-3"
+                    className="mr-2 sm:mr-3"
                   />
                   <div>
-                    <p className="font-semibold">💳 Card Payment (Yoco)</p>
-                    <p className="text-sm text-gray-600">Secure online card payment</p>
+                    <p className="font-semibold text-sm sm:text-base">💳 Card Payment (Yoco)</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Secure online card payment</p>
                   </div>
                 </label>
               </div>
@@ -568,68 +568,68 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
 
           {/* Right Column - Order Summary */}
           <div>
-            <div className="sticky top-6">
-              <h3 className="text-xl font-bold mb-4 pb-2 border-b">📦 Order Summary</h3>
+            <div className="lg:sticky lg:top-6">
+              <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 pb-2 border-b">📦 Order Summary</h3>
               
               {/* Cart Items */}
-              <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
+              <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4 max-h-48 sm:max-h-60 overflow-y-auto">
                 {cart.map((item) => (
-                  <div key={item.product.id} className="flex justify-between py-2 text-sm border-b">
+                  <div key={item.product.id} className="flex justify-between py-2 text-xs sm:text-sm border-b">
                     <span className="font-medium">{item.quantity}x {item.product.name}</span>
-                    <span className="font-semibold">R{(parseFloat(item.product.unit_price) * item.quantity).toFixed(2)}</span>
+                    <span className="font-semibold whitespace-nowrap ml-2">R{(parseFloat(item.product.unit_price) * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
 
               {/* Promo Code */}
-              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                <label className="block text-sm font-semibold mb-2">🎟️ Promo Code</label>
+              <div className="mb-3 sm:mb-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                <label className="block text-xs sm:text-sm font-semibold mb-2">🎟️ Promo Code</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={promoCode}
                     onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                    className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="WELCOME10"
                     disabled={discount > 0}
                   />
                   {discount > 0 ? (
                     <button
                       onClick={removePromoCode}
-                      className="bg-rose-600 text-white px-4 py-2 rounded-lg hover:bg-rose-700 transition"
+                      className="bg-rose-600 text-white px-3 py-2 rounded-lg hover:bg-rose-700 transition text-sm whitespace-nowrap"
                     >
                       Remove
                     </button>
                   ) : (
                     <button
                       onClick={validatePromoCode}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+                      className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition text-sm whitespace-nowrap"
                     >
                       Apply
                     </button>
                   )}
                 </div>
-                {promoError && <p className="text-rose-600 text-sm mt-2">{promoError}</p>}
-                {promoSuccess && <p className="text-green-600 text-sm mt-2">{promoSuccess}</p>}
+                {promoError && <p className="text-rose-600 text-xs sm:text-sm mt-2">{promoError}</p>}
+                {promoSuccess && <p className="text-green-600 text-xs sm:text-sm mt-2">{promoSuccess}</p>}
               </div>
 
               {/* Totals */}
-              <div className="space-y-2 mb-6 p-4 bg-gray-50 rounded-lg">
-                <div className="flex justify-between">
+              <div className="space-y-2 mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                <div className="flex justify-between text-sm sm:text-base">
                   <span>Subtotal:</span>
                   <span className="font-semibold">R{getCartTotal().toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-sm sm:text-base">
                   <span>Delivery Fee:</span>
                   <span className="font-semibold">R{selectedZone ? parseFloat(selectedZone.delivery_fee).toFixed(2) : '0.00'}</span>
                 </div>
                 {discount > 0 && (
-                  <div className="flex justify-between text-green-600">
+                  <div className="flex justify-between text-green-600 text-sm sm:text-base">
                     <span>Discount:</span>
                     <span className="font-semibold">-R{discount.toFixed(2)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-2xl font-bold border-t pt-2 mt-2">
+                <div className="flex justify-between text-xl sm:text-2xl font-bold border-t pt-2 mt-2">
                   <span>Total:</span>
                   <span className="text-rose-600">R{calculateTotal().toFixed(2)}</span>
                 </div>
@@ -639,7 +639,7 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
               <button
                 onClick={submitOrder}
                 disabled={loading}
-                className="w-full bg-blue-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed shadow-lg"
+                className="w-full bg-blue-600 text-white py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed shadow-lg"
               >
                 {loading ? 'Processing...' : formData.payment_method === 'yoco' ? '💳 Pay Now' : '✓ Place Order'}
               </button>

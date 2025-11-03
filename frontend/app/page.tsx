@@ -275,20 +275,22 @@ export default function Home() {
               <a href="#products" className="text-gray-700 hover:text-rose-600 font-semibold transition">Products</a>
               <Link href="/contact" className="text-gray-700 hover:text-rose-600 font-semibold transition">Contact Us</Link>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <button 
                 onClick={() => setShowCart(true)}
-                className="relative bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg font-semibold transition"
+                className="relative bg-blue-600 text-white hover:bg-blue-700 px-3 py-2 sm:px-4 rounded-lg font-semibold transition"
               >
-                🛒 Cart
+                <span className="hidden sm:inline">🛒 Cart</span>
+                <span className="sm:hidden text-xl">🛒</span>
                 {getCartCount() > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-rose-600 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold">
+                  <span className="absolute -top-2 -right-2 bg-rose-600 text-white text-xs rounded-full h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center font-bold">
                     {getCartCount()}
                   </span>
                 )}
               </button>
-              <a href="tel:0744545665" className="bg-rose-600 text-white hover:bg-rose-700 px-4 py-2 rounded-lg font-semibold transition">
-                📞 074 454 5665
+              <a href="tel:0744545665" className="bg-rose-600 text-white hover:bg-rose-700 px-3 py-2 sm:px-4 rounded-lg font-semibold transition whitespace-nowrap">
+                <span className="hidden sm:inline">📞 074 454 5665</span>
+                <span className="sm:hidden text-xl">📞</span>
               </a>
             </div>
           </div>
