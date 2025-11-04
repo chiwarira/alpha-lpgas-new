@@ -272,7 +272,7 @@ class InvoiceForm(forms.ModelForm):
         model = Invoice
         fields = [
             'client', 'issue_date', 'due_date', 'status',
-            'terms', 'notes'
+            'terms', 'notes', 'whatsapp_invoice_message'
         ]
         widgets = {
             'client': forms.Select(attrs={
@@ -299,6 +299,11 @@ class InvoiceForm(forms.ModelForm):
                 'class': 'form-control',
                 'rows': 3,
                 'placeholder': 'Additional notes'
+            }),
+            'whatsapp_invoice_message': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Pre-populated WhatsApp message for sending invoice to client'
             }),
         }
     

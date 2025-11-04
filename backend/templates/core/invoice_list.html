@@ -55,6 +55,7 @@
                         <th>Paid</th>
                         <th>Balance</th>
                         <th>Status</th>
+                        <th>WhatsApp</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -77,6 +78,13 @@
                             <span class="badge bg-danger">Overdue</span>
                             {% else %}
                             <span class="badge bg-warning">{{ invoice.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if invoice.whatsapp_sent %}
+                                <span class="badge bg-success" title="{{ invoice.whatsapp_sent_at|date:'Y-m-d H:i' }}"><i class="fab fa-whatsapp"></i> Sent</span>
+                            {% else %}
+                                <span class="badge bg-secondary"><i class="fab fa-whatsapp"></i> Not Sent</span>
                             {% endif %}
                         </td>
                         <td>

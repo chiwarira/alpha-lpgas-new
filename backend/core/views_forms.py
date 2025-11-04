@@ -1,10 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.db import transaction
 from django.db.models import Sum
 from django.views.decorators.http import require_http_methods
+from django.utils import timezone
 from datetime import date, timedelta
 from .models import Client, Product, Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, Order
 from .forms import (
@@ -573,12 +574,32 @@ def invoice_edit(request, pk):
 @login_required
 def invoice_detail(request, pk):
     """View invoice details"""
+    from .models import CompanySettings
     invoice = get_object_or_404(Invoice, pk=pk)
     payments = invoice.payments.all().order_by('-payment_date')
+    company_settings = CompanySettings.load()
     
     return render(request, 'core/invoice_detail.html', {
         'invoice': invoice,
-        'payments': payments
+        'payments': payments,
+        'company_settings': company_settings
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def invoice_mark_whatsapp_sent(request, pk):
+    """Mark invoice as sent via WhatsApp"""
+    invoice = get_object_or_404(Invoice, pk=pk)
+    
+    invoice.whatsapp_sent = True
+    invoice.whatsapp_sent_at = timezone.now()
+    invoice.save()
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Invoice marked as sent via WhatsApp',
+        'sent_at': invoice.whatsapp_sent_at.strftime('%Y-%m-%d %H:%M')
     })
 
 
