@@ -79,6 +79,10 @@ class CompanySettings(models.Model):
     email = models.EmailField(default='info@alphalpgas.co.za')
     address = models.TextField(blank=True, help_text='Company physical address')
     
+    # Branding
+    logo = models.ImageField(upload_to='branding/', blank=True, null=True, help_text='Company logo (recommended: 200x200px PNG with transparent background)')
+    favicon = models.ImageField(upload_to='branding/', blank=True, null=True, help_text='Favicon (recommended: 32x32px or 64x64px PNG/ICO)')
+    
     # Banking Details
     bank_name = models.CharField(max_length=100, default='Nedbank')
     account_name = models.CharField(max_length=255, default='Alpha LPGas')

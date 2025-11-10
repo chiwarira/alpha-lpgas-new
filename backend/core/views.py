@@ -43,13 +43,13 @@ class CompanySettingsView(APIView):
     def get(self, request):
         """Get company settings"""
         settings = CompanySettings.load()
-        serializer = CompanySettingsSerializer(settings)
+        serializer = CompanySettingsSerializer(settings, context={'request': request})
         return Response(serializer.data)
     
     def put(self, request):
         """Update company settings"""
         settings = CompanySettings.load()
-        serializer = CompanySettingsSerializer(settings, data=request.data, partial=True)
+        serializer = CompanySettingsSerializer(settings, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

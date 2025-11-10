@@ -36,6 +36,10 @@ class CompanySettingsAdmin(admin.ModelAdmin):
         ('Company Information', {
             'fields': ('company_name', 'registration_number', 'vat_number', 'phone', 'email', 'address')
         }),
+        ('Branding', {
+            'fields': ('logo', 'favicon'),
+            'description': 'Upload company logo and favicon. Logo will appear on invoices and website. Favicon appears in browser tabs.'
+        }),
         ('Banking Details', {
             'fields': ('bank_name', 'account_name', 'account_number', 'account_type', 'branch_code', 'payment_reference_note')
         }),

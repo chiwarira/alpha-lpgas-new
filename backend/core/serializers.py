@@ -31,16 +31,38 @@ class UserSerializer(serializers.ModelSerializer):
 
 class CompanySettingsSerializer(serializers.ModelSerializer):
     """Serializer for CompanySettings model"""
+    logo_url = serializers.SerializerMethodField()
+    favicon_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = CompanySettings
         fields = [
             'id', 'company_name', 'registration_number', 'vat_number', 'phone', 'email', 'address',
+            'logo', 'logo_url', 'favicon', 'favicon_url',
             'bank_name', 'account_name', 'account_number', 'account_type', 'branch_code',
             'payment_reference_note', 'statement_footer_text', 
             'whatsapp_invoice_message', 'whatsapp_quote_message', 'whatsapp_statement_message',
             'updated_at'
         ]
-        read_only_fields = ['id', 'updated_at']
+        read_only_fields = ['id', 'updated_at', 'logo_url', 'favicon_url']
+    
+    def get_logo_url(self, obj):
+        """Get full URL for logo"""
+        if obj.logo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.logo.url)
+            return obj.logo.url
+        return None
+    
+    def get_favicon_url(self, obj):
+        """Get full URL for favicon"""
+        if obj.favicon:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.favicon.url)
+            return obj.favicon.url
+        return None
 
 
 class ClientSerializer(serializers.ModelSerializer):
