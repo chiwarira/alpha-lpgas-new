@@ -1,0 +1,165 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Credit Note {{ credit_note.credit_note_number }} - Alpha LPGas{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Action Buttons -->
+    <div class="print-hide">
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h1><i class="bi bi-file-earmark-minus"></i> Credit Note {{ credit_note.credit_note_number }}</h1>
+            </div>
+            <div class="col-md-6 text-end">
+                <button onclick="window.print()" class="btn btn-info">
+                    <i class="bi bi-printer"></i> Print
+                </button>
+                <a href="{% url 'accounting_forms:dashboard' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Credit Note Content -->
+    <div class="card">
+        <div class="card-body">
+            <!-- Header -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h3>Alpha LPGas</h3>
+                    <p class="mb-0">
+                        Reg No: 2023/822513/07<br>
+                        VAT No: 9415233222<br>
+                        Phone: 074 454 5665<br>
+                        Email: info@alphalpgas.co.za
+                    </p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <h2 class="text-danger">CREDIT NOTE</h2>
+                    <p class="mb-0">
+                        <strong>Credit Note #:</strong> {{ credit_note.credit_note_number }}<br>
+                        <strong>Date:</strong> {{ credit_note.issue_date|date:"Y-m-d" }}<br>
+                        <strong>Status:</strong> 
+                        {% if credit_note.status == 'issued' %}
+                            <span class="badge bg-success">Issued</span>
+                        {% elif credit_note.status == 'applied' %}
+                            <span class="badge bg-info">Applied</span>
+                        {% elif credit_note.status == 'cancelled' %}
+                            <span class="badge bg-danger">Cancelled</span>
+                        {% else %}
+                            <span class="badge bg-warning">Draft</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- Client and Invoice Info -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5>Bill To:</h5>
+                    <p class="mb-0">
+                        <strong>{{ credit_note.client.name }}</strong><br>
+                        {% if credit_note.client.address %}{{ credit_note.client.address }}<br>{% endif %}
+                        {% if credit_note.client.phone %}Phone: {{ credit_note.client.phone }}<br>{% endif %}
+                        {% if credit_note.client.email %}Email: {{ credit_note.client.email }}{% endif %}
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <h5>Related Invoice:</h5>
+                    <p class="mb-0">
+                        <strong>Invoice #:</strong> <a href="{% url 'accounting_forms:invoice_detail' credit_note.invoice.pk %}">{{ credit_note.invoice.invoice_number }}</a><br>
+                        <strong>Invoice Date:</strong> {{ credit_note.invoice.issue_date|date:"Y-m-d" }}<br>
+                        <strong>Invoice Total:</strong> R {{ credit_note.invoice.total_amount|floatformat:2 }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Reason -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <h5>Reason for Credit Note:</h5>
+                    <p>{{ credit_note.reason }}</p>
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Product</th>
+                            <th>Description</th>
+                            <th class="text-end">Quantity</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-end">Tax Rate</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in credit_note.items.all %}
+                        <tr>
+                            <td>{{ item.product.name }}</td>
+                            <td>{{ item.description|default:"-" }}</td>
+                            <td class="text-end">{{ item.quantity }}</td>
+                            <td class="text-end">R {{ item.unit_price|floatformat:2 }}</td>
+                            <td class="text-end">{{ item.tax_rate }}%</td>
+                            <td class="text-end">R {{ item.total|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="5" class="text-end"><strong>Subtotal:</strong></td>
+                            <td class="text-end"><strong>R {{ credit_note.subtotal|floatformat:2 }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td colspan="5" class="text-end"><strong>VAT:</strong></td>
+                            <td class="text-end"><strong>R {{ credit_note.tax_amount|floatformat:2 }}</strong></td>
+                        </tr>
+                        <tr class="table-success">
+                            <td colspan="5" class="text-end"><strong>Total Credit:</strong></td>
+                            <td class="text-end"><strong>R {{ credit_note.total_amount|floatformat:2 }}</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Notes -->
+            {% if credit_note.notes %}
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <h5>Notes:</h5>
+                    <p>{{ credit_note.notes }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Footer -->
+            <div class="row mt-5">
+                <div class="col-md-12 text-center">
+                    <p class="text-muted">
+                        This credit note will be applied to your account balance.<br>
+                        For any queries, please contact us at 074 454 5665 or info@alphalpgas.co.za
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .print-hide {
+        display: none !important;
+    }
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+}
+</style>
+{% endblock %}

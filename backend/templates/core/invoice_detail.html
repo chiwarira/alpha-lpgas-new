@@ -977,6 +977,9 @@ select.note-field {
                 <h1><i class="bi bi-receipt"></i> Invoice {{ invoice.invoice_number }}</h1>
             </div>
             <div class="col-md-6 text-end">
+                <a href="{% url 'accounting_forms:credit_note_create_for_invoice' invoice.pk %}" class="btn btn-warning">
+                    <i class="bi bi-file-earmark-minus"></i> Create Credit Note
+                </a>
                 <button onclick="sendWhatsAppInvoice()" class="btn btn-success" id="whatsapp-btn">
                     <i class="fab fa-whatsapp"></i> Send via WhatsApp
                 </button>

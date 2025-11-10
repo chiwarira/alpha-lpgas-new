@@ -1,0 +1,139 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ title }} - Alpha LPGas{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-file-earmark-minus"></i> {{ title }}</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:dashboard' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" id="credit-note-form">
+            {% csrf_token %}
+            
+            <!-- Credit Note Details -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="{{ form.invoice.id_for_label }}" class="form-label">Invoice *</label>
+                    {{ form.invoice }}
+                    {% if form.invoice.errors %}
+                        <div class="text-danger">{{ form.invoice.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="{{ form.issue_date.id_for_label }}" class="form-label">Issue Date *</label>
+                    {{ form.issue_date }}
+                    {% if form.issue_date.errors %}
+                        <div class="text-danger">{{ form.issue_date.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="{{ form.reason.id_for_label }}" class="form-label">Reason *</label>
+                    {{ form.reason }}
+                    {% if form.reason.errors %}
+                        <div class="text-danger">{{ form.reason.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                        <div class="text-danger">{{ form.notes.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Credit Note Items -->
+            <h4 class="mb-3"><i class="bi bi-list-ul"></i> Credit Note Items</h4>
+            
+            {{ formset.management_form }}
+            
+            <div id="items-container">
+                {% for item_form in formset %}
+                <div class="item-form border rounded p-3 mb-3">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Product *</label>
+                            {{ item_form.product }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Description</label>
+                            {{ item_form.description }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Quantity *</label>
+                            {{ item_form.quantity }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Unit Price *</label>
+                            {{ item_form.unit_price }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Tax Rate (%)</label>
+                            {{ item_form.tax_rate }}
+                        </div>
+                    </div>
+                    {{ item_form.id }}
+                </div>
+                {% endfor %}
+            </div>
+
+            <button type="button" class="btn btn-secondary mb-4" id="add-item">
+                <i class="bi bi-plus-circle"></i> Add Item
+            </button>
+
+            <hr class="my-4">
+
+            <!-- Form Actions -->
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{% url 'accounting_forms:dashboard' %}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Save Credit Note
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('items-container');
+    const addButton = document.getElementById('add-item');
+    const totalForms = document.querySelector('#id_items-TOTAL_FORMS');
+    
+    addButton.addEventListener('click', function() {
+        const formCount = parseInt(totalForms.value);
+        const newForm = container.children[0].cloneNode(true);
+        
+        // Update form index in all fields
+        newForm.innerHTML = newForm.innerHTML.replace(/items-0-/g, `items-${formCount}-`);
+        
+        // Clear values
+        newForm.querySelectorAll('input, select, textarea').forEach(field => {
+            if (field.type !== 'hidden') {
+                field.value = '';
+            }
+        });
+        
+        container.appendChild(newForm);
+        totalForms.value = formCount + 1;
+    });
+});
+</script>
+{% endblock %}

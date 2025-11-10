@@ -1,0 +1,255 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Daily Sales Report - Alpha LPGas{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-graph-up"></i> Daily Sales Report</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:dashboard' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Date Selector -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="date" class="form-label">Select Date</label>
+                <input type="date" class="form-control" id="date" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> View Report
+                </button>
+            </div>
+            <div class="col-md-6 d-flex align-items-end justify-content-end">
+                <a href="?date={{ selected_date|date:'Y-m-d' }}" class="btn btn-success" onclick="window.print(); return false;">
+                    <i class="bi bi-printer"></i> Print Report
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-cash-stack"></i> Total Sales</h5>
+                <h2 class="mb-0">R {{ total_sales|floatformat:2 }}</h2>
+                <small>{{ total_transactions }} transaction{{ total_transactions|pluralize }}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-receipt"></i> Invoices Created</h5>
+                <h2 class="mb-0">R {{ invoices_created_total|floatformat:2 }}</h2>
+                <small>{{ invoices_created_count }} invoice{{ invoices_created_count|pluralize }}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-check-circle"></i> Invoices Paid</h5>
+                <h2 class="mb-0">{{ invoices_paid.count }}</h2>
+                <small>invoice{{ invoices_paid.count|pluralize }} paid today</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-calendar-date"></i> Date</h5>
+                <h2 class="mb-0">{{ selected_date|date:"d" }}</h2>
+                <small>{{ selected_date|date:"F Y" }}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Method Breakdown -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0"><i class="bi bi-pie-chart"></i> Sales by Payment Method</h4>
+    </div>
+    <div class="card-body">
+        {% if payment_summary %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Payment Method</th>
+                        <th class="text-end">Transactions</th>
+                        <th class="text-end">Total Amount</th>
+                        <th class="text-end">Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in payment_summary %}
+                    <tr>
+                        <td>
+                            {% if item.payment_method == 'cash' %}
+                                <i class="bi bi-cash"></i> Cash
+                            {% elif item.payment_method == 'card' %}
+                                <i class="bi bi-credit-card"></i> Card
+                            {% elif item.payment_method == 'eft' %}
+                                <i class="bi bi-bank"></i> EFT
+                            {% else %}
+                                {{ item.payment_method|title }}
+                            {% endif %}
+                        </td>
+                        <td class="text-end">{{ item.count }}</td>
+                        <td class="text-end"><strong>R {{ item.total|floatformat:2 }}</strong></td>
+                        <td class="text-end">
+                            {% widthratio item.total total_sales 100 %}%
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-dark">
+                    <tr>
+                        <td><strong>Total</strong></td>
+                        <td class="text-end"><strong>{{ total_transactions }}</strong></td>
+                        <td class="text-end"><strong>R {{ total_sales|floatformat:2 }}</strong></td>
+                        <td class="text-end"><strong>100%</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+            <h3 class="mt-3">No Sales Today</h3>
+            <p class="text-muted">No payments recorded for {{ selected_date|date:"F d, Y" }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Detailed Transactions -->
+<div class="card mb-4">
+    <div class="card-header bg-secondary text-white">
+        <h4 class="mb-0"><i class="bi bi-list-ul"></i> Transaction Details</h4>
+    </div>
+    <div class="card-body">
+        {% if payments %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Payment #</th>
+                        <th>Invoice #</th>
+                        <th>Client</th>
+                        <th>Payment Method</th>
+                        <th>Reference</th>
+                        <th class="text-end">Amount</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                    <tr>
+                        <td><code>{{ payment.payment_number }}</code></td>
+                        <td>
+                            <a href="{% url 'accounting_forms:invoice_detail' payment.invoice.pk %}">
+                                {{ payment.invoice.invoice_number }}
+                            </a>
+                        </td>
+                        <td>{{ payment.invoice.client.name }}</td>
+                        <td>
+                            {% if payment.payment_method == 'cash' %}
+                                <span class="badge bg-success"><i class="bi bi-cash"></i> Cash</span>
+                            {% elif payment.payment_method == 'card' %}
+                                <span class="badge bg-primary"><i class="bi bi-credit-card"></i> Card</span>
+                            {% elif payment.payment_method == 'eft' %}
+                                <span class="badge bg-info"><i class="bi bi-bank"></i> EFT</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ payment.reference_number|default:"-" }}</td>
+                        <td class="text-end"><strong>R {{ payment.amount|floatformat:2 }}</strong></td>
+                        <td>{{ payment.created_at|date:"H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+            <h3 class="mt-3">No Transactions</h3>
+            <p class="text-muted">No payment transactions for {{ selected_date|date:"F d, Y" }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Invoices Created Today -->
+{% if invoices_created %}
+<div class="card mb-4">
+    <div class="card-header bg-success text-white">
+        <h4 class="mb-0"><i class="bi bi-file-earmark-plus"></i> Invoices Created Today</h4>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Client</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th class="text-end">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for invoice in invoices_created %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'accounting_forms:invoice_detail' invoice.pk %}">
+                                <code>{{ invoice.invoice_number }}</code>
+                            </a>
+                        </td>
+                        <td>{{ invoice.client.name }}</td>
+                        <td>{{ invoice.due_date|date:"Y-m-d" }}</td>
+                        <td>
+                            {% if invoice.status == 'paid' %}
+                                <span class="badge bg-success">Paid</span>
+                            {% elif invoice.status == 'partially_paid' %}
+                                <span class="badge bg-info">Partial</span>
+                            {% elif invoice.status == 'overdue' %}
+                                <span class="badge bg-danger">Overdue</span>
+                            {% else %}
+                                <span class="badge bg-warning">{{ invoice.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end"><strong>R {{ invoice.total_amount|floatformat:2 }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+@media print {
+    .print-hide, .btn, form {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #dee2e6 !important;
+        page-break-inside: avoid;
+    }
+}
+</style>
+{% endblock %}

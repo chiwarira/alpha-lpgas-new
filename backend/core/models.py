@@ -566,6 +566,45 @@ class CreditNote(models.Model):
 
     def __str__(self):
         return f"Credit Note {self.credit_note_number} - {self.client.name}"
+    
+    def save(self, *args, **kwargs):
+        """Override save to auto-generate credit note number"""
+        if not self.credit_note_number:
+            # Generate credit note number: CN-YYYYMMDD-XXX
+            from datetime import date
+            today = date.today()
+            prefix = f"CN-{today.strftime('%Y%m%d')}"
+            
+            # Get the last credit note number for today
+            last_credit_note = CreditNote.objects.filter(
+                credit_note_number__startswith=prefix
+            ).order_by('credit_note_number').last()
+            
+            if last_credit_note:
+                # Extract the sequence number and increment
+                try:
+                    last_seq = int(last_credit_note.credit_note_number.split('-')[-1])
+                    new_seq = last_seq + 1
+                except (ValueError, IndexError):
+                    new_seq = 1
+            else:
+                new_seq = 1
+            
+            self.credit_note_number = f"{prefix}-{new_seq:03d}"
+        
+        # Set client from invoice if not set
+        if self.invoice and not self.client_id:
+            self.client = self.invoice.client
+        
+        super().save(*args, **kwargs)
+    
+    def calculate_totals(self):
+        """Calculate subtotal, VAT, and total from line items (VAT-inclusive)"""
+        items = self.items.all()
+        self.total_amount = sum(item.total for item in items)
+        self.tax_amount = sum(item.tax_amount for item in items)
+        self.subtotal = self.total_amount - self.tax_amount
+        self.save()
 
 
 # E-commerce Models

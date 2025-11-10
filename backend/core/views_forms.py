@@ -671,6 +671,61 @@ def credit_note_detail(request, pk):
     return render(request, 'core/credit_note_detail.html', {'credit_note': credit_note})
 
 
+# Daily Sales Report
+@login_required
+def daily_sales_report(request):
+    """Daily sales overview with payment type breakdown"""
+    from django.db.models import Sum, Count, Q
+    from datetime import datetime, date
+    
+    # Get selected date from query params or use today
+    selected_date_str = request.GET.get('date')
+    if selected_date_str:
+        try:
+            selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            selected_date = date.today()
+    else:
+        selected_date = date.today()
+    
+    # Get all payments for the selected date
+    payments = Payment.objects.filter(payment_date=selected_date).select_related('invoice', 'invoice__client')
+    
+    # Calculate totals by payment method
+    payment_summary = payments.values('payment_method').annotate(
+        total=Sum('amount'),
+        count=Count('id')
+    ).order_by('payment_method')
+    
+    # Calculate overall totals
+    total_sales = payments.aggregate(total=Sum('amount'))['total'] or 0
+    total_transactions = payments.count()
+    
+    # Get invoices created on selected date
+    invoices_created = Invoice.objects.filter(issue_date=selected_date)
+    invoices_created_total = invoices_created.aggregate(total=Sum('total_amount'))['total'] or 0
+    invoices_created_count = invoices_created.count()
+    
+    # Get invoices paid on selected date (different from payments - shows invoice totals)
+    invoices_paid = Invoice.objects.filter(
+        payments__payment_date=selected_date
+    ).distinct()
+    
+    context = {
+        'selected_date': selected_date,
+        'payments': payments.order_by('-payment_date', '-created_at'),
+        'payment_summary': payment_summary,
+        'total_sales': total_sales,
+        'total_transactions': total_transactions,
+        'invoices_created': invoices_created,
+        'invoices_created_total': invoices_created_total,
+        'invoices_created_count': invoices_created_count,
+        'invoices_paid': invoices_paid,
+    }
+    
+    return render(request, 'core/daily_sales_report.html', context)
+
+
 # Dashboard
 @login_required
 def accounting_dashboard(request):

@@ -1,7 +1,7 @@
 from django.urls import path
 from ..views_forms import (
     # Dashboard
-    accounting_dashboard,
+    accounting_dashboard, daily_sales_report,
     
     # Clients
     client_list, client_create, client_edit, client_detail, client_delete, client_bulk_delete, client_statement, client_statement_preview,
@@ -32,6 +32,7 @@ app_name = 'accounting_forms'
 urlpatterns = [
     # Dashboard
     path('', accounting_dashboard, name='dashboard'),
+    path('daily-sales/', daily_sales_report, name='daily_sales_report'),
     
     # Clients
     path('clients/', client_list, name='client_list'),
