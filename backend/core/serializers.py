@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from .models import (
     HeroBanner, CompanySettings, Client, Category, Product, ProductVariant,
     Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem,
-    DeliveryZone, PromoCode, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial
+    DeliveryZone, PromoCode, Driver, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial
 )
 
 
@@ -241,6 +241,25 @@ class DeliveryZoneSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class DriverSerializer(serializers.ModelSerializer):
+    """Serializer for Driver model"""
+    user_details = UserSerializer(source='user', read_only=True)
+    full_name = serializers.SerializerMethodField()
+    active_deliveries_count = serializers.SerializerMethodField()
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    
+    class Meta:
+        model = Driver
+        fields = '__all__'
+        read_only_fields = ['id', 'total_deliveries', 'rating', 'created_at', 'updated_at']
+    
+    def get_full_name(self, obj):
+        return obj.user.get_full_name() or obj.user.username
+    
+    def get_active_deliveries_count(self, obj):
+        return obj.get_active_deliveries().count()
+
+
 class PromoCodeSerializer(serializers.ModelSerializer):
     """Serializer for PromoCode model"""
     is_valid_now = serializers.SerializerMethodField()
@@ -287,11 +306,19 @@ class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     status_history = OrderStatusHistorySerializer(many=True, read_only=True)
     delivery_zone_name = serializers.CharField(source='delivery_zone.name', read_only=True, allow_null=True)
+    driver_name = serializers.SerializerMethodField()
+    driver_phone = serializers.CharField(source='assigned_driver.phone', read_only=True, allow_null=True)
+    driver_vehicle = serializers.CharField(source='assigned_driver.vehicle_registration', read_only=True, allow_null=True)
     
     class Meta:
         model = Order
         fields = '__all__'
         read_only_fields = ['order_number', 'created_at', 'updated_at']
+    
+    def get_driver_name(self, obj):
+        if obj.assigned_driver:
+            return obj.assigned_driver.user.get_full_name() or obj.assigned_driver.user.username
+        return None
 
 
 class ContactSubmissionSerializer(serializers.ModelSerializer):

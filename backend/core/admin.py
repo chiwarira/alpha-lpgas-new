@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     HeroBanner, CompanySettings, Client, Category, Product, ProductVariant,
     Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem,
-    DeliveryZone, PromoCode, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial
+    DeliveryZone, PromoCode, Driver, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial
 )
 
 
@@ -194,6 +194,45 @@ class DeliveryZoneAdmin(admin.ModelAdmin):
     search_fields = ['name', 'postal_codes']
 
 
+@admin.register(Driver)
+class DriverAdmin(admin.ModelAdmin):
+    list_display = ['get_full_name', 'phone', 'vehicle_registration', 'status', 'total_deliveries', 'rating', 'is_active']
+    list_filter = ['status', 'is_active', 'vehicle_type']
+    search_fields = ['user__first_name', 'user__last_name', 'user__username', 'phone', 'vehicle_registration', 'id_number']
+    readonly_fields = ['total_deliveries', 'created_at', 'updated_at']
+    list_editable = ['status', 'is_active']
+    
+    fieldsets = (
+        ('User Account', {
+            'fields': ('user',)
+        }),
+        ('Personal Information', {
+            'fields': ('phone', 'id_number', 'address')
+        }),
+        ('Vehicle Information', {
+            'fields': ('vehicle_type', 'vehicle_registration', 'vehicle_make_model')
+        }),
+        ('License Information', {
+            'fields': ('drivers_license_number', 'license_expiry_date')
+        }),
+        ('Status & Performance', {
+            'fields': ('status', 'is_active', 'total_deliveries', 'rating')
+        }),
+        ('Notes', {
+            'fields': ('notes',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_full_name(self, obj):
+        return obj.user.get_full_name() or obj.user.username
+    get_full_name.short_description = 'Driver Name'
+    get_full_name.admin_order_field = 'user__first_name'
+
+
 @admin.register(PromoCode)
 class PromoCodeAdmin(admin.ModelAdmin):
     list_display = ['code', 'discount_type', 'discount_value', 'times_used', 'max_uses', 'valid_from', 'valid_until', 'is_active']
@@ -224,11 +263,12 @@ class OrderStatusHistoryInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['order_number', 'customer_name', 'status', 'payment_status', 'payment_method', 'total', 'created_at']
-    list_filter = ['status', 'payment_status', 'payment_method', 'delivery_zone', 'created_at']
+    list_display = ['order_number', 'customer_name', 'assigned_driver', 'status', 'payment_status', 'payment_method', 'total', 'created_at']
+    list_filter = ['status', 'payment_status', 'payment_method', 'delivery_zone', 'assigned_driver', 'created_at']
     search_fields = ['order_number', 'customer_name', 'customer_email', 'customer_phone']
     readonly_fields = ['order_number', 'created_at', 'updated_at']
     inlines = [OrderItemInline, OrderStatusHistoryInline]
+    list_editable = ['assigned_driver', 'status']
     
     fieldsets = (
         ('Order Info', {
@@ -238,7 +278,7 @@ class OrderAdmin(admin.ModelAdmin):
             'fields': ('customer_name', 'customer_email', 'customer_phone')
         }),
         ('Delivery', {
-            'fields': ('delivery_address', 'delivery_zone', 'delivery_notes', 'estimated_delivery', 'delivered_at')
+            'fields': ('delivery_address', 'delivery_zone', 'assigned_driver', 'delivery_notes', 'estimated_delivery', 'delivered_at')
         }),
         ('Pricing', {
             'fields': ('subtotal', 'delivery_fee', 'discount_amount', 'promo_code', 'total')

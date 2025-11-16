@@ -1,0 +1,219 @@
+{% extends 'core/driver_portal/base.html' %}
+
+{% block title %}Delivery #{{ delivery.order_number }} - Driver Portal{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <a href="{% url 'driver_portal:deliveries' %}" class="btn btn-sm btn-outline-secondary mb-2">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+        <h4>Delivery #{{ delivery.order_number }}</h4>
+    </div>
+</div>
+
+<!-- Status Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="mb-1">Current Status</h6>
+                {% if delivery.status == 'confirmed' %}
+                <span class="badge bg-info status-badge">Confirmed</span>
+                {% elif delivery.status == 'preparing' %}
+                <span class="badge bg-warning status-badge">Preparing</span>
+                {% elif delivery.status == 'out_for_delivery' %}
+                <span class="badge bg-primary status-badge">Out for Delivery</span>
+                {% elif delivery.status == 'delivered' %}
+                <span class="badge bg-success status-badge">Delivered</span>
+                {% endif %}
+            </div>
+            {% if delivery.status in 'confirmed,preparing,out_for_delivery' %}
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#updateStatusModal">
+                <i class="bi bi-arrow-repeat"></i> Update
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Customer Information -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-person"></i> Customer Information</h6>
+    </div>
+    <div class="card-body">
+        <p class="mb-2">
+            <strong>Name:</strong> {{ delivery.customer_name }}
+        </p>
+        <p class="mb-2">
+            <strong>Phone:</strong> 
+            <a href="tel:{{ delivery.customer_phone }}" class="btn btn-sm btn-success">
+                <i class="bi bi-telephone"></i> {{ delivery.customer_phone }}
+            </a>
+        </p>
+        {% if delivery.customer_email %}
+        <p class="mb-0">
+            <strong>Email:</strong> {{ delivery.customer_email }}
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delivery Address -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-geo-alt"></i> Delivery Address</h6>
+    </div>
+    <div class="card-body">
+        <p class="mb-2">{{ delivery.delivery_address }}</p>
+        {% if delivery.delivery_zone %}
+        <p class="mb-2">
+            <span class="badge bg-secondary">{{ delivery.delivery_zone.name }}</span>
+        </p>
+        {% endif %}
+        <a href="https://www.google.com/maps/search/?api=1&query={{ delivery.delivery_address|urlencode }}" 
+           target="_blank" class="btn btn-sm btn-primary">
+            <i class="bi bi-map"></i> Open in Maps
+        </a>
+        {% if delivery.delivery_notes %}
+        <hr>
+        <p class="mb-0">
+            <strong>Notes:</strong> {{ delivery.delivery_notes }}
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Order Items -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-box"></i> Order Items</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th class="text-center">Qty</th>
+                        <th class="text-end">Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in delivery.items.all %}
+                    <tr>
+                        <td>
+                            {{ item.product.name }}
+                            {% if item.variant %}
+                            <br><small class="text-muted">{{ item.variant.name }}</small>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">{{ item.quantity }}</td>
+                        <td class="text-end">R{{ item.total|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="2">Subtotal</th>
+                        <th class="text-end">R{{ delivery.subtotal|floatformat:2 }}</th>
+                    </tr>
+                    <tr>
+                        <th colspan="2">Delivery Fee</th>
+                        <th class="text-end">R{{ delivery.delivery_fee|floatformat:2 }}</th>
+                    </tr>
+                    {% if delivery.discount_amount > 0 %}
+                    <tr>
+                        <th colspan="2">Discount</th>
+                        <th class="text-end text-success">-R{{ delivery.discount_amount|floatformat:2 }}</th>
+                    </tr>
+                    {% endif %}
+                    <tr class="table-primary">
+                        <th colspan="2">Total</th>
+                        <th class="text-end">R{{ delivery.total|floatformat:2 }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Information -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-credit-card"></i> Payment Information</h6>
+    </div>
+    <div class="card-body">
+        <p class="mb-2">
+            <strong>Method:</strong> 
+            <span class="badge bg-info">{{ delivery.get_payment_method_display }}</span>
+        </p>
+        <p class="mb-0">
+            <strong>Status:</strong> 
+            {% if delivery.payment_status == 'paid' %}
+            <span class="badge bg-success">Paid</span>
+            {% elif delivery.payment_status == 'pending' %}
+            <span class="badge bg-warning">Pending</span>
+            {% else %}
+            <span class="badge bg-danger">{{ delivery.get_payment_status_display }}</span>
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<!-- Delivery Timeline -->
+{% if delivery.status_history.all %}
+<div class="card mb-3">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-clock-history"></i> Timeline</h6>
+    </div>
+    <div class="card-body">
+        {% for history in delivery.status_history.all %}
+        <div class="d-flex mb-2">
+            <div class="me-3">
+                <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i>
+            </div>
+            <div class="flex-grow-1">
+                <strong>{{ history.get_status_display }}</strong>
+                <br>
+                <small class="text-muted">
+                    {{ history.created_at|date:"M d, Y H:i" }}
+                    {% if history.notes %} - {{ history.notes }}{% endif %}
+                </small>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Update Status Modal -->
+<div class="modal fade" id="updateStatusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Delivery Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'driver_portal:update_status' delivery.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="d-grid gap-2">
+                        {% if delivery.status in 'confirmed,preparing' %}
+                        <button type="submit" name="status" value="out_for_delivery" class="btn btn-primary btn-lg">
+                            <i class="bi bi-truck"></i> Mark as Out for Delivery
+                        </button>
+                        {% endif %}
+                        {% if delivery.status == 'out_for_delivery' %}
+                        <button type="submit" name="status" value="delivered" class="btn btn-success btn-lg">
+                            <i class="bi bi-check-circle"></i> Mark as Delivered
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

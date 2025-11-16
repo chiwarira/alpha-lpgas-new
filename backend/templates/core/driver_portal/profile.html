@@ -1,0 +1,121 @@
+{% extends 'core/driver_portal/base.html' %}
+
+{% block title %}My Profile - Driver Portal{% endblock %}
+
+{% block nav_profile %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <h4><i class="bi bi-person"></i> My Profile</h4>
+    </div>
+</div>
+
+<!-- Profile Stats -->
+<div class="row mb-3">
+    <div class="col-6">
+        <div class="card stat-card bg-primary text-white">
+            <h3>{{ total_deliveries }}</h3>
+            <p>Total Deliveries</p>
+        </div>
+    </div>
+    <div class="col-6">
+        <div class="card stat-card bg-success text-white">
+            <h3>{{ completed_today }}</h3>
+            <p>Today</p>
+        </div>
+    </div>
+</div>
+
+<!-- Personal Information -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-person-circle"></i> Personal Information</h6>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-control" value="{{ driver.user.get_full_name }}" disabled>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Username</label>
+                <input type="text" class="form-control" value="{{ driver.user.username }}" disabled>
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" name="email" value="{{ driver.user.email }}">
+            </div>
+            <div class="mb-3">
+                <label for="phone" class="form-label">Phone</label>
+                <input type="tel" class="form-control" id="phone" name="phone" value="{{ driver.phone }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="address" class="form-label">Address</label>
+                <textarea class="form-control" id="address" name="address" rows="2">{{ driver.address }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-check-circle"></i> Update Profile
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Vehicle Information -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-truck"></i> Vehicle Information</h6>
+    </div>
+    <div class="card-body">
+        <p class="mb-2">
+            <strong>Type:</strong> {{ driver.vehicle_type }}
+        </p>
+        <p class="mb-2">
+            <strong>Registration:</strong> <code>{{ driver.vehicle_registration }}</code>
+        </p>
+        {% if driver.vehicle_make_model %}
+        <p class="mb-0">
+            <strong>Make & Model:</strong> {{ driver.vehicle_make_model }}
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Performance -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-star"></i> Performance</h6>
+    </div>
+    <div class="card-body">
+        <p class="mb-2">
+            <strong>Rating:</strong> 
+            <span class="text-warning">
+                {% for i in "12345" %}
+                    {% if forloop.counter <= driver.rating %}
+                        <i class="bi bi-star-fill"></i>
+                    {% else %}
+                        <i class="bi bi-star"></i>
+                    {% endif %}
+                {% endfor %}
+            </span>
+            ({{ driver.rating }}/5.0)
+        </p>
+        <p class="mb-2">
+            <strong>Total Deliveries:</strong> {{ driver.total_deliveries }}
+        </p>
+        <p class="mb-0">
+            <strong>Member Since:</strong> {{ driver.date_joined|date:"F Y" }}
+        </p>
+    </div>
+</div>
+
+<!-- Account Actions -->
+<div class="card">
+    <div class="card-body">
+        <a href="{% url 'driver_portal:logout' %}" class="btn btn-outline-danger w-100">
+            <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
+    </div>
+</div>
+{% endblock %}

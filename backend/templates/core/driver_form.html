@@ -1,0 +1,175 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ title }} - Alpha LPGas{% endblock %}
+
+{% block nav_drivers %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-person-plus"></i> {{ title }}</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:driver_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <!-- User Account Section -->
+            <h5 class="mb-3"><i class="bi bi-person-circle"></i> User Account</h5>
+            <div class="row mb-3">
+                {% if not is_edit %}
+                <div class="col-md-6">
+                    <label for="username" class="form-label">Username *</label>
+                    <input type="text" class="form-control" id="username" name="username" required>
+                    <small class="text-muted">Used for login</small>
+                </div>
+                <div class="col-md-6">
+                    <label for="password" class="form-label">Password *</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="first_name" class="form-label">First Name *</label>
+                    <input type="text" class="form-control" id="first_name" name="first_name" 
+                           value="{% if is_edit %}{{ driver.user.first_name }}{% endif %}" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="last_name" class="form-label">Last Name *</label>
+                    <input type="text" class="form-control" id="last_name" name="last_name" 
+                           value="{% if is_edit %}{{ driver.user.last_name }}{% endif %}" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" name="email" 
+                           value="{% if is_edit %}{{ driver.user.email }}{% endif %}">
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Personal Information Section -->
+            <h5 class="mb-3"><i class="bi bi-person"></i> Personal Information</h5>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="phone" class="form-label">Phone Number *</label>
+                    <input type="tel" class="form-control" id="phone" name="phone" 
+                           value="{% if is_edit %}{{ driver.phone }}{% endif %}" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="id_number" class="form-label">ID/Passport Number</label>
+                    <input type="text" class="form-control" id="id_number" name="id_number" 
+                           value="{% if is_edit %}{{ driver.id_number }}{% endif %}">
+                </div>
+                <div class="col-md-4">
+                    <label for="address" class="form-label">Address</label>
+                    <input type="text" class="form-control" id="address" name="address" 
+                           value="{% if is_edit %}{{ driver.address }}{% endif %}">
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Vehicle Information Section -->
+            <h5 class="mb-3"><i class="bi bi-truck"></i> Vehicle Information</h5>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="vehicle_type" class="form-label">Vehicle Type *</label>
+                    <select class="form-select" id="vehicle_type" name="vehicle_type" required>
+                        <option value="">Select type...</option>
+                        <option value="Bakkie" {% if is_edit and driver.vehicle_type == 'Bakkie' %}selected{% endif %}>Bakkie</option>
+                        <option value="Van" {% if is_edit and driver.vehicle_type == 'Van' %}selected{% endif %}>Van</option>
+                        <option value="Truck" {% if is_edit and driver.vehicle_type == 'Truck' %}selected{% endif %}>Truck</option>
+                        <option value="Motorcycle" {% if is_edit and driver.vehicle_type == 'Motorcycle' %}selected{% endif %}>Motorcycle</option>
+                        <option value="Other" {% if is_edit and driver.vehicle_type == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="vehicle_registration" class="form-label">Registration Number *</label>
+                    <input type="text" class="form-control" id="vehicle_registration" name="vehicle_registration" 
+                           value="{% if is_edit %}{{ driver.vehicle_registration }}{% endif %}" 
+                           placeholder="e.g., CA 123-456" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="vehicle_make_model" class="form-label">Make & Model</label>
+                    <input type="text" class="form-control" id="vehicle_make_model" name="vehicle_make_model" 
+                           value="{% if is_edit %}{{ driver.vehicle_make_model }}{% endif %}" 
+                           placeholder="e.g., Toyota Hilux">
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- License Information Section -->
+            <h5 class="mb-3"><i class="bi bi-card-text"></i> License Information</h5>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="drivers_license_number" class="form-label">Driver's License Number</label>
+                    <input type="text" class="form-control" id="drivers_license_number" name="drivers_license_number" 
+                           value="{% if is_edit %}{{ driver.drivers_license_number }}{% endif %}">
+                </div>
+                <div class="col-md-6">
+                    <label for="license_expiry_date" class="form-label">License Expiry Date</label>
+                    <input type="date" class="form-control" id="license_expiry_date" name="license_expiry_date" 
+                           value="{% if is_edit and driver.license_expiry_date %}{{ driver.license_expiry_date|date:'Y-m-d' }}{% endif %}">
+                </div>
+            </div>
+
+            {% if is_edit %}
+            <hr class="my-4">
+
+            <!-- Status Section (Edit Only) -->
+            <h5 class="mb-3"><i class="bi bi-gear"></i> Status & Settings</h5>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="status" class="form-label">Current Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="available" {% if driver.status == 'available' %}selected{% endif %}>Available</option>
+                        <option value="on_delivery" {% if driver.status == 'on_delivery' %}selected{% endif %}>On Delivery</option>
+                        <option value="off_duty" {% if driver.status == 'off_duty' %}selected{% endif %}>Off Duty</option>
+                        <option value="on_break" {% if driver.status == 'on_break' %}selected{% endif %}>On Break</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label d-block">Active Status</label>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+                               {% if driver.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="is_active">
+                            Driver is active and can be assigned to deliveries
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="notes" class="form-label">Notes</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3" 
+                          placeholder="Internal notes about this driver...">{% if is_edit %}{{ driver.notes }}{% endif %}</textarea>
+            </div>
+            {% endif %}
+
+            <hr class="my-4">
+
+            <!-- Form Actions -->
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'accounting_forms:driver_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> {% if is_edit %}Update{% else %}Create{% endif %} Driver
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

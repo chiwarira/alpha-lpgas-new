@@ -1,0 +1,188 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Drivers - Alpha LPGas{% endblock %}
+
+{% block nav_drivers %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-truck"></i> Drivers</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:driver_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> New Driver
+        </a>
+        <a href="{% url 'accounting_forms:dashboard' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-people"></i> Total Drivers</h5>
+                <h2 class="mb-0">{{ total_drivers }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-check-circle"></i> Available</h5>
+                <h2 class="mb-0">{{ available_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-truck"></i> On Delivery</h5>
+                <h2 class="mb-0">{{ on_delivery_count }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filter -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <form method="get" class="d-flex">
+            <input type="text" name="search" class="form-control me-2" 
+                   placeholder="Search by name, phone, or vehicle..." 
+                   value="{{ search_query }}">
+            <button type="submit" class="btn btn-outline-primary">
+                <i class="bi bi-search"></i> Search
+            </button>
+        </form>
+    </div>
+    <div class="col-md-6">
+        <form method="get" class="d-flex justify-content-end">
+            <select name="status" class="form-select me-2" style="max-width: 200px;" onchange="this.form.submit()">
+                <option value="">All Statuses</option>
+                <option value="available" {% if status_filter == 'available' %}selected{% endif %}>Available</option>
+                <option value="on_delivery" {% if status_filter == 'on_delivery' %}selected{% endif %}>On Delivery</option>
+                <option value="off_duty" {% if status_filter == 'off_duty' %}selected{% endif %}>Off Duty</option>
+                <option value="on_break" {% if status_filter == 'on_break' %}selected{% endif %}>On Break</option>
+            </select>
+            {% if search_query or status_filter %}
+            <a href="{% url 'accounting_forms:driver_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-x-circle"></i> Clear
+            </a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Drivers Table -->
+<div class="card">
+    <div class="card-body">
+        {% if drivers %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Driver Name</th>
+                        <th>Phone</th>
+                        <th>Vehicle</th>
+                        <th>Registration</th>
+                        <th>Status</th>
+                        <th>Active Deliveries</th>
+                        <th>Total Deliveries</th>
+                        <th>Rating</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for driver in drivers %}
+                    <tr>
+                        <td>
+                            <strong>{{ driver.user.get_full_name|default:driver.user.username }}</strong>
+                            {% if not driver.is_active %}
+                            <span class="badge bg-secondary ms-2">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="tel:{{ driver.phone }}">{{ driver.phone }}</a>
+                        </td>
+                        <td>{{ driver.vehicle_type }}</td>
+                        <td><code>{{ driver.vehicle_registration }}</code></td>
+                        <td>
+                            {% if driver.status == 'available' %}
+                            <span class="badge bg-success">Available</span>
+                            {% elif driver.status == 'on_delivery' %}
+                            <span class="badge bg-warning">On Delivery</span>
+                            {% elif driver.status == 'off_duty' %}
+                            <span class="badge bg-secondary">Off Duty</span>
+                            {% elif driver.status == 'on_break' %}
+                            <span class="badge bg-info">On Break</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if driver.active_deliveries > 0 %}
+                            <span class="badge bg-primary">{{ driver.active_deliveries }}</span>
+                            {% else %}
+                            <span class="text-muted">0</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ driver.total_deliveries }}</td>
+                        <td>
+                            <span class="text-warning">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= driver.rating %}
+                                        <i class="bi bi-star-fill"></i>
+                                    {% else %}
+                                        <i class="bi bi-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </span>
+                            <small>({{ driver.rating }})</small>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{% url 'accounting_forms:driver_detail' driver.pk %}" 
+                                   class="btn btn-outline-primary" title="View">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'accounting_forms:driver_edit' driver.pk %}" 
+                                   class="btn btn-outline-secondary" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'accounting_forms:driver_delete' driver.pk %}" 
+                                   class="btn btn-outline-danger" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-3">
+            <p class="text-muted">Total: {{ drivers.count }} driver{{ drivers.count|pluralize }}</p>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-truck" style="font-size: 4rem; color: #ccc;"></i>
+            {% if search_query or status_filter %}
+            <h3 class="mt-3">No Drivers Found</h3>
+            <p class="text-muted">No drivers match your search criteria</p>
+            <a href="{% url 'accounting_forms:driver_list' %}" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i> Clear Filters
+            </a>
+            {% else %}
+            <h3 class="mt-3">No Drivers Yet</h3>
+            <p class="text-muted">Get started by creating your first driver</p>
+            <a href="{% url 'accounting_forms:driver_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Create First Driver
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -692,6 +692,63 @@ class ProductVariant(models.Model):
         return self.product.unit_price + self.price_adjustment
 
 
+class Driver(models.Model):
+    """Driver profiles for delivery management"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='driver_profile')
+    
+    # Personal Info
+    phone = models.CharField(max_length=50)
+    id_number = models.CharField(max_length=50, blank=True, help_text="ID or passport number")
+    address = models.TextField(blank=True)
+    
+    # Vehicle Info
+    vehicle_type = models.CharField(max_length=100, help_text="e.g., Bakkie, Van, Truck")
+    vehicle_registration = models.CharField(max_length=50, help_text="Vehicle registration number")
+    vehicle_make_model = models.CharField(max_length=100, blank=True, help_text="e.g., Toyota Hilux")
+    
+    # Driver Status
+    STATUS_CHOICES = [
+        ('available', 'Available'),
+        ('on_delivery', 'On Delivery'),
+        ('off_duty', 'Off Duty'),
+        ('on_break', 'On Break'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available')
+    
+    # License Info
+    drivers_license_number = models.CharField(max_length=50, blank=True)
+    license_expiry_date = models.DateField(null=True, blank=True)
+    
+    # Employment
+    date_joined = models.DateField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    
+    # Performance tracking
+    total_deliveries = models.IntegerField(default=0)
+    rating = models.DecimalField(max_digits=3, decimal_places=2, default=5.0, help_text="Average rating out of 5")
+    
+    # Notes
+    notes = models.TextField(blank=True, help_text="Internal notes about the driver")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['user__first_name', 'user__last_name']
+    
+    def __str__(self):
+        return f"{self.user.get_full_name() or self.user.username} - {self.vehicle_registration}"
+    
+    def get_active_deliveries(self):
+        """Get current active deliveries for this driver"""
+        return self.assigned_orders.filter(status__in=['confirmed', 'preparing', 'out_for_delivery'])
+    
+    def update_delivery_count(self):
+        """Update total deliveries count"""
+        self.total_deliveries = self.assigned_orders.filter(status='delivered').count()
+        self.save()
+
+
 class Order(models.Model):
     """Customer orders"""
     order_number = models.CharField(max_length=50, unique=True, editable=False)
@@ -705,6 +762,7 @@ class Order(models.Model):
     delivery_address = models.TextField()
     delivery_zone = models.ForeignKey(DeliveryZone, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
     delivery_notes = models.TextField(blank=True)
+    assigned_driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_orders', help_text="Driver assigned to this delivery")
     
     # Order Details
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)

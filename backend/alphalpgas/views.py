@@ -86,6 +86,7 @@ def home(request):
                 <a href="/api/docs/">📚 API Documentation (Swagger)</a>
                 <a href="/admin/">🔧 Django Admin</a>
                 <a href="/accounting/">💼 Accounting Dashboard</a>
+                <a href="/driver/">🚚 Driver Portal</a>
                 <a href="/cms/">📝 CMS Admin (Wagtail)</a>
             </div>
             

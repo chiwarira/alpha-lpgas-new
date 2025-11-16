@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Driver Portal - Alpha LPGas{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-bottom: 70px; /* Space for bottom nav */
+        }
+        .navbar-brand {
+            font-weight: bold;
+            color: #0d6efd !important;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        .stat-card h3 {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0;
+        }
+        .stat-card p {
+            margin: 0;
+            color: #6c757d;
+        }
+        .delivery-card {
+            transition: transform 0.2s;
+        }
+        .delivery-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #dee2e6;
+            padding: 0.5rem 0;
+            z-index: 1000;
+        }
+        .bottom-nav .nav-link {
+            text-align: center;
+            padding: 0.5rem;
+            color: #6c757d;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .bottom-nav .nav-link.active {
+            color: #0d6efd;
+        }
+        .bottom-nav .nav-link i {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+        .bottom-nav .nav-link span {
+            font-size: 0.75rem;
+        }
+        .status-badge {
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom mb-3">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'driver_portal:dashboard' %}">
+                <i class="bi bi-truck"></i> Alpha LPGas Driver
+            </a>
+            {% if user.is_authenticated %}
+            <div class="d-flex align-items-center">
+                <span class="me-3">
+                    <i class="bi bi-person-circle"></i> {{ user.get_full_name|default:user.username }}
+                </span>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="container">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Bottom Navigation (Mobile) -->
+    {% if user.is_authenticated %}
+    <nav class="bottom-nav d-lg-none">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col">
+                    <a href="{% url 'driver_portal:dashboard' %}" class="nav-link {% block nav_dashboard %}{% endblock %}">
+                        <i class="bi bi-house-door"></i>
+                        <span>Home</span>
+                    </a>
+                </div>
+                <div class="col">
+                    <a href="{% url 'driver_portal:deliveries' %}" class="nav-link {% block nav_deliveries %}{% endblock %}">
+                        <i class="bi bi-box-seam"></i>
+                        <span>Deliveries</span>
+                    </a>
+                </div>
+                <div class="col">
+                    <a href="{% url 'driver_portal:profile' %}" class="nav-link {% block nav_profile %}{% endblock %}">
+                        <i class="bi bi-person"></i>
+                        <span>Profile</span>
+                    </a>
+                </div>
+                <div class="col">
+                    <a href="{% url 'driver_portal:logout' %}" class="nav-link">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

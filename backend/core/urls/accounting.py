@@ -4,7 +4,7 @@ from ..views import (
     HeroBannerViewSet, CompanySettingsView, UserViewSet, ClientViewSet, CategoryViewSet, ProductViewSet,
     QuoteViewSet, QuoteItemViewSet, InvoiceViewSet, InvoiceItemViewSet,
     PaymentViewSet, CreditNoteViewSet, CreditNoteItemViewSet,
-    DeliveryZoneViewSet, PromoCodeViewSet, ProductVariantViewSet, OrderViewSet, ContactSubmissionViewSet, TestimonialViewSet
+    DeliveryZoneViewSet, PromoCodeViewSet, DriverViewSet, ProductVariantViewSet, OrderViewSet, ContactSubmissionViewSet, TestimonialViewSet
 )
 
 router = DefaultRouter()
@@ -21,6 +21,7 @@ router.register(r'payments', PaymentViewSet, basename='payment')
 router.register(r'credit-notes', CreditNoteViewSet, basename='credit-note')
 router.register(r'delivery-zones', DeliveryZoneViewSet, basename='delivery-zone')
 router.register(r'promo-codes', PromoCodeViewSet, basename='promo-code')
+router.register(r'drivers', DriverViewSet, basename='driver')
 router.register(r'product-variants', ProductVariantViewSet, basename='product-variant')
 router.register(r'orders', OrderViewSet, basename='order')
 router.register(r'credit-note-items', CreditNoteItemViewSet, basename='credit-note-item')

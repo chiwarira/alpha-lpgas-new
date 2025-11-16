@@ -1,0 +1,268 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Driver: {{ driver.user.get_full_name }} - Alpha LPGas{% endblock %}
+
+{% block nav_drivers %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-person-badge"></i> {{ driver.user.get_full_name|default:driver.user.username }}</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:driver_edit' driver.pk %}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Edit
+        </a>
+        <a href="{% url 'accounting_forms:driver_delete' driver.pk %}" class="btn btn-danger">
+            <i class="bi bi-trash"></i> Delete
+        </a>
+        <a href="{% url 'accounting_forms:driver_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<!-- Driver Info Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Status</h5>
+                {% if driver.status == 'available' %}
+                <span class="badge bg-success" style="font-size: 1.2rem;">Available</span>
+                {% elif driver.status == 'on_delivery' %}
+                <span class="badge bg-warning" style="font-size: 1.2rem;">On Delivery</span>
+                {% elif driver.status == 'off_duty' %}
+                <span class="badge bg-secondary" style="font-size: 1.2rem;">Off Duty</span>
+                {% elif driver.status == 'on_break' %}
+                <span class="badge bg-info" style="font-size: 1.2rem;">On Break</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Active Deliveries</h5>
+                <h2 class="mb-0">{{ active_deliveries.count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Deliveries</h5>
+                <h2 class="mb-0">{{ total_deliveries }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-warning text-white">
+            <div class="card-body">
+                <h5 class="card-title">Rating</h5>
+                <h2 class="mb-0">{{ driver.rating }}/5.0</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Driver Details -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-person"></i> Personal Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th style="width: 150px;">Full Name:</th>
+                        <td>{{ driver.user.get_full_name|default:driver.user.username }}</td>
+                    </tr>
+                    <tr>
+                        <th>Username:</th>
+                        <td>{{ driver.user.username }}</td>
+                    </tr>
+                    <tr>
+                        <th>Email:</th>
+                        <td>
+                            {% if driver.user.email %}
+                            <a href="mailto:{{ driver.user.email }}">{{ driver.user.email }}</a>
+                            {% else %}
+                            <span class="text-muted">Not provided</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Phone:</th>
+                        <td><a href="tel:{{ driver.phone }}">{{ driver.phone }}</a></td>
+                    </tr>
+                    <tr>
+                        <th>ID Number:</th>
+                        <td>{{ driver.id_number|default:"Not provided" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Address:</th>
+                        <td>{{ driver.address|default:"Not provided" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date Joined:</th>
+                        <td>{{ driver.date_joined|date:"Y-m-d" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Active:</th>
+                        <td>
+                            {% if driver.is_active %}
+                            <span class="badge bg-success">Yes</span>
+                            {% else %}
+                            <span class="badge bg-secondary">No</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-truck"></i> Vehicle Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th style="width: 150px;">Vehicle Type:</th>
+                        <td>{{ driver.vehicle_type }}</td>
+                    </tr>
+                    <tr>
+                        <th>Registration:</th>
+                        <td><code>{{ driver.vehicle_registration }}</code></td>
+                    </tr>
+                    <tr>
+                        <th>Make & Model:</th>
+                        <td>{{ driver.vehicle_make_model|default:"Not provided" }}</td>
+                    </tr>
+                    <tr>
+                        <th>License Number:</th>
+                        <td>{{ driver.drivers_license_number|default:"Not provided" }}</td>
+                    </tr>
+                    <tr>
+                        <th>License Expiry:</th>
+                        <td>
+                            {% if driver.license_expiry_date %}
+                            {{ driver.license_expiry_date|date:"Y-m-d" }}
+                            {% else %}
+                            <span class="text-muted">Not provided</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        {% if driver.notes %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-sticky"></i> Notes</h5>
+            </div>
+            <div class="card-body">
+                <p>{{ driver.notes }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Active Deliveries -->
+{% if active_deliveries %}
+<div class="card mb-4">
+    <div class="card-header bg-warning text-white">
+        <h5 class="mb-0"><i class="bi bi-truck"></i> Active Deliveries ({{ active_deliveries.count }})</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Customer</th>
+                        <th>Address</th>
+                        <th>Status</th>
+                        <th>Total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in active_deliveries %}
+                    <tr>
+                        <td><code>{{ order.order_number }}</code></td>
+                        <td>{{ order.customer_name }}</td>
+                        <td>{{ order.delivery_address|truncatewords:5 }}</td>
+                        <td>
+                            <span class="badge bg-info">{{ order.get_status_display }}</span>
+                        </td>
+                        <td>R{{ order.total|floatformat:2 }}</td>
+                        <td>
+                            <a href="{% url 'admin:core_order_change' order.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent Deliveries -->
+{% if orders %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Deliveries</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Customer</th>
+                        <th>Status</th>
+                        <th>Total</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td><code>{{ order.order_number }}</code></td>
+                        <td>{{ order.customer_name }}</td>
+                        <td>
+                            {% if order.status == 'delivered' %}
+                            <span class="badge bg-success">Delivered</span>
+                            {% elif order.status == 'cancelled' %}
+                            <span class="badge bg-danger">Cancelled</span>
+                            {% else %}
+                            <span class="badge bg-info">{{ order.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>R{{ order.total|floatformat:2 }}</td>
+                        <td>{{ order.created_at|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            <a href="{% url 'admin:core_order_change' order.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

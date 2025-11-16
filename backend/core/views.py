@@ -10,13 +10,13 @@ from decimal import Decimal
 from .models import (
     HeroBanner, CompanySettings, Client, Category, Product, ProductVariant,
     Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem,
-    DeliveryZone, PromoCode, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial
+    DeliveryZone, PromoCode, Driver, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial
 )
 from .serializers import (
     HeroBannerSerializer, CompanySettingsSerializer, UserSerializer, ClientSerializer, CategorySerializer, ProductSerializer,
     QuoteSerializer, QuoteItemSerializer, InvoiceSerializer,
     InvoiceItemSerializer, PaymentSerializer, CreditNoteSerializer, CreditNoteItemSerializer,
-    DeliveryZoneSerializer, PromoCodeSerializer, ProductVariantSerializer, OrderSerializer, OrderItemSerializer, OrderStatusHistorySerializer,
+    DeliveryZoneSerializer, PromoCodeSerializer, DriverSerializer, ProductVariantSerializer, OrderSerializer, OrderItemSerializer, OrderStatusHistorySerializer,
     ContactSubmissionSerializer, TestimonialSerializer
 )
 
@@ -397,6 +397,47 @@ class DeliveryZoneViewSet(viewsets.ModelViewSet):
     queryset = DeliveryZone.objects.filter(is_active=True)
     serializer_class = DeliveryZoneSerializer
     permission_classes = [permissions.AllowAny]  # Public access for website
+
+
+class DriverViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing drivers"""
+    queryset = Driver.objects.all()
+    serializer_class = DriverSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['status', 'is_active']
+    search_fields = ['user__first_name', 'user__last_name', 'user__username', 'phone', 'vehicle_registration']
+    ordering_fields = ['created_at', 'total_deliveries', 'rating']
+    ordering = ['-created_at']
+    
+    @action(detail=True, methods=['get'])
+    def active_deliveries(self, request, pk=None):
+        """Get active deliveries for a specific driver"""
+        driver = self.get_object()
+        orders = driver.get_active_deliveries()
+        serializer = OrderSerializer(orders, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def update_status(self, request, pk=None):
+        """Update driver status"""
+        driver = self.get_object()
+        new_status = request.data.get('status')
+        
+        if new_status not in dict(Driver.STATUS_CHOICES):
+            return Response({'error': 'Invalid status'}, status=400)
+        
+        driver.status = new_status
+        driver.save()
+        
+        return Response({'status': 'Driver status updated', 'new_status': new_status})
+    
+    @action(detail=False, methods=['get'])
+    def available(self, request):
+        """Get all available drivers"""
+        drivers = Driver.objects.filter(status='available', is_active=True)
+        serializer = self.get_serializer(drivers, many=True)
+        return Response(serializer.data)
 
 
 class PromoCodeViewSet(viewsets.ModelViewSet):

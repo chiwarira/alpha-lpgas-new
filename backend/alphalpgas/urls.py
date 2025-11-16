@@ -33,6 +33,9 @@ urlpatterns = [
     # Form-based views for accounting
     path('accounting/', include('core.urls.forms')),
     
+    # Driver portal
+    path('driver/', include('core.urls.driver_portal')),
+    
     # Django allauth (for login/logout)
     path('accounts/', include('allauth.urls')),
     

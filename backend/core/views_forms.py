@@ -7,7 +7,7 @@ from django.db.models import Sum
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from datetime import date, timedelta
-from .models import Client, Product, Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, Order
+from .models import Client, Product, Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, Order, Driver
 from .forms import (
     ClientForm, ProductForm, QuoteForm, QuoteItemFormSet,
     InvoiceForm, InvoiceItemFormSet, PaymentForm,
@@ -806,4 +806,187 @@ def order_list(request):
         'pending_count': pending_count,
         'delivered_count': delivered_count,
         'total_revenue': total_revenue,
+    })
+
+
+# Driver Views
+@login_required
+def driver_list(request):
+    """List all drivers with filtering"""
+    from django.db.models import Q, Count
+    
+    drivers = Driver.objects.select_related('user').annotate(
+        active_deliveries=Count('assigned_orders', filter=Q(assigned_orders__status__in=['confirmed', 'preparing', 'out_for_delivery']))
+    )
+    
+    # Filters
+    search_query = request.GET.get('search', '')
+    status_filter = request.GET.get('status', '')
+    
+    if search_query:
+        drivers = drivers.filter(
+            Q(user__first_name__icontains=search_query) |
+            Q(user__last_name__icontains=search_query) |
+            Q(user__username__icontains=search_query) |
+            Q(phone__icontains=search_query) |
+            Q(vehicle_registration__icontains=search_query)
+        )
+    
+    if status_filter:
+        drivers = drivers.filter(status=status_filter)
+    
+    drivers = drivers.order_by('-is_active', 'user__first_name')
+    
+    # Calculate stats
+    total_drivers = Driver.objects.count()
+    available_count = Driver.objects.filter(status='available', is_active=True).count()
+    on_delivery_count = Driver.objects.filter(status='on_delivery').count()
+    
+    return render(request, 'core/driver_list.html', {
+        'drivers': drivers,
+        'total_drivers': total_drivers,
+        'available_count': available_count,
+        'on_delivery_count': on_delivery_count,
+        'search_query': search_query,
+        'status_filter': status_filter,
+    })
+
+
+@login_required
+def driver_detail(request, pk):
+    """View driver details and assigned orders"""
+    driver = get_object_or_404(Driver.objects.select_related('user'), pk=pk)
+    
+    # Get all orders assigned to this driver
+    orders = driver.assigned_orders.all().order_by('-created_at')[:20]
+    
+    # Get active deliveries
+    active_deliveries = driver.get_active_deliveries()
+    
+    # Calculate statistics
+    total_deliveries = driver.total_deliveries
+    completed_deliveries = driver.assigned_orders.filter(status='delivered').count()
+    
+    return render(request, 'core/driver_detail.html', {
+        'driver': driver,
+        'orders': orders,
+        'active_deliveries': active_deliveries,
+        'total_deliveries': total_deliveries,
+        'completed_deliveries': completed_deliveries,
+    })
+
+
+@login_required
+def driver_create(request):
+    """Create a new driver"""
+    from django.contrib.auth.models import User
+    
+    if request.method == 'POST':
+        # Get user data
+        username = request.POST.get('username')
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        
+        # Get driver data
+        phone = request.POST.get('phone')
+        id_number = request.POST.get('id_number', '')
+        address = request.POST.get('address', '')
+        vehicle_type = request.POST.get('vehicle_type')
+        vehicle_registration = request.POST.get('vehicle_registration')
+        vehicle_make_model = request.POST.get('vehicle_make_model', '')
+        drivers_license_number = request.POST.get('drivers_license_number', '')
+        license_expiry_date = request.POST.get('license_expiry_date') or None
+        
+        try:
+            # Create user
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name
+            )
+            
+            # Create driver profile
+            driver = Driver.objects.create(
+                user=user,
+                phone=phone,
+                id_number=id_number,
+                address=address,
+                vehicle_type=vehicle_type,
+                vehicle_registration=vehicle_registration,
+                vehicle_make_model=vehicle_make_model,
+                drivers_license_number=drivers_license_number,
+                license_expiry_date=license_expiry_date,
+                status='available',
+                is_active=True
+            )
+            
+            messages.success(request, f'Driver {driver.user.get_full_name()} created successfully!')
+            return redirect('accounting_forms:driver_detail', pk=driver.pk)
+            
+        except Exception as e:
+            messages.error(request, f'Error creating driver: {str(e)}')
+    
+    return render(request, 'core/driver_form.html', {
+        'title': 'Create Driver',
+        'is_edit': False,
+    })
+
+
+@login_required
+def driver_edit(request, pk):
+    """Edit an existing driver"""
+    driver = get_object_or_404(Driver.objects.select_related('user'), pk=pk)
+    
+    if request.method == 'POST':
+        # Update user data
+        driver.user.first_name = request.POST.get('first_name')
+        driver.user.last_name = request.POST.get('last_name')
+        driver.user.email = request.POST.get('email')
+        driver.user.save()
+        
+        # Update driver data
+        driver.phone = request.POST.get('phone')
+        driver.id_number = request.POST.get('id_number', '')
+        driver.address = request.POST.get('address', '')
+        driver.vehicle_type = request.POST.get('vehicle_type')
+        driver.vehicle_registration = request.POST.get('vehicle_registration')
+        driver.vehicle_make_model = request.POST.get('vehicle_make_model', '')
+        driver.drivers_license_number = request.POST.get('drivers_license_number', '')
+        license_expiry = request.POST.get('license_expiry_date')
+        driver.license_expiry_date = license_expiry if license_expiry else None
+        driver.status = request.POST.get('status')
+        driver.is_active = request.POST.get('is_active') == 'on'
+        driver.notes = request.POST.get('notes', '')
+        
+        try:
+            driver.save()
+            messages.success(request, f'Driver {driver.user.get_full_name()} updated successfully!')
+            return redirect('accounting_forms:driver_detail', pk=driver.pk)
+        except Exception as e:
+            messages.error(request, f'Error updating driver: {str(e)}')
+    
+    return render(request, 'core/driver_form.html', {
+        'title': 'Edit Driver',
+        'driver': driver,
+        'is_edit': True,
+    })
+
+
+@login_required
+def driver_delete(request, pk):
+    """Delete a driver"""
+    driver = get_object_or_404(Driver, pk=pk)
+    
+    if request.method == 'POST':
+        driver_name = driver.user.get_full_name() or driver.user.username
+        driver.delete()
+        messages.success(request, f'Driver {driver_name} deleted successfully!')
+        return redirect('accounting_forms:driver_list')
+    
+    return render(request, 'core/driver_confirm_delete.html', {
+        'driver': driver,
     })

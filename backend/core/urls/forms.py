@@ -23,6 +23,9 @@ from ..views_forms import (
     
     # Orders
     order_list,
+    
+    # Drivers
+    driver_list, driver_create, driver_edit, driver_detail, driver_delete,
 )
 
 from ..pdf_generator import download_invoice_pdf, download_quote_pdf
@@ -75,4 +78,11 @@ urlpatterns = [
     
     # Orders
     path('orders/', order_list, name='order_list'),
+    
+    # Drivers
+    path('drivers/', driver_list, name='driver_list'),
+    path('drivers/create/', driver_create, name='driver_create'),
+    path('drivers/<int:pk>/', driver_detail, name='driver_detail'),
+    path('drivers/<int:pk>/edit/', driver_edit, name='driver_edit'),
+    path('drivers/<int:pk>/delete/', driver_delete, name='driver_delete'),
 ]
