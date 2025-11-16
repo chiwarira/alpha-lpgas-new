@@ -9,7 +9,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from wagtail.admin import urls as wagtailadmin_urls
 from wagtail import urls as wagtail_urls
 from wagtail.documents import urls as wagtaildocs_urls
-from .views import api_root
+from .views import api_root, home
 
 urlpatterns = [
     # Django Admin
@@ -33,8 +33,14 @@ urlpatterns = [
     # Form-based views for accounting
     path('accounting/', include('core.urls.forms')),
     
-    # Wagtail pages (should be last)
-    path('', include(wagtail_urls)),
+    # Django allauth (for login/logout)
+    path('accounts/', include('allauth.urls')),
+    
+    # Wagtail pages
+    path('pages/', include(wagtail_urls)),
+    
+    # Home page (root URL)
+    path('', home, name='home'),
 ]
 
 # Serve media files (in production, use WhiteNoise for static files)
