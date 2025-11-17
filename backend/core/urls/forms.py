@@ -22,7 +22,7 @@ from ..views_forms import (
     credit_note_create, credit_note_detail,
     
     # Orders
-    order_list,
+    order_list, order_detail, order_assign_driver,
     
     # Drivers
     driver_list, driver_create, driver_edit, driver_detail, driver_delete,
@@ -78,6 +78,8 @@ urlpatterns = [
     
     # Orders
     path('orders/', order_list, name='order_list'),
+    path('orders/<int:pk>/', order_detail, name='order_detail'),
+    path('orders/<int:pk>/assign-driver/', order_assign_driver, name='order_assign_driver'),
     
     # Drivers
     path('drivers/', driver_list, name='driver_list'),

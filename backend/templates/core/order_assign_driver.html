@@ -1,0 +1,131 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Assign Driver - Order #{{ order.order_number }}{% endblock %}
+
+{% block nav_orders %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-person-plus"></i> Assign Driver</h1>
+        <p class="text-muted">Order #{{ order.order_number }}</p>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:order_detail' order.pk %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Order
+        </a>
+    </div>
+</div>
+
+<!-- Order Summary -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-info-circle"></i> Order Summary</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p class="mb-1"><strong>Customer:</strong> {{ order.customer_name }}</p>
+                <p class="mb-1"><strong>Phone:</strong> {{ order.customer_phone }}</p>
+                <p class="mb-0"><strong>Total:</strong> R{{ order.total|floatformat:2 }}</p>
+            </div>
+            <div class="col-md-6">
+                <p class="mb-1"><strong>Status:</strong> {{ order.get_status_display }}</p>
+                <p class="mb-1"><strong>Zone:</strong> {{ order.delivery_zone.name|default:"N/A" }}</p>
+                <p class="mb-0"><strong>Address:</strong> {{ order.delivery_address|truncatewords:10 }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Assignment -->
+{% if order.assigned_driver %}
+<div class="alert alert-info">
+    <h5><i class="bi bi-info-circle"></i> Currently Assigned To:</h5>
+    <p class="mb-2">
+        <strong>{{ order.assigned_driver.user.get_full_name }}</strong><br>
+        Phone: {{ order.assigned_driver.phone }}<br>
+        Vehicle: {{ order.assigned_driver.vehicle_type }} ({{ order.assigned_driver.vehicle_registration }})<br>
+        Status: {{ order.assigned_driver.get_status_display }}
+    </p>
+    <form method="post" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="driver_id" value="">
+        <button type="submit" class="btn btn-warning">
+            <i class="bi bi-x-circle"></i> Unassign Driver
+        </button>
+    </form>
+</div>
+{% endif %}
+
+<!-- Available Drivers -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-people"></i> Available Drivers</h5>
+    </div>
+    <div class="card-body">
+        {% if available_drivers %}
+        <div class="row">
+            {% for driver in available_drivers %}
+            <div class="col-md-6 mb-3">
+                <div class="card {% if order.assigned_driver.id == driver.id %}border-primary{% endif %}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">{{ driver.user.get_full_name }}</h6>
+                                <p class="mb-1">
+                                    <small>
+                                        <i class="bi bi-telephone"></i> {{ driver.phone }}<br>
+                                        <i class="bi bi-truck"></i> {{ driver.vehicle_type }} ({{ driver.vehicle_registration }})
+                                    </small>
+                                </p>
+                                <p class="mb-0">
+                                    {% if driver.status == 'available' %}
+                                    <span class="badge bg-success">Available</span>
+                                    {% elif driver.status == 'on_delivery' %}
+                                    <span class="badge bg-warning">On Delivery</span>
+                                    {% elif driver.status == 'on_break' %}
+                                    <span class="badge bg-info">On Break</span>
+                                    {% elif driver.status == 'off_duty' %}
+                                    <span class="badge bg-secondary">Off Duty</span>
+                                    {% endif %}
+                                    <span class="badge bg-light text-dark">
+                                        {{ driver.total_deliveries }} deliveries
+                                    </span>
+                                    <span class="badge bg-light text-dark">
+                                        ⭐ {{ driver.rating }}
+                                    </span>
+                                </p>
+                            </div>
+                            <div>
+                                {% if order.assigned_driver.id == driver.id %}
+                                <span class="badge bg-primary">Current</span>
+                                {% else %}
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="driver_id" value="{{ driver.id }}">
+                                    <button type="submit" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-check-circle"></i> Assign
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+            <h5 class="mt-3">No Drivers Available</h5>
+            <p class="text-muted">Please create a driver first</p>
+            <a href="{% url 'accounting_forms:driver_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Create Driver
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

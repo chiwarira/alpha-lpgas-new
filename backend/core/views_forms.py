@@ -809,6 +809,50 @@ def order_list(request):
     })
 
 
+@login_required
+def order_detail(request, pk):
+    """View order details"""
+    order = get_object_or_404(Order.objects.prefetch_related('items__product'), pk=pk)
+    
+    return render(request, 'core/order_detail.html', {
+        'order': order,
+    })
+
+
+@login_required
+def order_assign_driver(request, pk):
+    """Assign driver to order"""
+    order = get_object_or_404(Order, pk=pk)
+    
+    if request.method == 'POST':
+        driver_id = request.POST.get('driver_id')
+        
+        if driver_id:
+            try:
+                driver = Driver.objects.get(pk=driver_id, is_active=True)
+                order.assigned_driver = driver
+                order.save()
+                
+                messages.success(request, f'Order #{order.order_number} assigned to {driver.user.get_full_name()}')
+            except Driver.DoesNotExist:
+                messages.error(request, 'Invalid driver selected')
+        else:
+            # Unassign driver
+            order.assigned_driver = None
+            order.save()
+            messages.success(request, f'Driver unassigned from order #{order.order_number}')
+        
+        return redirect('accounting_forms:order_detail', pk=pk)
+    
+    # Get available drivers
+    available_drivers = Driver.objects.filter(is_active=True).select_related('user').order_by('user__first_name')
+    
+    return render(request, 'core/order_assign_driver.html', {
+        'order': order,
+        'available_drivers': available_drivers,
+    })
+
+
 # Driver Views
 @login_required
 def driver_list(request):

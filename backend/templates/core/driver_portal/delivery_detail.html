@@ -110,7 +110,7 @@
                             {% endif %}
                         </td>
                         <td class="text-center">{{ item.quantity }}</td>
-                        <td class="text-end">R{{ item.total|floatformat:2 }}</td>
+                        <td class="text-end">R{{ item.total_price|floatformat:2 }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
