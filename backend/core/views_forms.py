@@ -575,15 +575,22 @@ def invoice_edit(request, invoice_number):
 def invoice_detail(request, invoice_number):
     """View invoice details"""
     from .models import CompanySettings
-    invoice = get_object_or_404(Invoice, invoice_number=invoice_number)
-    payments = invoice.payments.all().order_by('-payment_date')
-    company_settings = CompanySettings.load()
+    import logging
+    logger = logging.getLogger(__name__)
     
-    return render(request, 'core/invoice_detail.html', {
-        'invoice': invoice,
-        'payments': payments,
-        'company_settings': company_settings
-    })
+    try:
+        invoice = get_object_or_404(Invoice, invoice_number=invoice_number)
+        payments = invoice.payments.all().order_by('-payment_date')
+        company_settings = CompanySettings.load()
+        
+        return render(request, 'core/invoice_detail.html', {
+            'invoice': invoice,
+            'payments': payments,
+            'company_settings': company_settings
+        })
+    except Exception as e:
+        logger.error(f"Error in invoice_detail for {invoice_number}: {str(e)}", exc_info=True)
+        raise
 
 
 @login_required
