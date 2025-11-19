@@ -62,10 +62,10 @@ urlpatterns = [
     # Invoices
     path('invoices/', invoice_list, name='invoice_list'),
     path('invoices/create/', invoice_create, name='invoice_create'),
-    path('invoices/<int:pk>/', invoice_detail, name='invoice_detail'),
-    path('invoices/<int:pk>/edit/', invoice_edit, name='invoice_edit'),
-    path('invoices/<int:pk>/pdf/', download_invoice_pdf, name='invoice_pdf'),
-    path('invoices/<int:pk>/mark-whatsapp-sent/', invoice_mark_whatsapp_sent, name='invoice_mark_whatsapp_sent'),
+    path('invoices/<str:invoice_number>/', invoice_detail, name='invoice_detail'),
+    path('invoices/<str:invoice_number>/edit/', invoice_edit, name='invoice_edit'),
+    path('invoices/<str:invoice_number>/pdf/', download_invoice_pdf, name='invoice_pdf'),
+    path('invoices/<str:invoice_number>/mark-whatsapp-sent/', invoice_mark_whatsapp_sent, name='invoice_mark_whatsapp_sent'),
     
     # Payments
     path('payments/create/', payment_create, name='payment_create'),

@@ -71,7 +71,7 @@
                 <div class="col-md-6">
                     <h5>Related Invoice:</h5>
                     <p class="mb-0">
-                        <strong>Invoice #:</strong> <a href="{% url 'accounting_forms:invoice_detail' credit_note.invoice.pk %}">{{ credit_note.invoice.invoice_number }}</a><br>
+                        <strong>Invoice #:</strong> <a href="{% url 'accounting_forms:invoice_detail' credit_note.invoice.invoice_number %}">{{ credit_note.invoice.invoice_number }}</a><br>
                         <strong>Invoice Date:</strong> {{ credit_note.invoice.issue_date|date:"Y-m-d" }}<br>
                         <strong>Invoice Total:</strong> R {{ credit_note.invoice.total_amount|floatformat:2 }}
                     </p>

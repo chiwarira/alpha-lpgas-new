@@ -406,12 +406,12 @@ def generate_quote_pdf(quote):
     return pdf
 
 
-def download_invoice_pdf(request, pk):
+def download_invoice_pdf(request, invoice_number):
     """View to download invoice as PDF"""
     from django.shortcuts import get_object_or_404
     from .models import Invoice
     
-    invoice = get_object_or_404(Invoice, pk=pk)
+    invoice = get_object_or_404(Invoice, invoice_number=invoice_number)
     pdf = generate_invoice_pdf(invoice)
     
     response = HttpResponse(pdf, content_type='application/pdf')

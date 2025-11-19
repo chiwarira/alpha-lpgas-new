@@ -542,9 +542,9 @@ def invoice_create(request):
 
 @login_required
 @transaction.atomic
-def invoice_edit(request, pk):
+def invoice_edit(request, invoice_number):
     """Edit an existing invoice"""
-    invoice = get_object_or_404(Invoice, pk=pk)
+    invoice = get_object_or_404(Invoice, invoice_number=invoice_number)
     
     if request.method == 'POST':
         form = InvoiceForm(request.POST, instance=invoice)
@@ -572,10 +572,10 @@ def invoice_edit(request, pk):
 
 
 @login_required
-def invoice_detail(request, pk):
+def invoice_detail(request, invoice_number):
     """View invoice details"""
     from .models import CompanySettings
-    invoice = get_object_or_404(Invoice, pk=pk)
+    invoice = get_object_or_404(Invoice, invoice_number=invoice_number)
     payments = invoice.payments.all().order_by('-payment_date')
     company_settings = CompanySettings.load()
     
@@ -588,9 +588,9 @@ def invoice_detail(request, pk):
 
 @login_required
 @require_http_methods(["POST"])
-def invoice_mark_whatsapp_sent(request, pk):
+def invoice_mark_whatsapp_sent(request, invoice_number):
     """Mark invoice as sent via WhatsApp"""
-    invoice = get_object_or_404(Invoice, pk=pk)
+    invoice = get_object_or_404(Invoice, invoice_number=invoice_number)
     
     invoice.whatsapp_sent = True
     invoice.whatsapp_sent_at = timezone.now()

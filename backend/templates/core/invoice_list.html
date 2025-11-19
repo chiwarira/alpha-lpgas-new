@@ -89,13 +89,9 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <a href="{% url 'accounting_forms:invoice_detail' invoice.pk %}" 
+                                <a href="{% url 'accounting_forms:invoice_detail' invoice.invoice_number %}" 
                                    class="btn btn-outline-primary" title="View">
                                     <i class="bi bi-eye"></i>
-                                </a>
-                                <a href="{% url 'accounting_forms:invoice_pdf' invoice.pk %}" 
-                                   class="btn btn-outline-secondary" title="PDF">
-                                    <i class="bi bi-file-pdf"></i>
                                 </a>
                             </div>
                         </td>

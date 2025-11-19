@@ -160,7 +160,7 @@
                     <tr>
                         <td><code>{{ payment.payment_number }}</code></td>
                         <td>
-                            <a href="{% url 'accounting_forms:invoice_detail' payment.invoice.pk %}">
+                            <a href="{% url 'accounting_forms:invoice_detail' payment.invoice.invoice_number %}">
                                 {{ payment.invoice.invoice_number }}
                             </a>
                         </td>
@@ -214,7 +214,7 @@
                     {% for invoice in invoices_created %}
                     <tr>
                         <td>
-                            <a href="{% url 'accounting_forms:invoice_detail' invoice.pk %}">
+                            <a href="{% url 'accounting_forms:invoice_detail' invoice.invoice_number %}">
                                 <code>{{ invoice.invoice_number }}</code>
                             </a>
                         </td>

@@ -140,7 +140,7 @@
                         <tbody>
                             {% for invoice in invoices %}
                             <tr>
-                                <td><a href="{% url 'accounting_forms:invoice_detail' invoice.pk %}">{{ invoice.invoice_number }}</a></td>
+                                <td><a href="{% url 'accounting_forms:invoice_detail' invoice.invoice_number %}">{{ invoice.invoice_number }}</a></td>
                                 <td>{{ invoice.issue_date }}</td>
                                 <td>R {{ invoice.total_amount|floatformat:2 }}</td>
                                 <td>R {{ invoice.paid_amount|floatformat:2 }}</td>
