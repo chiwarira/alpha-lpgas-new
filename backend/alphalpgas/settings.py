@@ -24,10 +24,12 @@ RAILWAY_ENVIRONMENT = config('RAILWAY_ENVIRONMENT', default=None)
 if RAILWAY_ENVIRONMENT:
     ALLOWED_HOSTS.append('.railway.app')
     ALLOWED_HOSTS.append('.up.railway.app')
+    ALLOWED_HOSTS.append('api.alphalpgas.co.za')
     # Add your custom domain when you set it up
     CSRF_TRUSTED_ORIGINS = [
         'https://*.railway.app',
         'https://*.up.railway.app',
+        'https://api.alphalpgas.co.za',
     ]
 
 # Application definition
