@@ -1,8 +1,9 @@
 from django.contrib import admin
+from django import forms
 from .models import (
     HeroBanner, CompanySettings, Client, Category, Product, ProductVariant,
     Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem,
-    DeliveryZone, PromoCode, Driver, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial
+    DeliveryZone, PromoCode, Driver, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial, CustomScript
 )
 
 
@@ -345,3 +346,44 @@ class TestimonialAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+
+@admin.register(CustomScript)
+class CustomScriptAdmin(admin.ModelAdmin):
+    list_display = ['name', 'position', 'is_active', 'apply_to_all_pages', 'order', 'created_at']
+    list_filter = ['is_active', 'position', 'apply_to_all_pages', 'created_at']
+    search_fields = ['name', 'description', 'script_code']
+    list_editable = ['is_active', 'order']
+    readonly_fields = ['created_at', 'updated_at', 'created_by']
+    save_on_top = True
+    
+    fields = ['name', 'description', 'script_code', 'position', 'is_active', 'order', 
+              'apply_to_all_pages', 'specific_pages', 'exclude_pages', 
+              'created_at', 'updated_at', 'created_by']
+    
+    class Media:
+        css = {
+            'all': []
+        }
+        js = []
+    
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+    
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
+        if db_field.name == 'script_code':
+            # Use a plain textarea without any JavaScript processing
+            formfield.widget = forms.Textarea(attrs={
+                'rows': 20, 
+                'cols': 100, 
+                'style': 'font-family: monospace; width: 100%;',
+                'class': 'vLargeTextField'
+            })
+        elif db_field.name == 'description':
+            formfield.widget = forms.Textarea(attrs={'rows': 3, 'cols': 80, 'style': 'width: 100%;'})
+        elif db_field.name in ['specific_pages', 'exclude_pages']:
+            formfield.widget = forms.Textarea(attrs={'rows': 3, 'cols': 80, 'style': 'width: 100%;'})
+        return formfield

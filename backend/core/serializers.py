@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from .models import (
     HeroBanner, CompanySettings, Client, Category, Product, ProductVariant,
     Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem,
-    DeliveryZone, PromoCode, Driver, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial
+    DeliveryZone, PromoCode, Driver, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial, CustomScript
 )
 
 
@@ -359,3 +359,10 @@ class TestimonialSerializer(serializers.ModelSerializer):
     def get_initials(self, obj):
         """Get customer initials"""
         return obj.get_initials()
+
+
+class CustomScriptSerializer(serializers.ModelSerializer):
+    """Serializer for CustomScript model - for frontend script injection"""
+    class Meta:
+        model = CustomScript
+        fields = ['id', 'name', 'script_code', 'position', 'order']

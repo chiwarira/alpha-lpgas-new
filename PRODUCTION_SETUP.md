@@ -154,7 +154,7 @@ After backend is deployed:
 1. Go to frontend service → **Settings** → **Domains**
 2. Add custom domain: `alphalpgas.co.za` and `www.alphalpgas.co.za`
 3. Update DNS records as instructed by Railway
-
++
 ### 7. Update Environment Variables with Custom Domains
 
 After domains are set up, update:

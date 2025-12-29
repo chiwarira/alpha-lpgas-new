@@ -10,14 +10,14 @@ from decimal import Decimal
 from .models import (
     HeroBanner, CompanySettings, Client, Category, Product, ProductVariant,
     Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem,
-    DeliveryZone, PromoCode, Driver, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial
+    DeliveryZone, PromoCode, Driver, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial, CustomScript
 )
 from .serializers import (
     HeroBannerSerializer, CompanySettingsSerializer, UserSerializer, ClientSerializer, CategorySerializer, ProductSerializer,
     QuoteSerializer, QuoteItemSerializer, InvoiceSerializer,
     InvoiceItemSerializer, PaymentSerializer, CreditNoteSerializer, CreditNoteItemSerializer,
     DeliveryZoneSerializer, PromoCodeSerializer, DriverSerializer, ProductVariantSerializer, OrderSerializer, OrderItemSerializer, OrderStatusHistorySerializer,
-    ContactSubmissionSerializer, TestimonialSerializer
+    ContactSubmissionSerializer, TestimonialSerializer, CustomScriptSerializer
 )
 
 
@@ -746,3 +746,36 @@ class TestimonialViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         """Return active testimonials ordered by display order"""
         return Testimonial.objects.filter(is_active=True).order_by('order', '-created_at')
+
+
+class CustomScriptsView(APIView):
+    """API view to fetch active custom scripts for frontend injection"""
+    permission_classes = [permissions.AllowAny]  # Public access for frontend
+    
+    def get(self, request):
+        """Get all active custom scripts grouped by position"""
+        current_path = request.GET.get('path', '/')
+        
+        # Get all active scripts
+        scripts = CustomScript.objects.filter(is_active=True).order_by('order', 'name')
+        
+        # Filter by page targeting
+        filtered_scripts = []
+        for script in scripts:
+            if script.should_display_on_page(current_path):
+                filtered_scripts.append(script)
+        
+        # Group scripts by position
+        scripts_by_position = {
+            'head_start': [],
+            'head_end': [],
+            'body_start': [],
+            'body_end': [],
+            'footer': []
+        }
+        
+        for script in filtered_scripts:
+            serializer = CustomScriptSerializer(script)
+            scripts_by_position[script.position].append(serializer.data)
+        
+        return Response(scripts_by_position)

@@ -29,6 +29,7 @@ urlpatterns = [
     # API Endpoints
     path('api/auth/', include('core.urls.auth')),
     path('api/accounting/', include('core.urls.accounting')),
+    path('api/public/', include('core.urls.public')),
     
     # Form-based views for accounting
     path('accounting/', include('core.urls.forms')),
