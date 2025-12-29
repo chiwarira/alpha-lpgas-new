@@ -135,6 +135,58 @@
     </div>
 </div>
 
+<!-- Sales by Product -->
+<div class="card mb-4">
+    <div class="card-header bg-success text-white">
+        <h4 class="mb-0"><i class="bi bi-box-seam"></i> Sales by Product</h4>
+    </div>
+    <div class="card-body">
+        {% if product_summary %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Product</th>
+                        <th class="text-end">Qty Sold</th>
+                        <th class="text-end">Total Sales</th>
+                        <th class="text-end">VAT</th>
+                        <th class="text-end">% of Sales</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in product_summary %}
+                    <tr>
+                        <td><i class="bi bi-box"></i> {{ item.product__name }}</td>
+                        <td class="text-end">{{ item.quantity_sold|floatformat:0 }}</td>
+                        <td class="text-end"><strong>R {{ item.total_sales|floatformat:2 }}</strong></td>
+                        <td class="text-end">R {{ item.total_vat|floatformat:2 }}</td>
+                        <td class="text-end">
+                            {% widthratio item.total_sales product_total_sales 100 %}%
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-dark">
+                    <tr>
+                        <td><strong>Total</strong></td>
+                        <td class="text-end"><strong>{{ product_total_quantity|floatformat:0 }}</strong></td>
+                        <td class="text-end"><strong>R {{ product_total_sales|floatformat:2 }}</strong></td>
+                        <td class="text-end"><strong>R {{ product_total_vat|floatformat:2 }}</strong></td>
+                        <td class="text-end"><strong>100%</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-box" style="font-size: 4rem; color: #ccc;"></i>
+            <h3 class="mt-3">No Product Sales</h3>
+            <p class="text-muted">No products sold for {{ selected_date|date:"F d, Y" }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
 <!-- Detailed Transactions -->
 <div class="card mb-4">
     <div class="card-header bg-secondary text-white">

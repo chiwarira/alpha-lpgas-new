@@ -3,7 +3,7 @@ from .models import (
     HeroBanner, CompanySettings, Client, Category, Product, ProductVariant,
     Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem,
     DeliveryZone, PromoCode, Driver, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial,
-    CustomScript
+    CustomScript, Supplier, ExpenseCategory, Expense, JournalEntry, TaxPeriod
 )
 
 
@@ -356,3 +356,167 @@ class CustomScriptAdmin(admin.ModelAdmin):
     list_editable = ['is_active', 'order']
     readonly_fields = ['created_at', 'updated_at']
     fields = ['name', 'placement', 'script_code', 'is_active', 'order', 'apply_to_frontend', 'apply_to_backend', 'notes', 'created_at', 'updated_at']
+
+
+# ============================================
+# ACCOUNTING / JOURNAL ENTRIES ADMIN
+# ============================================
+
+@admin.register(Supplier)
+class SupplierAdmin(admin.ModelAdmin):
+    list_display = ['name', 'contact_person', 'phone', 'email', 'is_active']
+    list_filter = ['is_active']
+    search_fields = ['name', 'contact_person', 'email', 'phone']
+    list_editable = ['is_active']
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'contact_person', 'email', 'phone', 'address')
+        }),
+        ('Tax Information', {
+            'fields': ('tax_number',)
+        }),
+        ('Banking Details', {
+            'fields': ('bank_name', 'bank_account_number', 'bank_branch_code'),
+            'classes': ('collapse',)
+        }),
+        ('Notes', {
+            'fields': ('notes', 'is_active'),
+        }),
+    )
+
+
+@admin.register(ExpenseCategory)
+class ExpenseCategoryAdmin(admin.ModelAdmin):
+    list_display = ['name', 'parent', 'tax_deductible', 'is_active', 'order']
+    list_filter = ['is_active', 'tax_deductible', 'parent']
+    search_fields = ['name', 'description']
+    list_editable = ['is_active', 'order', 'tax_deductible']
+
+
+@admin.register(Expense)
+class ExpenseAdmin(admin.ModelAdmin):
+    list_display = ['expense_number', 'date', 'supplier', 'category', 'description_short', 'total_amount', 'vat_amount', 'payment_status', 'is_tax_deductible']
+    list_filter = ['payment_status', 'category', 'is_tax_deductible', 'date', 'supplier']
+    search_fields = ['expense_number', 'description', 'invoice_number', 'supplier__name']
+    date_hierarchy = 'date'
+    readonly_fields = ['expense_number', 'subtotal', 'vat_amount', 'created_at', 'updated_at']
+    autocomplete_fields = ['supplier', 'category']
+    
+    fieldsets = (
+        ('Expense Details', {
+            'fields': ('expense_number', 'date', 'supplier', 'category', 'description')
+        }),
+        ('Amounts', {
+            'fields': ('total_amount', 'vat_rate', 'vat_amount', 'subtotal'),
+            'description': 'Enter total amount (VAT inclusive). VAT will be calculated automatically.'
+        }),
+        ('Payment', {
+            'fields': ('payment_status', 'payment_method', 'payment_date', 'payment_reference')
+        }),
+        ('Receipt/Invoice', {
+            'fields': ('invoice_number', 'receipt_image')
+        }),
+        ('Tax', {
+            'fields': ('is_tax_deductible', 'tax_period')
+        }),
+        ('Notes & Metadata', {
+            'fields': ('notes', 'created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def description_short(self, obj):
+        return obj.description[:50] + '...' if len(obj.description) > 50 else obj.description
+    description_short.short_description = 'Description'
+    
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(JournalEntry)
+class JournalEntryAdmin(admin.ModelAdmin):
+    list_display = ['entry_number', 'date', 'entry_type', 'description_short', 'debit_amount', 'credit_amount', 'status']
+    list_filter = ['status', 'entry_type', 'date']
+    search_fields = ['entry_number', 'description', 'reference']
+    date_hierarchy = 'date'
+    readonly_fields = ['entry_number', 'created_at', 'updated_at', 'posted_at', 'posted_by']
+    
+    fieldsets = (
+        ('Entry Details', {
+            'fields': ('entry_number', 'date', 'entry_type', 'description', 'reference')
+        }),
+        ('Related Records', {
+            'fields': ('invoice', 'expense', 'payment'),
+            'classes': ('collapse',)
+        }),
+        ('Amounts', {
+            'fields': ('debit_amount', 'credit_amount')
+        }),
+        ('Status', {
+            'fields': ('status', 'notes')
+        }),
+        ('Audit', {
+            'fields': ('created_by', 'created_at', 'updated_at', 'posted_at', 'posted_by'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def description_short(self, obj):
+        return obj.description[:50] + '...' if len(obj.description) > 50 else obj.description
+    description_short.short_description = 'Description'
+    
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+    
+    actions = ['post_entries', 'void_entries']
+    
+    def post_entries(self, request, queryset):
+        count = 0
+        for entry in queryset.filter(status='draft'):
+            entry.post(request.user)
+            count += 1
+        self.message_user(request, f'{count} journal entries posted.')
+    post_entries.short_description = 'Post selected entries'
+    
+    def void_entries(self, request, queryset):
+        count = queryset.filter(status='posted').update(status='void')
+        self.message_user(request, f'{count} journal entries voided.')
+    void_entries.short_description = 'Void selected entries'
+
+
+@admin.register(TaxPeriod)
+class TaxPeriodAdmin(admin.ModelAdmin):
+    list_display = ['name', 'period_type', 'start_date', 'end_date', 'status', 'total_income', 'total_expenses', 'vat_payable']
+    list_filter = ['status', 'period_type']
+    search_fields = ['name']
+    readonly_fields = ['total_income', 'total_expenses', 'output_vat', 'input_vat', 'vat_payable', 'created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Period Details', {
+            'fields': ('name', 'period_type', 'start_date', 'end_date', 'status')
+        }),
+        ('Calculated Totals', {
+            'fields': ('total_income', 'total_expenses', 'output_vat', 'input_vat', 'vat_payable'),
+            'description': 'These values are calculated from invoices and expenses within this period.'
+        }),
+        ('Filing', {
+            'fields': ('filed_date', 'notes')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['calculate_totals']
+    
+    def calculate_totals(self, request, queryset):
+        for period in queryset:
+            period.calculate_totals()
+        self.message_user(request, f'Totals calculated for {queryset.count()} periods.')
+    calculate_totals.short_description = 'Calculate totals for selected periods'

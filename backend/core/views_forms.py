@@ -681,8 +681,8 @@ def credit_note_detail(request, pk):
 # Daily Sales Report
 @login_required
 def daily_sales_report(request):
-    """Daily sales overview with payment type breakdown"""
-    from django.db.models import Sum, Count, Q
+    """Daily sales overview with payment type and product breakdown"""
+    from django.db.models import Sum, Count, Q, F
     from datetime import datetime, date
     
     # Get selected date from query params or use today
@@ -718,6 +718,22 @@ def daily_sales_report(request):
         payments__payment_date=selected_date
     ).distinct()
     
+    # Get product sales breakdown for invoices paid on this date
+    product_summary = InvoiceItem.objects.filter(
+        invoice__payments__payment_date=selected_date
+    ).values(
+        'product__name'
+    ).annotate(
+        quantity_sold=Sum('quantity'),
+        total_sales=Sum('total'),
+        total_vat=Sum('tax_amount')
+    ).order_by('-total_sales')
+    
+    # Calculate product totals
+    product_total_quantity = sum(p['quantity_sold'] or 0 for p in product_summary)
+    product_total_sales = sum(p['total_sales'] or 0 for p in product_summary)
+    product_total_vat = sum(p['total_vat'] or 0 for p in product_summary)
+    
     context = {
         'selected_date': selected_date,
         'payments': payments.order_by('-payment_date', '-created_at'),
@@ -728,6 +744,10 @@ def daily_sales_report(request):
         'invoices_created_total': invoices_created_total,
         'invoices_created_count': invoices_created_count,
         'invoices_paid': invoices_paid,
+        'product_summary': product_summary,
+        'product_total_quantity': product_total_quantity,
+        'product_total_sales': product_total_sales,
+        'product_total_vat': product_total_vat,
     }
     
     return render(request, 'core/daily_sales_report.html', context)

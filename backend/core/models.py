@@ -9,6 +9,9 @@ from .models_contact import ContactSubmission
 # Import testimonial model
 from .models_testimonial import Testimonial
 
+# Import accounting models
+from .models_accounting import Supplier, ExpenseCategory, Expense, JournalEntry, TaxPeriod
+
 
 class CustomScript(models.Model):
     """Model for managing custom scripts to be injected into the website (e.g., GTM, Analytics)"""
