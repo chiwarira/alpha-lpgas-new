@@ -24,8 +24,9 @@ export default function CustomScripts() {
     const fetchScripts = async () => {
       try {
         const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
-        // Ensure we have the /api prefix
-        const apiUrl = baseUrl.includes('/api') ? baseUrl : `${baseUrl}/api`
+        // Ensure we have the /api path prefix (check pathname, not domain)
+        const url = new URL(baseUrl)
+        const apiUrl = url.pathname.includes('/api') ? baseUrl : `${baseUrl}/api`
         const response = await fetch(`${apiUrl}/accounting/custom-scripts/`)
         if (response.ok) {
           const data = await response.json()
