@@ -3,7 +3,8 @@ from django.contrib.auth.models import User
 from .models import (
     HeroBanner, CompanySettings, Client, Category, Product, ProductVariant,
     Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem,
-    DeliveryZone, PromoCode, Driver, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial, CustomScript
+    DeliveryZone, PromoCode, Driver, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial,
+    CustomScript
 )
 
 
@@ -362,7 +363,10 @@ class TestimonialSerializer(serializers.ModelSerializer):
 
 
 class CustomScriptSerializer(serializers.ModelSerializer):
-    """Serializer for CustomScript model - for frontend script injection"""
+    """Serializer for CustomScript model - for frontend API"""
+    placement_display = serializers.CharField(source='get_placement_display', read_only=True)
+    
     class Meta:
         model = CustomScript
-        fields = ['id', 'name', 'script_code', 'position', 'order']
+        fields = ['id', 'name', 'placement', 'placement_display', 'script_code', 'order']
+        read_only_fields = ['id']

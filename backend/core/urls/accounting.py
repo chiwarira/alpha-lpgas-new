@@ -4,7 +4,8 @@ from ..views import (
     HeroBannerViewSet, CompanySettingsView, UserViewSet, ClientViewSet, CategoryViewSet, ProductViewSet,
     QuoteViewSet, QuoteItemViewSet, InvoiceViewSet, InvoiceItemViewSet,
     PaymentViewSet, CreditNoteViewSet, CreditNoteItemViewSet,
-    DeliveryZoneViewSet, PromoCodeViewSet, DriverViewSet, ProductVariantViewSet, OrderViewSet, ContactSubmissionViewSet, TestimonialViewSet
+    DeliveryZoneViewSet, PromoCodeViewSet, DriverViewSet, ProductVariantViewSet, OrderViewSet, ContactSubmissionViewSet, TestimonialViewSet,
+    CustomScriptView
 )
 
 router = DefaultRouter()
@@ -30,5 +31,6 @@ router.register(r'testimonials', TestimonialViewSet, basename='testimonial')
 
 urlpatterns = [
     path('settings/', CompanySettingsView.as_view(), name='company-settings'),
+    path('custom-scripts/', CustomScriptView.as_view(), name='custom-scripts'),
     path('', include(router.urls)),
 ]

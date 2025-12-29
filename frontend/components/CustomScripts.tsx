@@ -1,40 +1,35 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { usePathname } from 'next/navigation'
 
-interface ScriptData {
+interface CustomScript {
   id: number
   name: string
+  placement: string
+  placement_display: string
   script_code: string
-  position: string
   order: number
 }
 
-interface ScriptsByPosition {
-  head_start: ScriptData[]
-  head_end: ScriptData[]
-  body_start: ScriptData[]
-  body_end: ScriptData[]
-  footer: ScriptData[]
+interface ScriptsResponse {
+  head: CustomScript[]
+  body_start: CustomScript[]
+  body_end: CustomScript[]
 }
 
 export default function CustomScripts() {
-  const pathname = usePathname()
-  const [scripts, setScripts] = useState<ScriptsByPosition | null>(null)
+  const [scripts, setScripts] = useState<ScriptsResponse | null>(null)
 
   useEffect(() => {
     const fetchScripts = async () => {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-        const apiUrl = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`
-        const response = await fetch(`${apiUrl}/public/custom-scripts/?path=${encodeURIComponent(pathname)}`)
-        
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
+        // Ensure we have the /api prefix
+        const apiUrl = baseUrl.includes('/api') ? baseUrl : `${baseUrl}/api`
+        const response = await fetch(`${apiUrl}/accounting/custom-scripts/`)
         if (response.ok) {
           const data = await response.json()
           setScripts(data)
-        } else {
-          console.error('Failed to fetch custom scripts:', response.status)
         }
       } catch (error) {
         console.error('Failed to fetch custom scripts:', error)
@@ -42,61 +37,77 @@ export default function CustomScripts() {
     }
 
     fetchScripts()
-  }, [pathname])
+  }, [])
 
   useEffect(() => {
     if (!scripts) return
 
-    // Inject body_start scripts
-    if (scripts.body_start.length > 0) {
-      const bodyStartContainer = document.getElementById('custom-scripts-body-start')
-      if (bodyStartContainer) {
-        bodyStartContainer.innerHTML = scripts.body_start.map(s => s.script_code).join('\n')
-      }
-    }
+    // Inject head scripts
+    scripts.head.forEach((script) => {
+      injectScript(script.script_code, 'head')
+    })
 
-    // Inject body_end scripts
-    if (scripts.body_end.length > 0) {
-      const bodyEndContainer = document.getElementById('custom-scripts-body-end')
-      if (bodyEndContainer) {
-        bodyEndContainer.innerHTML = scripts.body_end.map(s => s.script_code).join('\n')
-      }
-    }
+    // Inject body_start scripts (at beginning of body)
+    scripts.body_start.forEach((script) => {
+      injectScript(script.script_code, 'body_start')
+    })
 
-    // Inject footer scripts
-    if (scripts.footer.length > 0) {
-      const footerContainer = document.getElementById('custom-scripts-footer')
-      if (footerContainer) {
-        footerContainer.innerHTML = scripts.footer.map(s => s.script_code).join('\n')
-      }
-    }
-
-    // Execute any inline scripts
-    const executeScripts = (containerId: string) => {
-      const container = document.getElementById(containerId)
-      if (!container) return
-
-      const scriptElements = container.getElementsByTagName('script')
-      Array.from(scriptElements).forEach((oldScript) => {
-        const newScript = document.createElement('script')
-        Array.from(oldScript.attributes).forEach((attr) => {
-          newScript.setAttribute(attr.name, attr.value)
-        })
-        newScript.textContent = oldScript.textContent
-        oldScript.parentNode?.replaceChild(newScript, oldScript)
-      })
-    }
-
-    executeScripts('custom-scripts-body-start')
-    executeScripts('custom-scripts-body-end')
-    executeScripts('custom-scripts-footer')
+    // Inject body_end scripts (at end of body)
+    scripts.body_end.forEach((script) => {
+      injectScript(script.script_code, 'body_end')
+    })
   }, [scripts])
 
-  return (
-    <>
-      <div id="custom-scripts-body-start" suppressHydrationWarning />
-      <div id="custom-scripts-body-end" suppressHydrationWarning />
-      <div id="custom-scripts-footer" suppressHydrationWarning />
-    </>
-  )
+  const injectScript = (scriptCode: string, placement: string) => {
+    // Create a container div to parse the HTML
+    const container = document.createElement('div')
+    container.innerHTML = scriptCode
+
+    // Get all elements from the container
+    const elements = Array.from(container.childNodes)
+
+    elements.forEach((element) => {
+      if (element.nodeType === Node.ELEMENT_NODE) {
+        const el = element as Element
+        
+        if (el.tagName === 'SCRIPT') {
+          // For script tags, we need to create a new script element
+          const newScript = document.createElement('script')
+          
+          // Copy attributes
+          Array.from(el.attributes).forEach((attr) => {
+            newScript.setAttribute(attr.name, attr.value)
+          })
+          
+          // Copy inline content
+          if (el.textContent) {
+            newScript.textContent = el.textContent
+          }
+
+          // Append to appropriate location
+          if (placement === 'head') {
+            document.head.appendChild(newScript)
+          } else if (placement === 'body_start') {
+            document.body.insertBefore(newScript, document.body.firstChild)
+          } else {
+            document.body.appendChild(newScript)
+          }
+        } else {
+          // For non-script elements (like noscript), clone and append
+          const cloned = el.cloneNode(true)
+          
+          if (placement === 'head') {
+            document.head.appendChild(cloned)
+          } else if (placement === 'body_start') {
+            document.body.insertBefore(cloned, document.body.firstChild)
+          } else {
+            document.body.appendChild(cloned)
+          }
+        }
+      }
+    })
+  }
+
+  // This component doesn't render anything visible
+  return null
 }

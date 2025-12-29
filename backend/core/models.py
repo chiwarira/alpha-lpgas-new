@@ -10,6 +10,41 @@ from .models_contact import ContactSubmission
 from .models_testimonial import Testimonial
 
 
+class CustomScript(models.Model):
+    """Model for managing custom scripts to be injected into the website (e.g., GTM, Analytics)"""
+    
+    PLACEMENT_CHOICES = [
+        ('head', 'Head (inside head tag)'),
+        ('body_start', 'Body Start (after opening body tag)'),
+        ('body_end', 'Body End / Footer (before closing body tag)'),
+    ]
+    
+    name = models.CharField(max_length=255, help_text="Descriptive name for the script (e.g., 'Google Tag Manager')")
+    placement = models.CharField(max_length=20, choices=PLACEMENT_CHOICES, default='head', help_text="Where to inject the script")
+    script_code = models.TextField(help_text="The full script code including script tags and noscript tags")
+    is_active = models.BooleanField(default=True, help_text="Enable/disable this script")
+    order = models.IntegerField(default=0, help_text="Order of execution (lower numbers first)")
+    
+    # Target pages
+    apply_to_frontend = models.BooleanField(default=True, help_text="Apply to Next.js frontend (via API)")
+    apply_to_backend = models.BooleanField(default=True, help_text="Apply to Django backend templates (accounting, driver portal)")
+    
+    # Optional notes
+    notes = models.TextField(blank=True, help_text="Internal notes about this script")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['placement', 'order', 'name']
+        verbose_name = 'Custom Script'
+        verbose_name_plural = 'Custom Scripts'
+    
+    def __str__(self):
+        status = "✓" if self.is_active else "✗"
+        return f"{status} {self.name} ({self.get_placement_display()})"
+
+
 class HeroBanner(models.Model):
     """Hero banner for the website homepage"""
     title = models.CharField(max_length=255, default='Door to Door LPG Gas Delivery')
@@ -872,63 +907,3 @@ class CreditNoteItem(models.Model):
 
     def __str__(self):
         return f"{self.product.name} x {self.quantity}"
-
-
-class CustomScript(models.Model):
-    """Model for managing custom scripts (e.g., GTM, analytics, etc.) to inject into pages"""
-    POSITION_CHOICES = [
-        ('head_start', 'Head Start (Beginning of <head>)'),
-        ('head_end', 'Head End (End of <head>)'),
-        ('body_start', 'Body Start (Beginning of <body>)'),
-        ('body_end', 'Body End (End of <body>)'),
-        ('footer', 'Footer (Before closing </body>)'),
-    ]
-    
-    name = models.CharField(max_length=255, help_text="Descriptive name (e.g., Google Tag Manager, Facebook Pixel)")
-    description = models.TextField(blank=True, help_text="Description of what this script does")
-    script_code = models.TextField(help_text="The script code to inject (including <script> tags if needed)")
-    position = models.CharField(max_length=20, choices=POSITION_CHOICES, default='head_end', help_text="Where to inject this script")
-    is_active = models.BooleanField(default=True, help_text="Enable/disable this script")
-    order = models.IntegerField(default=0, help_text="Display order (lower numbers first)")
-    
-    # Optional: Apply to specific pages
-    apply_to_all_pages = models.BooleanField(default=True, help_text="Apply to all pages")
-    specific_pages = models.TextField(blank=True, help_text="Comma-separated URL patterns (e.g., /products/, /checkout/). Leave blank if applying to all pages.")
-    exclude_pages = models.TextField(blank=True, help_text="Comma-separated URL patterns to exclude (e.g., /admin/, /driver/)")
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='custom_scripts_created')
-    
-    class Meta:
-        ordering = ['order', 'name']
-        verbose_name = 'Custom Script'
-        verbose_name_plural = 'Custom Scripts'
-    
-    def __str__(self):
-        return f"{self.name} ({self.get_position_display()})"
-    
-    def should_display_on_page(self, current_path):
-        """Check if script should be displayed on the given page path"""
-        if not self.is_active:
-            return False
-        
-        # Check exclusions first
-        if self.exclude_pages:
-            exclude_patterns = [p.strip() for p in self.exclude_pages.split(',') if p.strip()]
-            for pattern in exclude_patterns:
-                if pattern in current_path:
-                    return False
-        
-        # If apply to all pages, show it (unless excluded above)
-        if self.apply_to_all_pages:
-            return True
-        
-        # Check specific pages
-        if self.specific_pages:
-            specific_patterns = [p.strip() for p in self.specific_pages.split(',') if p.strip()]
-            for pattern in specific_patterns:
-                if pattern in current_path:
-                    return True
-        
-        return False
