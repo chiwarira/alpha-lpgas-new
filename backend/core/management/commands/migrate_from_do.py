@@ -124,60 +124,76 @@ class Command(BaseCommand):
         if dry_run:
             for row in rows[:5]:  # Show first 5 in dry run
                 client_data = dict(zip(columns, row))
-                self.stdout.write(f'  - {client_data.get("name", client_data.get("customer_name", "Unknown"))}')
+                self.stdout.write(f"Would migrate: {client_data.get('name', 'Unknown')}")
             if len(rows) > 5:
                 self.stdout.write(f'  ... and {len(rows) - 5} more')
             return
-
-        # Map and create clients
+        
+        # Pre-fetch all existing clients to avoid repeated DB queries
+        self.stdout.write("Pre-fetching existing clients...")
+        existing_clients_by_phone = {}
+        existing_clients_by_email = {}
+        
+        for client in Client.objects.all():
+            if client.phone:
+                existing_clients_by_phone[client.phone] = client
+            if client.email:
+                existing_clients_by_email[client.email] = client
+        
+        self.stdout.write(f"Loaded {len(existing_clients_by_phone)} clients by phone, {len(existing_clients_by_email)} by email")
+        
         created = 0
         updated = 0
         errors = 0
+        
+        for row in rows:
+            client_data = dict(zip(columns, row))
+                
+            try:
+                defaults = {
+                    'name': client_data.get('name', ''),
+                    'email': client_data.get('email', ''),
+                    'phone': client_data.get('phone', ''),
+                    'address': client_data.get('address', ''),
+                    'city': client_data.get('city', ''),
+                    'postal_code': client_data.get('postal_code', ''),
+                    'tax_id': client_data.get('vat_number', ''),
+                    'is_active': client_data.get('is_active', True),
+                }
+                
+                # Use customer_id if exists, otherwise generate
+                customer_id = client_data.get('customer_id', '')
+                if customer_id:
+                    defaults['customer_id'] = customer_id
 
-        with transaction.atomic():
-            for row in rows:
-                client_data = dict(zip(columns, row))
-                try:
-                    # Map fields - adjust based on actual column names
-                    defaults = {
-                        'name': client_data.get('name') or client_data.get('customer_name', 'Unknown'),
-                        'email': client_data.get('email', ''),
-                        'phone': client_data.get('phone') or client_data.get('phone_number', ''),
-                        'address': client_data.get('address') or client_data.get('street_address', ''),
-                        'city': client_data.get('city', ''),
-                        'postal_code': client_data.get('postal_code') or client_data.get('zip_code', ''),
-                        'notes': client_data.get('notes', ''),
-                        'is_active': client_data.get('is_active', True),
-                    }
-                    
-                    # Use customer_id if exists, otherwise generate
-                    customer_id = client_data.get('customer_id', '')
-                    if customer_id:
-                        defaults['customer_id'] = customer_id
+                # Try to match by phone or email using pre-fetched data
+                phone = defaults['phone']
+                email = defaults['email']
+                
+                existing = None
+                if phone and phone in existing_clients_by_phone:
+                    existing = existing_clients_by_phone[phone]
+                elif email and email in existing_clients_by_email:
+                    existing = existing_clients_by_email[email]
 
-                    # Try to match by phone or email
-                    phone = defaults['phone']
-                    email = defaults['email']
-                    
-                    existing = None
-                    if phone:
-                        existing = Client.objects.filter(phone=phone).first()
-                    if not existing and email:
-                        existing = Client.objects.filter(email=email).first()
+                if existing:
+                    for key, value in defaults.items():
+                        if value:  # Only update non-empty values
+                            setattr(existing, key, value)
+                    existing.save()
+                    updated += 1
+                else:
+                    new_client = Client.objects.create(**defaults)
+                    # Add to cache for future lookups
+                    if new_client.phone:
+                        existing_clients_by_phone[new_client.phone] = new_client
+                    if new_client.email:
+                        existing_clients_by_email[new_client.email] = new_client
+                    created += 1
 
-                    if existing:
-                        for key, value in defaults.items():
-                            if value:  # Only update non-empty values
-                                setattr(existing, key, value)
-                        existing.save()
-                        updated += 1
-                    else:
-                        Client.objects.create(**defaults)
-                        created += 1
-
-                except Exception as e:
-                    errors += 1
-                    self.stdout.write(self.style.ERROR(f'Error migrating client: {e}'))
+            except Exception as e:
+                errors += 1
+                self.stdout.write(self.style.ERROR(f"Error migrating client {client_data.get('name', 'Unknown')}: {str(e)}"))
 
         self.stdout.write(self.style.SUCCESS(f'Clients: {created} created, {updated} updated, {errors} errors'))
 
