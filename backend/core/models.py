@@ -12,6 +12,9 @@ from .models_testimonial import Testimonial
 # Import accounting models
 from .models_accounting import Supplier, ExpenseCategory, Expense, JournalEntry, TaxPeriod
 
+# Import stock management models
+from .models_stock import CylinderSize, GasStock, StockMovement, StockPurchase, StockPurchaseItem
+
 
 class CustomScript(models.Model):
     """Model for managing custom scripts to be injected into the website (e.g., GTM, Analytics)"""
@@ -512,13 +515,53 @@ class InvoiceItem(models.Model):
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    stock_deducted = models.BooleanField(default=False, help_text="Whether stock has been deducted for this item")
 
     def save(self, *args, **kwargs):
         # Calculate total and VAT (VAT is included in unit price)
         self.total = self.quantity * self.unit_price
         # Extract VAT from the total (VAT-inclusive calculation)
         self.tax_amount = self.total - (self.total / (1 + self.tax_rate / 100))
+        
+        is_new = self.pk is None
         super().save(*args, **kwargs)
+        
+        # Deduct stock for exchange products (only once)
+        if is_new and self.product.is_exchange and not self.stock_deducted:
+            self._deduct_stock()
+
+    def _deduct_stock(self):
+        """Deduct stock for gas exchange products"""
+        from .models_stock import CylinderSize, StockMovement
+        
+        # Extract weight from product (e.g., "9kg" -> 9)
+        weight_str = self.product.weight.lower().replace('kg', '').strip()
+        try:
+            weight_kg = int(weight_str)
+        except (ValueError, AttributeError):
+            return  # Can't determine weight, skip stock deduction
+        
+        # Find matching cylinder size
+        try:
+            cylinder_size = CylinderSize.objects.get(weight_kg=weight_kg)
+        except CylinderSize.DoesNotExist:
+            return  # No matching cylinder size configured
+        
+        # Create stock movement (negative quantity for sale)
+        StockMovement.objects.create(
+            movement_type='sale',
+            date=self.invoice.issue_date,
+            cylinder_size=cylinder_size,
+            quantity=-int(self.quantity),  # Negative for stock out
+            invoice=self.invoice,
+            invoice_item=self,
+            reference=self.invoice.invoice_number,
+            notes=f"Sale: {self.product.name} x {self.quantity}"
+        )
+        
+        # Mark as deducted
+        self.stock_deducted = True
+        super().save(update_fields=['stock_deducted'])
 
     def __str__(self):
         return f"{self.product.name} x {self.quantity}"

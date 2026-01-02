@@ -3,7 +3,8 @@ from .models import (
     HeroBanner, CompanySettings, Client, Category, Product, ProductVariant,
     Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem,
     DeliveryZone, PromoCode, Driver, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial,
-    CustomScript, Supplier, ExpenseCategory, Expense, JournalEntry, TaxPeriod
+    CustomScript, Supplier, ExpenseCategory, Expense, JournalEntry, TaxPeriod,
+    CylinderSize, GasStock, StockMovement, StockPurchase, StockPurchaseItem
 )
 
 
@@ -520,3 +521,119 @@ class TaxPeriodAdmin(admin.ModelAdmin):
             period.calculate_totals()
         self.message_user(request, f'Totals calculated for {queryset.count()} periods.')
     calculate_totals.short_description = 'Calculate totals for selected periods'
+
+
+# ============================================
+# STOCK MANAGEMENT ADMIN
+# ============================================
+
+@admin.register(CylinderSize)
+class CylinderSizeAdmin(admin.ModelAdmin):
+    list_display = ['name', 'weight_kg', 'is_active', 'order']
+    list_editable = ['is_active', 'order']
+    search_fields = ['name']
+
+
+@admin.register(GasStock)
+class GasStockAdmin(admin.ModelAdmin):
+    list_display = ['cylinder_size', 'quantity', 'total_volume_display', 'reorder_level', 'stock_status', 'updated_at']
+    list_filter = ['cylinder_size']
+    readonly_fields = ['updated_at']
+    
+    def total_volume_display(self, obj):
+        return f"{obj.total_volume_kg} kg"
+    total_volume_display.short_description = 'Total Volume'
+    
+    def stock_status(self, obj):
+        if obj.is_low_stock:
+            return '⚠️ Low Stock'
+        return '✅ OK'
+    stock_status.short_description = 'Status'
+
+
+class StockPurchaseItemInline(admin.TabularInline):
+    model = StockPurchaseItem
+    extra = 1
+    fields = ['cylinder_size', 'quantity', 'unit_cost', 'total_cost', 'volume_kg_display']
+    readonly_fields = ['total_cost', 'volume_kg_display']
+    
+    def volume_kg_display(self, obj):
+        if obj.pk:
+            return f"{obj.volume_kg} kg"
+        return "-"
+    volume_kg_display.short_description = 'Volume (kg)'
+
+
+@admin.register(StockPurchase)
+class StockPurchaseAdmin(admin.ModelAdmin):
+    list_display = ['purchase_number', 'date', 'supplier', 'total_cylinders', 'total_volume_kg', 'total_cost', 'created_at']
+    list_filter = ['date', 'supplier']
+    search_fields = ['purchase_number', 'invoice_number', 'supplier__name']
+    date_hierarchy = 'date'
+    readonly_fields = ['purchase_number', 'total_cylinders', 'total_volume_kg', 'total_cost', 'created_at', 'updated_at']
+    autocomplete_fields = ['supplier', 'expense']
+    inlines = [StockPurchaseItemInline]
+    
+    fieldsets = (
+        ('Purchase Details', {
+            'fields': ('purchase_number', 'date', 'supplier', 'invoice_number')
+        }),
+        ('Linked Records', {
+            'fields': ('expense',),
+            'classes': ('collapse',)
+        }),
+        ('Totals', {
+            'fields': ('total_cylinders', 'total_volume_kg', 'total_cost'),
+        }),
+        ('Notes', {
+            'fields': ('notes',),
+            'classes': ('collapse',)
+        }),
+        ('Metadata', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(StockMovement)
+class StockMovementAdmin(admin.ModelAdmin):
+    list_display = ['movement_number', 'date', 'movement_type', 'cylinder_size', 'quantity', 'volume_kg_display', 'reference', 'created_at']
+    list_filter = ['movement_type', 'cylinder_size', 'date']
+    search_fields = ['movement_number', 'reference', 'notes']
+    date_hierarchy = 'date'
+    readonly_fields = ['movement_number', 'created_at']
+    
+    fieldsets = (
+        ('Movement Details', {
+            'fields': ('movement_number', 'date', 'movement_type', 'cylinder_size', 'quantity')
+        }),
+        ('Reference', {
+            'fields': ('reference', 'supplier', 'expense', 'invoice', 'invoice_item'),
+            'classes': ('collapse',)
+        }),
+        ('Cost', {
+            'fields': ('unit_cost',)
+        }),
+        ('Notes', {
+            'fields': ('notes',)
+        }),
+        ('Metadata', {
+            'fields': ('created_by', 'created_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def volume_kg_display(self, obj):
+        return f"{obj.volume_kg} kg"
+    volume_kg_display.short_description = 'Volume'
+    
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
