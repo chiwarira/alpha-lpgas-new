@@ -74,6 +74,7 @@ class ClientAdmin(admin.ModelAdmin):
     list_filter = ['is_active', 'created_at']
     search_fields = ['customer_id', 'name', 'email', 'phone', 'tax_id']
     readonly_fields = ['customer_id', 'created_at', 'updated_at']
+    ordering = ['-created_at']
     fieldsets = (
         ('Basic Information', {
             'fields': ('name', 'email', 'phone', 'is_active')
@@ -143,11 +144,16 @@ class QuoteItemInline(admin.TabularInline):
 
 @admin.register(Quote)
 class QuoteAdmin(admin.ModelAdmin):
-    list_display = ['quote_number', 'client', 'issue_date', 'expiry_date', 'status', 'total_amount', 'created_at']
+    list_display = ['quote_number', 'client_name', 'issue_date', 'expiry_date', 'status', 'total_amount', 'created_at']
     list_filter = ['status', 'issue_date', 'created_at']
     search_fields = ['quote_number', 'client__name']
     readonly_fields = ['subtotal', 'tax_amount', 'total_amount', 'created_at', 'updated_at']
+    ordering = ['-created_at']
     inlines = [QuoteItemInline]
+    
+    @admin.display(description='Client', ordering='client__name')
+    def client_name(self, obj):
+        return obj.client.name if obj.client else '-'
 
 
 class InvoiceItemInline(admin.TabularInline):
@@ -157,11 +163,20 @@ class InvoiceItemInline(admin.TabularInline):
 
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
-    list_display = ['invoice_number', 'client', 'issue_date', 'due_date', 'status', 'total_amount', 'paid_amount', 'balance', 'created_at']
+    list_display = ['invoice_number', 'client_name', 'issue_date', 'due_date', 'status', 'total_amount', 'paid_amount', 'balance_display', 'created_at']
     list_filter = ['status', 'issue_date', 'due_date', 'created_at']
     search_fields = ['invoice_number', 'client__name']
     readonly_fields = ['subtotal', 'tax_amount', 'total_amount', 'paid_amount', 'balance', 'created_at', 'updated_at']
+    ordering = ['-created_at']
     inlines = [InvoiceItemInline]
+    
+    @admin.display(description='Client', ordering='client__name')
+    def client_name(self, obj):
+        return obj.client.name if obj.client else '-'
+    
+    @admin.display(description='Balance', ordering='total_amount')
+    def balance_display(self, obj):
+        return obj.balance
 
 
 @admin.register(Payment)
@@ -265,12 +280,17 @@ class OrderStatusHistoryInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['order_number', 'customer_name', 'assigned_driver', 'status', 'payment_status', 'payment_method', 'total', 'created_at']
+    list_display = ['order_number', 'customer_name', 'driver_name', 'status', 'payment_status', 'payment_method', 'total', 'created_at']
     list_filter = ['status', 'payment_status', 'payment_method', 'delivery_zone', 'assigned_driver', 'created_at']
     search_fields = ['order_number', 'customer_name', 'customer_email', 'customer_phone']
     readonly_fields = ['order_number', 'created_at', 'updated_at']
+    ordering = ['-created_at']
     inlines = [OrderItemInline, OrderStatusHistoryInline]
-    list_editable = ['assigned_driver', 'status']
+    list_editable = ['status']
+    
+    @admin.display(description='Driver', ordering='assigned_driver__user__first_name')
+    def driver_name(self, obj):
+        return obj.assigned_driver.user.get_full_name() if obj.assigned_driver else '-'
     
     fieldsets = (
         ('Order Info', {

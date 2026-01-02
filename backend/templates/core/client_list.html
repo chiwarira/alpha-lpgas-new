@@ -136,14 +136,35 @@
                                     <th style="width: 40px;">
                                         <input type="checkbox" class="form-check-input" id="select-all">
                                     </th>
-                                    <th>Customer ID</th>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Phone</th>
+                                    <th class="sortable" data-sort="customer_id">
+                                        Customer ID
+                                        {% if sort_by == 'customer_id' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-customer_id' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                                    </th>
+                                    <th class="sortable" data-sort="name">
+                                        Name
+                                        {% if sort_by == 'name' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-name' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                                    </th>
+                                    <th class="sortable" data-sort="email">
+                                        Email
+                                        {% if sort_by == 'email' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-email' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                                    </th>
+                                    <th class="sortable" data-sort="phone">
+                                        Phone
+                                        {% if sort_by == 'phone' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-phone' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                                    </th>
                                     <th>Address</th>
-                                    <th>City</th>
-                                    <th>Status</th>
-                                    <th>Created</th>
+                                    <th class="sortable" data-sort="city">
+                                        City
+                                        {% if sort_by == 'city' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-city' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                                    </th>
+                                    <th class="sortable" data-sort="is_active">
+                                        Status
+                                        {% if sort_by == 'is_active' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-is_active' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                                    </th>
+                                    <th class="sortable" data-sort="created_at">
+                                        Created
+                                        {% if sort_by == 'created_at' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-created_at' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                                    </th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -233,8 +254,39 @@
         </div>
     </div>
 
+    <style>
+        .sortable { cursor: pointer; user-select: none; }
+        .sortable:hover { background-color: #495057 !important; }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+    // Current sort state
+    let currentSort = '{{ sort_by }}';
+    
+    // Sorting functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.sortable').forEach(header => {
+            header.addEventListener('click', function() {
+                const field = this.dataset.sort;
+                let newSort;
+                
+                // Toggle sort direction
+                if (currentSort === field) {
+                    newSort = '-' + field;
+                } else if (currentSort === '-' + field) {
+                    newSort = field;
+                } else {
+                    newSort = '-' + field; // Default to descending
+                }
+                
+                // Update URL and reload
+                const url = new URL(window.location.href);
+                url.searchParams.set('sort', newSort);
+                window.location.href = url.toString();
+            });
+        });
+    });
+    
     // Real-time AJAX search functionality
     document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('search-input');

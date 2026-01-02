@@ -11,6 +11,8 @@
         font-size: 0.75rem;
         font-weight: 600;
     }
+    .sortable { cursor: pointer; user-select: none; }
+    .sortable:hover { background-color: #495057 !important; }
     .status-pending { background-color: #fef3c7; color: #92400e; }
     .status-confirmed { background-color: #dbeafe; color: #1e40af; }
     .status-processing { background-color: #e9d5ff; color: #6b21a8; }
@@ -156,14 +158,32 @@
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-hover">
-                            <thead>
+                            <thead class="table-dark">
                                 <tr>
-                                    <th>Order #</th>
-                                    <th>Customer</th>
-                                    <th>Status</th>
-                                    <th>Payment</th>
-                                    <th>Total</th>
-                                    <th>Date</th>
+                                    <th class="sortable" data-sort="order_number">
+                                        Order #
+                                        {% if sort_by == 'order_number' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-order_number' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                                    </th>
+                                    <th class="sortable" data-sort="customer_name">
+                                        Customer
+                                        {% if sort_by == 'customer_name' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-customer_name' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                                    </th>
+                                    <th class="sortable" data-sort="status">
+                                        Status
+                                        {% if sort_by == 'status' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-status' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                                    </th>
+                                    <th class="sortable" data-sort="payment_status">
+                                        Payment
+                                        {% if sort_by == 'payment_status' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-payment_status' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                                    </th>
+                                    <th class="sortable" data-sort="total">
+                                        Total
+                                        {% if sort_by == 'total' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-total' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                                    </th>
+                                    <th class="sortable" data-sort="created_at">
+                                        Date
+                                        {% if sort_by == 'created_at' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-created_at' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                                    </th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -237,6 +257,29 @@
 </div>
 
 <script>
+// Current sort state
+let currentSort = '{{ sort_by }}';
+
+// Sorting functionality
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.sortable').forEach(header => {
+        header.addEventListener('click', function() {
+            const field = this.dataset.sort;
+            let newSort;
+            if (currentSort === field) {
+                newSort = '-' + field;
+            } else if (currentSort === '-' + field) {
+                newSort = field;
+            } else {
+                newSort = '-' + field;
+            }
+            const url = new URL(window.location.href);
+            url.searchParams.set('sort', newSort);
+            window.location.href = url.toString();
+        });
+    });
+});
+
 function viewOrder(orderId) {
     fetch(`/api/accounting/orders/${orderId}/`)
         .then(response => response.json())

@@ -47,12 +47,30 @@
             <table class="table table-hover">
                 <thead class="table-dark">
                     <tr>
-                        <th>Quote #</th>
-                        <th>Client</th>
-                        <th>Issue Date</th>
-                        <th>Expiry Date</th>
-                        <th>Total</th>
-                        <th>Status</th>
+                        <th class="sortable" data-sort="quote_number">
+                            Quote #
+                            {% if sort_by == 'quote_number' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-quote_number' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                        </th>
+                        <th class="sortable" data-sort="client__name">
+                            Client
+                            {% if sort_by == 'client__name' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-client__name' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                        </th>
+                        <th class="sortable" data-sort="issue_date">
+                            Issue Date
+                            {% if sort_by == 'issue_date' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-issue_date' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                        </th>
+                        <th class="sortable" data-sort="expiry_date">
+                            Expiry Date
+                            {% if sort_by == 'expiry_date' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-expiry_date' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                        </th>
+                        <th class="sortable" data-sort="total_amount">
+                            Total
+                            {% if sort_by == 'total_amount' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-total_amount' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                        </th>
+                        <th class="sortable" data-sort="status">
+                            Status
+                            {% if sort_by == 'status' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-status' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                        </th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -114,7 +132,34 @@
     </div>
 </div>
 
+<style>
+    .sortable { cursor: pointer; user-select: none; }
+    .sortable:hover { background-color: #495057 !important; }
+</style>
 <script>
+// Current sort state
+let currentSort = '{{ sort_by }}';
+
+// Sorting functionality
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.sortable').forEach(header => {
+        header.addEventListener('click', function() {
+            const field = this.dataset.sort;
+            let newSort;
+            if (currentSort === field) {
+                newSort = '-' + field;
+            } else if (currentSort === '-' + field) {
+                newSort = field;
+            } else {
+                newSort = '-' + field;
+            }
+            const url = new URL(window.location.href);
+            url.searchParams.set('sort', newSort);
+            window.location.href = url.toString();
+        });
+    });
+});
+
 // Real-time AJAX search functionality
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('search-input');

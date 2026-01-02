@@ -18,8 +18,16 @@ from .forms import (
 # Client Views
 @login_required
 def client_list(request):
-    """List all clients with search functionality"""
+    """List all clients with search and sort functionality"""
     search_query = request.GET.get('search', '')
+    sort_by = request.GET.get('sort', '-created_at')
+    
+    # Valid sort fields
+    valid_sorts = ['customer_id', '-customer_id', 'name', '-name', 'email', '-email', 
+                   'phone', '-phone', 'city', '-city', 'is_active', '-is_active',
+                   'created_at', '-created_at']
+    if sort_by not in valid_sorts:
+        sort_by = '-created_at'
     
     clients = Client.objects.all()
     
@@ -34,11 +42,12 @@ def client_list(request):
             Q(address__icontains=search_query)
         )
     
-    clients = clients.order_by('-created_at')
+    clients = clients.order_by(sort_by)
     
     return render(request, 'core/client_list.html', {
         'clients': clients,
-        'search_query': search_query
+        'search_query': search_query,
+        'sort_by': sort_by,
     })
 
 
@@ -365,10 +374,18 @@ def product_edit(request, pk):
 # Quote Views
 @login_required
 def quote_list(request):
-    """List all quotes with search functionality"""
+    """List all quotes with search and sort functionality"""
     search_query = request.GET.get('search', '')
+    sort_by = request.GET.get('sort', '-issue_date')
     
-    quotes = Quote.objects.all()
+    # Valid sort fields
+    valid_sorts = ['quote_number', '-quote_number', 'client__name', '-client__name',
+                   'issue_date', '-issue_date', 'expiry_date', '-expiry_date',
+                   'status', '-status', 'total_amount', '-total_amount', 'created_at', '-created_at']
+    if sort_by not in valid_sorts:
+        sort_by = '-issue_date'
+    
+    quotes = Quote.objects.all().select_related('client')
     
     if search_query:
         from django.db.models import Q
@@ -379,11 +396,12 @@ def quote_list(request):
             Q(status__icontains=search_query)
         )
     
-    quotes = quotes.order_by('-issue_date')
+    quotes = quotes.order_by(sort_by)
     
     return render(request, 'core/quote_list.html', {
         'quotes': quotes,
-        'search_query': search_query
+        'search_query': search_query,
+        'sort_by': sort_by,
     })
 
 
@@ -473,10 +491,19 @@ def quote_detail(request, pk):
 # Invoice Views
 @login_required
 def invoice_list(request):
-    """List all invoices with search functionality"""
+    """List all invoices with search and sort functionality"""
     search_query = request.GET.get('search', '')
+    sort_by = request.GET.get('sort', '-issue_date')
     
-    invoices = Invoice.objects.all()
+    # Valid sort fields
+    valid_sorts = ['invoice_number', '-invoice_number', 'client__name', '-client__name',
+                   'issue_date', '-issue_date', 'due_date', '-due_date',
+                   'status', '-status', 'total_amount', '-total_amount', 
+                   'paid_amount', '-paid_amount', 'created_at', '-created_at']
+    if sort_by not in valid_sorts:
+        sort_by = '-issue_date'
+    
+    invoices = Invoice.objects.all().select_related('client')
     
     if search_query:
         from django.db.models import Q
@@ -487,11 +514,12 @@ def invoice_list(request):
             Q(status__icontains=search_query)
         )
     
-    invoices = invoices.order_by('-issue_date')
+    invoices = invoices.order_by(sort_by)
     
     return render(request, 'core/invoice_list.html', {
         'invoices': invoices,
-        'search_query': search_query
+        'search_query': search_query,
+        'sort_by': sort_by,
     })
 
 
@@ -796,15 +824,23 @@ def accounting_dashboard(request):
 # Orders Views
 @login_required
 def order_list(request):
-    """List all orders with filtering"""
+    """List all orders with filtering and sorting"""
     from django.db.models import Q
-    
-    orders = Order.objects.all().select_related('delivery_zone').prefetch_related('items__product', 'items__variant')
     
     # Filters
     search_query = request.GET.get('search', '')
     status_filter = request.GET.get('status', '')
     payment_status_filter = request.GET.get('payment_status', '')
+    sort_by = request.GET.get('sort', '-created_at')
+    
+    # Valid sort fields
+    valid_sorts = ['order_number', '-order_number', 'customer_name', '-customer_name',
+                   'status', '-status', 'payment_status', '-payment_status',
+                   'payment_method', '-payment_method', 'total', '-total', 'created_at', '-created_at']
+    if sort_by not in valid_sorts:
+        sort_by = '-created_at'
+    
+    orders = Order.objects.all().select_related('delivery_zone', 'assigned_driver__user').prefetch_related('items__product', 'items__variant')
     
     if search_query:
         orders = orders.filter(
@@ -819,7 +855,7 @@ def order_list(request):
     if payment_status_filter:
         orders = orders.filter(payment_status=payment_status_filter)
     
-    orders = orders.order_by('-created_at')
+    orders = orders.order_by(sort_by)
     
     # Calculate stats
     pending_count = Order.objects.filter(status='pending').count()
@@ -833,6 +869,7 @@ def order_list(request):
         'pending_count': pending_count,
         'delivered_count': delivered_count,
         'total_revenue': total_revenue,
+        'sort_by': sort_by,
     })
 
 
