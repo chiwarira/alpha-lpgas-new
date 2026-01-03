@@ -346,7 +346,14 @@ class Command(BaseCommand):
             self.stdout.write(f'Loaded {len(all_payments)} payments')
 
         self.stdout.write('Processing invoices...')
-        for row in rows:
+        batch_size = 50  # Process in smaller batches
+        for idx, row in enumerate(rows):
+            # Reconnect Django DB every 50 invoices to avoid timeout
+            if idx > 0 and idx % batch_size == 0:
+                from django.db import connection
+                connection.close()
+                self.stdout.write(f'Processed {idx}/{len(rows)} invoices...')
+            
             inv_data = dict(zip(columns, row))
             old_invoice_id = inv_data.get('id')
             invoice_number = inv_data.get('invoice_number') or inv_data.get('number', '')
