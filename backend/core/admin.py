@@ -163,9 +163,10 @@ class InvoiceItemInline(admin.TabularInline):
 
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
-    list_display = ['invoice_number', 'client_name', 'issue_date', 'due_date', 'status', 'total_amount', 'paid_amount', 'balance_display', 'created_at']
-    list_filter = ['status', 'issue_date', 'due_date', 'created_at']
+    list_display = ['invoice_number', 'client_name', 'delivery_zone', 'issue_date', 'due_date', 'status', 'total_amount', 'paid_amount', 'balance_display', 'created_at']
+    list_filter = ['status', 'delivery_zone', 'issue_date', 'due_date', 'created_at']
     search_fields = ['invoice_number', 'client__name']
+    autocomplete_fields = ['client', 'delivery_zone']
     readonly_fields = ['subtotal', 'tax_amount', 'total_amount', 'paid_amount', 'balance', 'created_at', 'updated_at']
     ordering = ['-created_at']
     inlines = [InvoiceItemInline]
@@ -209,6 +210,7 @@ class DeliveryZoneAdmin(admin.ModelAdmin):
     list_editable = ['delivery_fee', 'is_active', 'order']
     list_filter = ['is_active']
     search_fields = ['name', 'postal_codes']
+    ordering = ['order', 'name']
 
 
 @admin.register(Driver)

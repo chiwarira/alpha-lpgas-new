@@ -169,6 +169,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
     client_tax_id = serializers.CharField(source='client.tax_id', read_only=True)
     created_by_name = serializers.CharField(source='created_by.username', read_only=True)
     quote_number = serializers.CharField(source='quote.quote_number', read_only=True)
+    delivery_zone_name = serializers.CharField(source='delivery_zone.name', read_only=True, allow_null=True)
     
     class Meta:
         model = Invoice
@@ -176,10 +177,10 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'id', 'invoice_number', 'client', 'client_name', 'client_email',
             'client_phone', 'client_address', 'client_city', 'client_state',
             'client_postal_code', 'client_country', 'client_tax_id', 'quote',
-            'quote_number', 'issue_date', 'due_date', 'status', 'subtotal',
-            'tax_amount', 'total_amount', 'paid_amount', 'balance',
-            'notes', 'terms', 'items', 'created_at', 'updated_at',
-            'created_by', 'created_by_name'
+            'quote_number', 'delivery_zone', 'delivery_zone_name', 'issue_date', 
+            'due_date', 'status', 'subtotal', 'tax_amount', 'total_amount', 
+            'paid_amount', 'balance', 'notes', 'terms', 'items', 'created_at', 
+            'updated_at', 'created_by', 'created_by_name'
         ]
         read_only_fields = ['id', 'subtotal', 'tax_amount', 'total_amount', 'balance', 'created_at', 'updated_at', 'created_by']
 

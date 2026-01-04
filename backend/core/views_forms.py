@@ -548,10 +548,33 @@ def invoice_create(request):
                         item.tax_rate = item.product.tax_rate
                     item.save()
             
+            # Add delivery fee as line item if delivery zone selected
+            if invoice.delivery_zone and invoice.delivery_zone.delivery_fee > 0:
+                from decimal import Decimal
+                # Get or create a Delivery Fee product
+                delivery_product, _ = Product.objects.get_or_create(
+                    name='Delivery Fee',
+                    defaults={
+                        'description': 'Delivery service charge',
+                        'unit_price': invoice.delivery_zone.delivery_fee,
+                        'tax_rate': Decimal('15'),
+                        'is_active': True
+                    }
+                )
+                # Add delivery fee line item
+                InvoiceItem.objects.create(
+                    invoice=invoice,
+                    product=delivery_product,
+                    description=f'Delivery to {invoice.delivery_zone.name}',
+                    quantity=1,
+                    unit_price=invoice.delivery_zone.delivery_fee,
+                    tax_rate=Decimal('15')
+                )
+            
             invoice.calculate_totals()
             
             messages.success(request, f'Invoice {invoice.invoice_number} for {invoice.client.name} created successfully!')
-            return redirect('accounting_forms:invoice_detail', pk=invoice.pk)
+            return redirect('accounting_forms:invoice_detail', invoice_number=invoice.invoice_number)
     else:
         # Set default dates
         initial_data = {
@@ -573,6 +596,7 @@ def invoice_create(request):
 def invoice_edit(request, invoice_number):
     """Edit an existing invoice"""
     invoice = get_object_or_404(Invoice, invoice_number=invoice_number)
+    old_delivery_zone = invoice.delivery_zone
     
     if request.method == 'POST':
         form = InvoiceForm(request.POST, instance=invoice)
@@ -581,10 +605,38 @@ def invoice_edit(request, invoice_number):
         if form.is_valid() and formset.is_valid():
             invoice = form.save()
             formset.save()
+            
+            # Handle delivery zone changes
+            new_delivery_zone = invoice.delivery_zone
+            if new_delivery_zone != old_delivery_zone:
+                # Remove old delivery fee line item if exists
+                invoice.items.filter(product__name='Delivery Fee').delete()
+                
+                # Add new delivery fee if zone selected
+                if new_delivery_zone and new_delivery_zone.delivery_fee > 0:
+                    from decimal import Decimal
+                    delivery_product, _ = Product.objects.get_or_create(
+                        name='Delivery Fee',
+                        defaults={
+                            'description': 'Delivery service charge',
+                            'unit_price': new_delivery_zone.delivery_fee,
+                            'tax_rate': Decimal('15'),
+                            'is_active': True
+                        }
+                    )
+                    InvoiceItem.objects.create(
+                        invoice=invoice,
+                        product=delivery_product,
+                        description=f'Delivery to {new_delivery_zone.name}',
+                        quantity=1,
+                        unit_price=new_delivery_zone.delivery_fee,
+                        tax_rate=Decimal('15')
+                    )
+            
             invoice.calculate_totals()
             
             messages.success(request, f'Invoice {invoice.invoice_number} updated successfully!')
-            return redirect('accounting_forms:invoice_detail', pk=invoice.pk)
+            return redirect('accounting_forms:invoice_detail', invoice_number=invoice.invoice_number)
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
@@ -652,7 +704,7 @@ def payment_create(request, invoice_pk=None):
         if form.is_valid():
             payment = form.save()
             messages.success(request, f'Payment of R{payment.amount} recorded successfully!')
-            return redirect('accounting_forms:invoice_detail', pk=payment.invoice.pk)
+            return redirect('accounting_forms:invoice_detail', invoice_number=payment.invoice.invoice_number)
     else:
         form = PaymentForm(initial=initial)
     

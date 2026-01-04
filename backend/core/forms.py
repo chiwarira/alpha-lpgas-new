@@ -271,13 +271,16 @@ class InvoiceForm(forms.ModelForm):
     class Meta:
         model = Invoice
         fields = [
-            'client', 'issue_date', 'due_date', 'status',
+            'client', 'delivery_zone', 'issue_date', 'due_date', 'status',
             'terms', 'notes', 'whatsapp_invoice_message'
         ]
         widgets = {
             'client': forms.Select(attrs={
                 'class': 'form-select',
                 'required': True
+            }),
+            'delivery_zone': forms.Select(attrs={
+                'class': 'form-select'
             }),
             'issue_date': forms.DateInput(attrs={
                 'class': 'form-control',
