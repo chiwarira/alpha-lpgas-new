@@ -15,6 +15,9 @@ from .models_accounting import Supplier, ExpenseCategory, Expense, JournalEntry,
 # Import stock management models
 from .models_stock import CylinderSize, GasStock, StockMovement, StockPurchase, StockPurchaseItem
 
+# Import loyalty program models
+from .models_loyalty import LoyaltyCard, LoyaltyTransaction
+
 
 class CustomScript(models.Model):
     """Model for managing custom scripts to be injected into the website (e.g., GTM, Analytics)"""

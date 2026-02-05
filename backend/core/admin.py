@@ -4,8 +4,10 @@ from .models import (
     Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem,
     DeliveryZone, PromoCode, Driver, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial,
     CustomScript, Supplier, ExpenseCategory, Expense, JournalEntry, TaxPeriod,
-    CylinderSize, GasStock, StockMovement, StockPurchase, StockPurchaseItem
+    CylinderSize, GasStock, StockMovement, StockPurchase, StockPurchaseItem,
+    LoyaltyCard, LoyaltyTransaction
 )
+from .admin_loyalty import LoyaltyCardAdmin, LoyaltyTransactionAdmin
 
 
 @admin.register(HeroBanner)

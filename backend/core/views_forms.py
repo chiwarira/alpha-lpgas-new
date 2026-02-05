@@ -573,6 +573,20 @@ def invoice_create(request):
             
             invoice.calculate_totals()
             
+            # Process loyalty stamp if invoice is paid
+            if invoice.status in ['paid', 'partially_paid']:
+                from .utils_loyalty import process_loyalty_stamp, send_loyalty_card_whatsapp
+                loyalty_card = process_loyalty_stamp(invoice)
+                if loyalty_card:
+                    # Send WhatsApp message with loyalty card
+                    try:
+                        result = send_loyalty_card_whatsapp(loyalty_card)
+                        if result and result.get('success'):
+                            messages.info(request, f'Loyalty card updated: {loyalty_card.stamps}/9 stamps')
+                    except Exception as e:
+                        # Don't fail invoice creation if WhatsApp fails
+                        pass
+            
             messages.success(request, f'Invoice {invoice.invoice_number} for {invoice.client.name} created successfully!')
             return redirect('accounting_forms:invoice_detail', invoice_number=invoice.invoice_number)
     else:
