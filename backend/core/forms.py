@@ -212,8 +212,9 @@ class QuoteForm(forms.ModelForm):
         ]
         widgets = {
             'client': forms.Select(attrs={
-                'class': 'form-select',
-                'required': True
+                'class': 'form-select client-select',
+                'required': True,
+                'data-placeholder': 'Search for a client...'
             }),
             'issue_date': forms.DateInput(attrs={
                 'class': 'form-control',
@@ -240,8 +241,8 @@ class QuoteForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Customize client dropdown to show name and address
-        self.fields['client'].label_from_instance = lambda obj: f"{obj.name} - {obj.address}" if obj.address else obj.name
+        # Customize client dropdown to show name, phone, and address
+        self.fields['client'].label_from_instance = lambda obj: f"{obj.name} - {obj.phone or 'No phone'} - {obj.address or 'No address'}"
 
 
 class QuoteItemForm(forms.ModelForm):
@@ -276,8 +277,9 @@ class InvoiceForm(forms.ModelForm):
         ]
         widgets = {
             'client': forms.Select(attrs={
-                'class': 'form-select',
-                'required': True
+                'class': 'form-select client-select',
+                'required': True,
+                'data-placeholder': 'Search for a client...'
             }),
             'delivery_zone': forms.Select(attrs={
                 'class': 'form-select'
@@ -312,8 +314,8 @@ class InvoiceForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Customize client dropdown to show name and address
-        self.fields['client'].label_from_instance = lambda obj: f"{obj.name} - {obj.address}" if obj.address else obj.name
+        # Customize client dropdown to show name, phone, and address
+        self.fields['client'].label_from_instance = lambda obj: f"{obj.name} - {obj.phone or 'No phone'} - {obj.address or 'No address'}"
 
 
 class InvoiceItemForm(forms.ModelForm):
