@@ -55,6 +55,10 @@
                             Client
                             {% if sort_by == 'client__name' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-client__name' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
                         </th>
+                        <th class="sortable" data-sort="client__address">
+                            Address
+                            {% if sort_by == 'client__address' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-client__address' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                        </th>
                         <th class="sortable" data-sort="issue_date">
                             Issue Date
                             {% if sort_by == 'issue_date' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-issue_date' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
@@ -85,6 +89,7 @@
                     <tr>
                         <td><code>{{ invoice.invoice_number }}</code></td>
                         <td>{{ invoice.client.name }}</td>
+                        <td>{{ invoice.client.address|default:"-" }}</td>
                         <td>{{ invoice.issue_date|date:"Y-m-d" }}</td>
                         <td>{{ invoice.due_date|date:"Y-m-d" }}</td>
                         <td>R {{ invoice.total_amount|floatformat:2 }}</td>
@@ -146,6 +151,17 @@
 <style>
     .sortable { cursor: pointer; user-select: none; }
     .sortable:hover { background-color: #495057 !important; }
+    .table { font-size: 0.875rem; }
+    .table td, .table th { 
+        white-space: nowrap; 
+        overflow: hidden; 
+        text-overflow: ellipsis;
+        max-width: 200px;
+        padding: 0.5rem;
+    }
+    .table td:first-child, .table th:first-child { max-width: 120px; }
+    .table td:nth-child(2), .table th:nth-child(2) { max-width: 150px; }
+    .table td:nth-child(3), .table th:nth-child(3) { max-width: 200px; }
 </style>
 <script>
 // Current sort state
