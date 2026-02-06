@@ -151,17 +151,31 @@
 <style>
     .sortable { cursor: pointer; user-select: none; }
     .sortable:hover { background-color: #495057 !important; }
-    .table { font-size: 0.875rem; }
+    .table { 
+        font-size: 0.8rem;
+    }
     .table td, .table th { 
         white-space: nowrap; 
         overflow: hidden; 
         text-overflow: ellipsis;
         max-width: 200px;
-        padding: 0.5rem;
+        padding: 0.15rem 0.3rem;
+        font-size: 0.8rem;
     }
     .table td:first-child, .table th:first-child { max-width: 120px; }
     .table td:nth-child(2), .table th:nth-child(2) { max-width: 150px; }
     .table td:nth-child(3), .table th:nth-child(3) { max-width: 200px; }
+    
+    /* Alternating row colors */
+    .table tbody tr:nth-child(odd) {
+        background-color: #f8f9fa;
+    }
+    .table tbody tr:nth-child(even) {
+        background-color: #ffffff;
+    }
+    .table tbody tr:hover {
+        background-color: #e9ecef !important;
+    }
 </style>
 <script>
 // Current sort state

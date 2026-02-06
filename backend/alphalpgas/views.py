@@ -38,41 +38,107 @@ def home(request):
     """
     Simple home view for root URL
     """
-    html = """
+    # Determine frontend URL based on environment
+    host = request.get_host()
+    if 'localhost' in host or '127.0.0.1' in host:
+        frontend_url = 'http://localhost:3000'
+    elif 'staging' in host or 'dev' in host:
+        frontend_url = 'https://staging.alphalpgas.co.za'
+    else:
+        frontend_url = 'https://www.alphalpgas.co.za'
+    
+    html = f"""
     <!DOCTYPE html>
     <html>
     <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Alpha LPGas - Backend API</title>
         <style>
-            body {
+            * {{
+                box-sizing: border-box;
+            }}
+            body {{
                 font-family: Arial, sans-serif;
                 max-width: 800px;
-                margin: 50px auto;
+                margin: 0 auto;
                 padding: 20px;
                 background: #f5f5f5;
-            }
-            .container {
+            }}
+            .container {{
                 background: white;
-                padding: 40px;
+                padding: 30px;
                 border-radius: 10px;
                 box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            }
-            h1 { color: #333; }
-            a {
+            }}
+            h1 {{ 
+                color: #333;
+                font-size: 1.8rem;
+                margin-bottom: 15px;
+            }}
+            h3 {{
+                font-size: 1.2rem;
+                margin-bottom: 15px;
+            }}
+            p {{
+                line-height: 1.6;
+                font-size: 0.95rem;
+            }}
+            a {{
                 color: #007bff;
                 text-decoration: none;
-            }
-            a:hover { text-decoration: underline; }
-            .links {
-                margin-top: 30px;
-            }
-            .links a {
+            }}
+            a:hover {{ text-decoration: underline; }}
+            .links {{
+                margin-top: 25px;
+            }}
+            .links a {{
                 display: block;
                 margin: 10px 0;
-                padding: 10px;
+                padding: 12px 15px;
                 background: #f8f9fa;
                 border-radius: 5px;
-            }
+                font-size: 0.95rem;
+            }}
+            
+            /* Mobile responsive */
+            @media (max-width: 768px) {{
+                body {{
+                    padding: 10px;
+                }}
+                .container {{
+                    padding: 20px;
+                }}
+                h1 {{
+                    font-size: 1.5rem;
+                }}
+                h3 {{
+                    font-size: 1.1rem;
+                }}
+                p {{
+                    font-size: 0.9rem;
+                }}
+                .links a {{
+                    padding: 10px 12px;
+                    font-size: 0.9rem;
+                }}
+            }}
+            
+            @media (max-width: 480px) {{
+                body {{
+                    padding: 5px;
+                }}
+                .container {{
+                    padding: 15px;
+                }}
+                h1 {{
+                    font-size: 1.3rem;
+                }}
+                .links a {{
+                    padding: 8px 10px;
+                    font-size: 0.85rem;
+                }}
+            }}
         </style>
     </head>
     <body>
@@ -91,7 +157,7 @@ def home(request):
             </div>
             
             <p style="margin-top: 30px; color: #666;">
-                Frontend: <a href="https://front-end-production-b210.up.railway.app" target="_blank">https://front-end-production-b210.up.railway.app</a>
+                Frontend: <a href="{frontend_url}" target="_blank">{frontend_url}</a>
             </p>
         </div>
     </body>
