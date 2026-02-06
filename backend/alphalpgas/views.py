@@ -43,7 +43,7 @@ def home(request):
     if 'localhost' in host or '127.0.0.1' in host:
         frontend_url = 'http://localhost:3000'
     elif 'staging' in host or 'dev' in host:
-        frontend_url = 'https://staging.alphalpgas.co.za'
+        frontend_url = 'https://alpha-lpgas-frontend-dev.up.railway.app'
     else:
         frontend_url = 'https://www.alphalpgas.co.za'
     
