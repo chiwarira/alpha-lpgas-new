@@ -1255,6 +1255,14 @@ select.note-field {
                 </div>
             </div>
             {% endif %}
+            {% if invoice.delivery_note %}
+            <div class="customer-notes-row">
+                <div class="customer-notes-label">Delivery Note</div>
+                <div class="customer-notes-value">
+                    <div class="form-control-plaintext">{{ invoice.delivery_note|linebreaksbr }}</div>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

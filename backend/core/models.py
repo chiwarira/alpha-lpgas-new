@@ -451,6 +451,7 @@ class Invoice(models.Model):
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     notes = models.TextField(blank=True)
     terms = models.TextField(blank=True)
+    delivery_note = models.TextField(blank=True, help_text="Delivery instructions or notes for the driver")
     whatsapp_invoice_message = models.TextField(blank=True, help_text="Pre-populated WhatsApp message for sending invoice to client")
     whatsapp_sent = models.BooleanField(default=False, help_text="Whether invoice has been sent via WhatsApp")
     whatsapp_sent_at = models.DateTimeField(null=True, blank=True, help_text="When invoice was sent via WhatsApp")
