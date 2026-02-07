@@ -1,0 +1,126 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Loyalty Cards - Alpha LPGas{% endblock %}
+
+{% block nav_invoices %}active{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1><i class="bi bi-card-checklist"></i> Loyalty Cards</h1>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{% url 'accounting_forms:invoice_list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Invoices
+            </a>
+        </div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <form method="get" action="{% url 'accounting_forms:loyalty_card_list' %}">
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control" placeholder="Search by client name, phone, or cylinder size..." value="{{ search_query }}">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                    {% if search_query %}
+                    <a href="{% url 'accounting_forms:loyalty_card_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-x"></i> Clear
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loyalty Cards Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Phone</th>
+                            <th>Cylinder Size</th>
+                            <th>Stamps</th>
+                            <th>Progress</th>
+                            <th>Reward Status</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for card in loyalty_cards %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'accounting_forms:loyalty_card_detail' card.pk %}">
+                                    {{ card.client.name }}
+                                </a>
+                            </td>
+                            <td>{{ card.client.phone|default:"N/A" }}</td>
+                            <td><span class="badge bg-info">{{ card.cylinder_size }}</span></td>
+                            <td><strong>{{ card.stamps }}/9</strong></td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar {% if card.stamps >= 9 %}bg-success{% else %}bg-primary{% endif %}" 
+                                         role="progressbar" 
+                                         style="width: {% widthratio card.stamps 9 100 %}%"
+                                         aria-valuenow="{{ card.stamps }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="9">
+                                        {{ card.stamps }}/9
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if card.is_reward_eligible %}
+                                    {% if card.get_reward_type == 'free' %}
+                                        <span class="badge bg-success">🎁 Free Cylinder</span>
+                                    {% else %}
+                                        <span class="badge bg-success">🎁 50% Off</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        {% if card.stamps == 0 %}9{% elif card.stamps == 1 %}8{% elif card.stamps == 2 %}7{% elif card.stamps == 3 %}6{% elif card.stamps == 4 %}5{% elif card.stamps == 5 %}4{% elif card.stamps == 6 %}3{% elif card.stamps == 7 %}2{% elif card.stamps == 8 %}1{% endif %} more needed
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>{{ card.updated_at|date:"Y-m-d H:i" }}</td>
+                            <td>
+                                <a href="{% url 'accounting_forms:loyalty_card_detail' card.pk %}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted">
+                                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                                <p>No loyalty cards found.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.table {
+    font-size: 0.9rem;
+}
+.progress {
+    border-radius: 10px;
+}
+.progress-bar {
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+</style>
+{% endblock %}

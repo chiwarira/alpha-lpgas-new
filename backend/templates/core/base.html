@@ -27,7 +27,7 @@
     <!-- Custom Scripts - Body Start -->
     {% for script in custom_scripts_body_start %}{{ script.script_code|safe }}{% endfor %}
     
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark print-hide">
         <div class="container-fluid">
             <a class="navbar-brand" href="{% url 'accounting_forms:dashboard' %}">
                 {% if company_settings and company_settings.logo %}
@@ -57,10 +57,14 @@
                             <i class="bi bi-file-earmark-text"></i> Quotes
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% block nav_invoices %}{% endblock %}" href="{% url 'accounting_forms:invoice_list' %}">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% block nav_invoices %}{% endblock %}" href="#" id="invoicesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-receipt"></i> Invoices
                         </a>
+                        <ul class="dropdown-menu" aria-labelledby="invoicesDropdown">
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:invoice_list' %}">All Invoices</a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:loyalty_card_list' %}">Loyalty Cards</a></li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% block nav_orders %}{% endblock %}" href="{% url 'accounting_forms:order_list' %}">
@@ -114,6 +118,20 @@
     <!-- jQuery (required for Select2) -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Auto-dismiss alerts after 3 seconds -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 3000);
+            });
+        });
+    </script>
+    
     {% block extra_js %}{% endblock %}
     
     <!-- Custom Scripts - Body End / Footer -->

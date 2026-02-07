@@ -27,10 +27,6 @@ def process_loyalty_stamp(invoice):
     """Process loyalty stamp for an invoice"""
     from .models import Invoice
     
-    # Only process paid or partially paid invoices
-    if invoice.status not in ['paid', 'partially_paid']:
-        return None
-    
     # Get cylinder size from invoice
     cylinder_size = get_cylinder_size_from_invoice(invoice)
     if not cylinder_size:

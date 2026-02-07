@@ -573,27 +573,20 @@ def invoice_create(request):
             
             invoice.calculate_totals()
             
-            # Process loyalty stamp if invoice is paid
-            if invoice.status in ['paid', 'partially_paid']:
-                from .utils_loyalty import process_loyalty_stamp, send_loyalty_card_whatsapp
-                loyalty_card = process_loyalty_stamp(invoice)
-                if loyalty_card:
-                    # Send WhatsApp message with loyalty card
-                    try:
-                        result = send_loyalty_card_whatsapp(loyalty_card)
-                        if result and result.get('success'):
-                            messages.info(request, f'Loyalty card updated: {loyalty_card.stamps}/9 stamps')
-                    except Exception as e:
-                        # Don't fail invoice creation if WhatsApp fails
-                        pass
+            # Process loyalty stamp for every invoice created
+            from .utils_loyalty import process_loyalty_stamp
+            loyalty_card = process_loyalty_stamp(invoice)
+            if loyalty_card:
+                messages.info(request, f'Loyalty card updated: {loyalty_card.stamps}/9 stamps')
             
             messages.success(request, f'Invoice {invoice.invoice_number} for {invoice.client.name} created successfully!')
             return redirect('accounting_forms:invoice_detail', invoice_number=invoice.invoice_number)
     else:
-        # Set default dates
+        # Set default dates and payment terms
         initial_data = {
             'issue_date': date.today(),
-            'due_date': date.today() + timedelta(days=30)
+            'due_date': date.today() + timedelta(days=30),
+            'payment_terms': 'immediate'
         }
         form = InvoiceForm(initial=initial_data)
         formset = InvoiceItemFormSet(queryset=InvoiceItem.objects.none())
@@ -708,19 +701,17 @@ def invoice_mark_whatsapp_sent(request, invoice_number):
 @login_required
 def payment_create(request, invoice_pk=None):
     """Record a new payment"""
-    initial = {}
-    if invoice_pk:
-        invoice = get_object_or_404(Invoice, pk=invoice_pk)
-        initial['invoice'] = invoice
+    # Get invoice_id from URL parameter or path parameter
+    invoice_id = request.GET.get('invoice') or invoice_pk
     
     if request.method == 'POST':
-        form = PaymentForm(request.POST)
+        form = PaymentForm(request.POST, invoice_id=invoice_id)
         if form.is_valid():
             payment = form.save()
             messages.success(request, f'Payment of R{payment.amount} recorded successfully!')
             return redirect('accounting_forms:invoice_detail', invoice_number=payment.invoice.invoice_number)
     else:
-        form = PaymentForm(initial=initial)
+        form = PaymentForm(invoice_id=invoice_id)
     
     return render(request, 'core/payment_form.html', {
         'form': form,

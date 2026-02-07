@@ -29,6 +29,10 @@ from ..views_forms import (
 )
 
 from ..pdf_generator import download_invoice_pdf, download_quote_pdf
+from ..views_loyalty import (
+    loyalty_card_list, loyalty_card_detail,
+    send_loyalty_card_whatsapp_view, download_loyalty_card
+)
 
 app_name = 'accounting_forms'
 
@@ -66,6 +70,12 @@ urlpatterns = [
     path('invoices/<str:invoice_number>/edit/', invoice_edit, name='invoice_edit'),
     path('invoices/<str:invoice_number>/pdf/', download_invoice_pdf, name='invoice_pdf'),
     path('invoices/<str:invoice_number>/mark-whatsapp-sent/', invoice_mark_whatsapp_sent, name='invoice_mark_whatsapp_sent'),
+    
+    # Loyalty Cards
+    path('loyalty-cards/', loyalty_card_list, name='loyalty_card_list'),
+    path('loyalty-cards/<int:pk>/', loyalty_card_detail, name='loyalty_card_detail'),
+    path('loyalty-cards/<int:pk>/send/', send_loyalty_card_whatsapp_view, name='send_loyalty_card'),
+    path('loyalty-cards/<int:pk>/download/', download_loyalty_card, name='download_loyalty_card'),
     
     # Payments
     path('payments/create/', payment_create, name='payment_create'),

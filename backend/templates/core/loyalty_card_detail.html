@@ -1,0 +1,366 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Loyalty Card - {{ loyalty_card.client.name }} - Alpha LPGas{% endblock %}
+
+{% block nav_invoices %}active{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Print Header with Logo (only visible when printing) -->
+    <div class="print-only text-center mb-2">
+        <img src="{% static 'alpha-lpgas-logo.png' %}" alt="Alpha LPGas Logo" style="max-width: 150px; height: auto;">
+        <h3 class="mt-1 mb-1">Loyalty Card</h3>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="print-hide">
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h1><i class="bi bi-card-checklist"></i> Loyalty Card</h1>
+            </div>
+            <div class="col-md-6 text-end">
+                <button onclick="sendLoyaltyCardWhatsApp()" class="btn btn-success" id="whatsapp-btn">
+                    <i class="fab fa-whatsapp"></i> Send via WhatsApp
+                </button>
+                <button onclick="printLoyaltyCard()" class="btn btn-info">
+                    <i class="bi bi-printer"></i> Print
+                </button>
+                <a href="{% url 'accounting_forms:loyalty_card_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loyalty Card Details -->
+    <div class="card mb-2">
+        <div class="card-header bg-primary text-white py-1">
+            <h6 class="mb-0">Client Information</h6>
+        </div>
+        <div class="card-body py-2">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Client:</strong> {{ loyalty_card.client.name }}</p>
+                    <p class="mb-1 small"><strong>Phone:</strong> {{ loyalty_card.client.phone|default:"N/A" }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Cylinder:</strong> <span class="badge bg-info">{{ loyalty_card.cylinder_size }}</span></p>
+                    <p class="mb-1 small"><strong>Updated:</strong> {{ loyalty_card.updated_at|date:"Y-m-d" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stamp Progress -->
+    <div class="card mb-2">
+        <div class="card-header bg-success text-white py-1">
+            <h6 class="mb-0">Stamp Progress</h6>
+        </div>
+        <div class="card-body text-center py-2">
+            <h4 class="mb-2">{{ loyalty_card.stamps }}/9 Stamps</h4>
+            <div class="progress mb-2" style="height: 20px;">
+                <div class="progress-bar {% if loyalty_card.stamps >= 9 %}bg-success{% else %}bg-primary{% endif %}" 
+                     role="progressbar" 
+                     style="width: {% widthratio loyalty_card.stamps 9 100 %}%">
+                    {{ loyalty_card.stamps }}/9
+                </div>
+            </div>
+            
+            {% if loyalty_card.is_reward_eligible %}
+                <div class="alert alert-success py-1 mb-2" role="alert">
+                    <strong>🎉 Reward Eligible!</strong>
+                    {% if loyalty_card.get_reward_type == 'free' %}
+                        FREE {{ loyalty_card.cylinder_size }} cylinder
+                    {% else %}
+                        50% OFF {{ loyalty_card.cylinder_size }} cylinder
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="alert alert-info py-1 mb-2" role="alert">
+                    <small>{% if loyalty_card.stamps == 0 %}9{% elif loyalty_card.stamps == 1 %}8{% elif loyalty_card.stamps == 2 %}7{% elif loyalty_card.stamps == 3 %}6{% elif loyalty_card.stamps == 4 %}5{% elif loyalty_card.stamps == 5 %}4{% elif loyalty_card.stamps == 6 %}3{% elif loyalty_card.stamps == 7 %}2{% elif loyalty_card.stamps == 8 %}1{% endif %} more stamp(s) needed</small>
+                </div>
+            {% endif %}
+
+            <!-- Visual Stamp Circles -->
+            <div class="stamp-circles mt-2">
+                {% for i in "123456789" %}
+                    <div class="stamp-circle {% if forloop.counter <= loyalty_card.stamps %}stamped{% endif %}">
+                        {% if forloop.counter <= loyalty_card.stamps %}
+                            <i class="bi bi-check-circle-fill"></i>
+                        {% else %}
+                            <i class="bi bi-circle"></i>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="card">
+        <div class="card-header bg-secondary text-white py-1">
+            <h6 class="mb-0">Recent Transactions</h6>
+        </div>
+        <div class="card-body py-2">
+            <table class="table table-sm table-bordered mb-0">
+                <thead>
+                    <tr>
+                        <th class="small">Date</th>
+                        <th class="small">Type</th>
+                        <th class="small">Invoice</th>
+                        <th class="small">Before</th>
+                        <th class="small">After</th>
+                        <th class="small">Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions %}
+                    <tr>
+                        <td class="small">{{ transaction.created_at|date:"Y-m-d" }}</td>
+                        <td class="small">
+                            {% if transaction.transaction_type == 'stamp' %}
+                                <span class="badge bg-success badge-sm">Stamp</span>
+                            {% elif transaction.transaction_type == 'reward_claimed' %}
+                                <span class="badge bg-warning badge-sm">Reward</span>
+                            {% else %}
+                                <span class="badge bg-secondary badge-sm">{{ transaction.get_transaction_type_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="small">
+                            {% if transaction.invoice %}
+                                {{ transaction.invoice.invoice_number }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td class="small">{{ transaction.stamps_before }}</td>
+                        <td class="small">{{ transaction.stamps_after }}</td>
+                        <td class="small">{{ transaction.notes|default:"" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted small">No transactions yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.stamp-circles {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.stamp-circle {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    border: 2px solid #ddd;
+    background-color: #f8f9fa;
+}
+
+.stamp-circle.stamped {
+    border-color: #28a745;
+    background-color: #d4edda;
+    color: #28a745;
+}
+
+.stamp-circle i {
+    font-size: 1.8rem;
+}
+
+/* Hide print-only content on screen */
+.print-only {
+    display: none;
+}
+
+@media print {
+    body {
+        font-size: 11px !important;
+    }
+    
+    .container {
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    .print-hide {
+        display: none !important;
+    }
+    
+    .print-only {
+        display: block !important;
+    }
+    
+    .card {
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;
+        margin-bottom: 0.3rem !important;
+        page-break-inside: avoid;
+    }
+    
+    .card-header {
+        padding: 0.2rem 0.5rem !important;
+        font-size: 12px !important;
+    }
+    
+    .card-body {
+        padding: 0.3rem 0.5rem !important;
+    }
+    
+    h3, h4, h5, h6 {
+        margin: 0.2rem 0 !important;
+        font-size: 13px !important;
+    }
+    
+    .small, small {
+        font-size: 10px !important;
+    }
+    
+    .table {
+        font-size: 10px !important;
+        margin-bottom: 0 !important;
+    }
+    
+    .table th, .table td {
+        padding: 0.2rem !important;
+    }
+    
+    .badge {
+        font-size: 9px !important;
+        padding: 0.1rem 0.3rem !important;
+    }
+    
+    .alert {
+        padding: 0.3rem !important;
+        margin-bottom: 0.3rem !important;
+        font-size: 11px !important;
+    }
+    
+    .progress {
+        height: 15px !important;
+        margin-bottom: 0.3rem !important;
+    }
+    
+    .stamp-circles {
+        gap: 5px !important;
+        margin-top: 0.3rem !important;
+    }
+    
+    .stamp-circle {
+        width: 35px !important;
+        height: 35px !important;
+        font-size: 1.2rem !important;
+        border-width: 2px !important;
+    }
+    
+    .stamp-circle i {
+        font-size: 1.4rem !important;
+    }
+    
+    img {
+        max-width: 120px !important;
+    }
+}
+</style>
+
+<script>
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function sendLoyaltyCardWhatsApp() {
+        const clientPhone = "{{ loyalty_card.client.phone }}";
+        const clientName = "{{ loyalty_card.client.name|escapejs }}";
+        const stamps = {{ loyalty_card.stamps }};
+        const cylinderSize = "{{ loyalty_card.cylinder_size }}";
+        const rewardType = "{{ loyalty_card.get_reward_type }}";
+        
+        if (!clientPhone) {
+            alert('Client does not have a phone number on file.');
+            return;
+        }
+
+        // Show loading state
+        const btn = document.getElementById('whatsapp-btn');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Sending...';
+        btn.disabled = true;
+
+        // Fetch loyalty card data
+        const csrftoken = getCookie('csrftoken');
+        fetch("{% url 'accounting_forms:send_loyalty_card' loyalty_card.pk %}", {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrftoken,
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Format phone number
+                let formattedPhone = clientPhone.replace(/\s+/g, '');
+                if (formattedPhone.startsWith('0')) {
+                    formattedPhone = '27' + formattedPhone.substring(1);
+                } else if (!formattedPhone.startsWith('27')) {
+                    formattedPhone = '27' + formattedPhone;
+                }
+                
+                // Open WhatsApp with pre-filled message
+                const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(data.message)}`;
+                window.open(whatsappUrl, '_blank');
+                
+                // Download the loyalty card image
+                const downloadUrl = "{% url 'accounting_forms:download_loyalty_card' loyalty_card.pk %}";
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = `loyalty_card_${clientName}_${cylinderSize}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                alert(`Loyalty card ready! Stamps: ${data.stamps}/9`);
+            } else {
+                alert('Failed to generate loyalty card');
+            }
+            
+            // Restore button
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        })
+        .catch(error => {
+            console.error('Error sending loyalty card:', error);
+            alert('Error sending loyalty card');
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        });
+    }
+
+    function printLoyaltyCard() {
+        window.print();
+    }
+</script>
+{% endblock %}
