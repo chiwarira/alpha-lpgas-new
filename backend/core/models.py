@@ -429,6 +429,7 @@ class QuoteItem(models.Model):
 class Invoice(models.Model):
     """Model for managing invoices"""
     STATUS_CHOICES = [
+        ('unpaid', 'Unpaid'),
         ('draft', 'Draft'),
         ('sent', 'Sent'),
         ('paid', 'Paid'),
@@ -436,14 +437,24 @@ class Invoice(models.Model):
         ('overdue', 'Overdue'),
         ('cancelled', 'Cancelled'),
     ]
+    
+    PAYMENT_TERMS_CHOICES = [
+        ('immediate', 'Immediate'),
+        ('net_7', 'Net 7 Days'),
+        ('net_15', 'Net 15 Days'),
+        ('net_30', 'Net 30 Days'),
+        ('net_60', 'Net 60 Days'),
+        ('net_90', 'Net 90 Days'),
+    ]
 
     invoice_number = models.CharField(max_length=50, unique=True)
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='invoices')
     quote = models.ForeignKey(Quote, on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices')
     delivery_zone = models.ForeignKey('DeliveryZone', on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices', help_text="Delivery zone for this invoice")
     issue_date = models.DateField()
+    payment_terms = models.CharField(max_length=20, choices=PAYMENT_TERMS_CHOICES, default='net_30', help_text="Payment terms for this invoice")
     due_date = models.DateField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='unpaid')
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -466,29 +477,44 @@ class Invoice(models.Model):
         return f"Invoice {self.invoice_number} - {self.client.name}"
 
     def save(self, *args, **kwargs):
-        """Override save to auto-generate invoice number and calculate balance"""
+        """Override save to auto-generate invoice number, set due_date based on payment terms, and calculate balance"""
         if not self.invoice_number:
-            # Generate invoice number: INV-YYYYMMDD-XXX
-            from datetime import date
-            today = date.today()
-            prefix = f"INV-{today.strftime('%Y%m%d')}"
+            # Generate invoice number: INV-XXXXXX (sequential, starting from 004241)
+            # Get the last invoice number across all invoices
+            last_invoice = Invoice.objects.all().order_by('-invoice_number').first()
             
-            # Get the last invoice number for today
-            last_invoice = Invoice.objects.filter(
-                invoice_number__startswith=prefix
-            ).order_by('invoice_number').last()
-            
-            if last_invoice:
-                # Extract the sequence number and increment
+            if last_invoice and last_invoice.invoice_number.startswith('INV-'):
+                # Extract the numeric part from INV-XXXXXX format
                 try:
-                    last_seq = int(last_invoice.invoice_number.split('-')[-1])
-                    new_seq = last_seq + 1
+                    last_num = int(last_invoice.invoice_number.replace('INV-', ''))
+                    new_num = last_num + 1
                 except (ValueError, IndexError):
-                    new_seq = 1
+                    # If extraction fails, start from 004241
+                    new_num = 4241
             else:
-                new_seq = 1
+                # No invoices yet or old format, start from 004241
+                new_num = 4241
             
-            self.invoice_number = f"{prefix}-{new_seq:03d}"
+            self.invoice_number = f"INV-{new_num:06d}"
+        
+        # Auto-set due_date based on payment_terms if not set
+        if not self.due_date and self.issue_date:
+            from datetime import timedelta
+            if self.payment_terms == 'immediate':
+                self.due_date = self.issue_date
+            elif self.payment_terms == 'net_7':
+                self.due_date = self.issue_date + timedelta(days=7)
+            elif self.payment_terms == 'net_15':
+                self.due_date = self.issue_date + timedelta(days=15)
+            elif self.payment_terms == 'net_30':
+                self.due_date = self.issue_date + timedelta(days=30)
+            elif self.payment_terms == 'net_60':
+                self.due_date = self.issue_date + timedelta(days=60)
+            elif self.payment_terms == 'net_90':
+                self.due_date = self.issue_date + timedelta(days=90)
+            else:
+                # Default to issue_date if payment_terms is not recognized
+                self.due_date = self.issue_date
         
         self.balance = self.total_amount - self.paid_amount
         super().save(*args, **kwargs)
