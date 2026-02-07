@@ -272,8 +272,8 @@ class InvoiceForm(forms.ModelForm):
     class Meta:
         model = Invoice
         fields = [
-            'client', 'delivery_zone', 'issue_date', 'due_date', 'status',
-            'terms', 'notes', 'delivery_note', 'whatsapp_invoice_message'
+            'client', 'delivery_zone', 'issue_date', 'payment_terms',
+            'notes', 'delivery_note', 'whatsapp_invoice_message'
         ]
         widgets = {
             'client': forms.Select(attrs={
@@ -288,17 +288,8 @@ class InvoiceForm(forms.ModelForm):
                 'class': 'form-control',
                 'type': 'date'
             }),
-            'due_date': forms.DateInput(attrs={
-                'class': 'form-control',
-                'type': 'date'
-            }),
-            'status': forms.Select(attrs={
+            'payment_terms': forms.Select(attrs={
                 'class': 'form-select'
-            }),
-            'terms': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 3,
-                'placeholder': 'Payment terms and conditions'
             }),
             'notes': forms.Textarea(attrs={
                 'class': 'form-control',
@@ -381,6 +372,26 @@ class PaymentForm(forms.ModelForm):
                 'placeholder': 'Additional notes'
             }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        invoice_id = kwargs.pop('invoice_id', None)
+        super().__init__(*args, **kwargs)
+        
+        # If invoice_id is provided, filter to show only unpaid invoices for that client
+        if invoice_id:
+            try:
+                from .models import Invoice
+                invoice = Invoice.objects.get(pk=invoice_id)
+                # Show only unpaid/partially paid invoices for this client
+                self.fields['invoice'].queryset = Invoice.objects.filter(
+                    client=invoice.client
+                ).exclude(
+                    status__in=['paid', 'cancelled']
+                ).order_by('-created_at')
+                # Set initial value to the current invoice
+                self.initial['invoice'] = invoice
+            except Invoice.DoesNotExist:
+                pass
         
     def clean(self):
         cleaned_data = super().clean()
