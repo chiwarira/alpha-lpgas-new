@@ -8,9 +8,12 @@
 {% block content %}
 <div class="container mt-4">
     <!-- Print Header with Logo (only visible when printing) -->
-    <div class="print-only text-center mb-2">
-        <img src="{% static 'alpha-lpgas-logo.png' %}" alt="Alpha LPGas Logo" style="max-width: 150px; height: auto;">
-        <h3 class="mt-1 mb-1">Loyalty Card</h3>
+    <div class="print-only print-header">
+        <img src="{% static 'alpha-lpgas-logo.png' %}" alt="Alpha LPGas Logo" class="print-logo">
+        <div class="print-title">
+            <h2>Loyalty Rewards Card</h2>
+            <p>{{ loyalty_card.client.name }} &bull; {{ loyalty_card.cylinder_size }}</p>
+        </div>
     </div>
 
     <!-- Action Buttons -->
@@ -185,8 +188,16 @@
 }
 
 @media print {
+    @page {
+        margin: 10mm;
+        size: A4;
+    }
+    
     body {
-        font-size: 11px !important;
+        font-size: 12px !important;
+        color: #000 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
     
     .container {
@@ -203,74 +214,142 @@
         display: block !important;
     }
     
+    /* Print Header */
+    .print-header {
+        display: flex !important;
+        align-items: center;
+        gap: 20px;
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+        border-bottom: 3px solid #0d6efd;
+    }
+    
+    .print-logo {
+        max-width: 300px !important;
+        height: auto !important;
+    }
+    
+    .print-title h2 {
+        font-size: 22px !important;
+        font-weight: 700 !important;
+        margin: 0 !important;
+        color: #0d6efd !important;
+    }
+    
+    .print-title p {
+        font-size: 14px !important;
+        margin: 4px 0 0 0 !important;
+        color: #555 !important;
+    }
+    
+    /* Cards */
     .card {
-        border: 1px solid #ddd !important;
+        border: 1px solid #ccc !important;
         box-shadow: none !important;
-        margin-bottom: 0.3rem !important;
+        margin-bottom: 8px !important;
         page-break-inside: avoid;
+        border-radius: 6px !important;
+        overflow: hidden;
     }
     
     .card-header {
-        padding: 0.2rem 0.5rem !important;
-        font-size: 12px !important;
+        padding: 6px 12px !important;
+        font-size: 13px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    .card-header h6 {
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        margin: 0 !important;
     }
     
     .card-body {
-        padding: 0.3rem 0.5rem !important;
+        padding: 8px 12px !important;
     }
     
-    h3, h4, h5, h6 {
-        margin: 0.2rem 0 !important;
-        font-size: 13px !important;
+    h4 {
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        margin: 4px 0 !important;
     }
     
     .small, small {
-        font-size: 10px !important;
+        font-size: 11px !important;
     }
     
+    /* Table */
     .table {
-        font-size: 10px !important;
+        font-size: 11px !important;
         margin-bottom: 0 !important;
     }
     
-    .table th, .table td {
-        padding: 0.2rem !important;
+    .table th {
+        padding: 4px 6px !important;
+        font-weight: 600 !important;
+        background-color: #f0f0f0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    .table td {
+        padding: 3px 6px !important;
     }
     
     .badge {
         font-size: 9px !important;
-        padding: 0.1rem 0.3rem !important;
+        padding: 2px 6px !important;
+        border-radius: 3px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
     
     .alert {
-        padding: 0.3rem !important;
-        margin-bottom: 0.3rem !important;
-        font-size: 11px !important;
+        padding: 6px 10px !important;
+        margin-bottom: 6px !important;
+        font-size: 12px !important;
+        border-radius: 4px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
     
     .progress {
-        height: 15px !important;
-        margin-bottom: 0.3rem !important;
+        height: 18px !important;
+        margin-bottom: 6px !important;
+        border-radius: 9px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
     
+    .progress-bar {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    /* Stamp Circles */
     .stamp-circles {
-        gap: 5px !important;
-        margin-top: 0.3rem !important;
+        gap: 8px !important;
+        margin-top: 6px !important;
     }
     
     .stamp-circle {
-        width: 35px !important;
-        height: 35px !important;
-        font-size: 1.2rem !important;
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 1.3rem !important;
         border-width: 2px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    .stamp-circle.stamped {
+        background-color: #d4edda !important;
+        border-color: #28a745 !important;
+        color: #28a745 !important;
     }
     
     .stamp-circle i {
-        font-size: 1.4rem !important;
-    }
-    
-    img {
-        max-width: 120px !important;
+        font-size: 1.5rem !important;
     }
 }
 </style>
