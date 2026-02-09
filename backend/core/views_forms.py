@@ -52,6 +52,37 @@ def client_list(request):
 
 
 @login_required
+@require_http_methods(["POST"])
+def client_create_ajax(request):
+    """Create a new client via AJAX (from invoice form modal)"""
+    import json
+    try:
+        data = json.loads(request.body)
+        name = data.get('name', '').strip()
+        if not name:
+            return JsonResponse({'success': False, 'error': 'Client name is required.'})
+        
+        client = Client.objects.create(
+            name=name,
+            phone=data.get('phone', '').strip(),
+            email=data.get('email', '').strip(),
+            address=data.get('address', '').strip(),
+            city=data.get('city', '').strip(),
+        )
+        return JsonResponse({
+            'success': True,
+            'client': {
+                'id': client.pk,
+                'name': client.name,
+                'phone': client.phone,
+                'address': client.address,
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
 def client_create(request):
     """Create a new client"""
     if request.method == 'POST':

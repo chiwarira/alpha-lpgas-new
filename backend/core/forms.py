@@ -274,7 +274,7 @@ class InvoiceForm(forms.ModelForm):
         model = Invoice
         fields = [
             'client', 'delivery_zone', 'issue_date', 'payment_terms',
-            'notes', 'delivery_note', 'whatsapp_invoice_message'
+            'notes', 'whatsapp_invoice_message'
         ]
         widgets = {
             'client': forms.Select(attrs={
@@ -296,11 +296,6 @@ class InvoiceForm(forms.ModelForm):
                 'class': 'form-control',
                 'rows': 3,
                 'placeholder': 'Additional notes'
-            }),
-            'delivery_note': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 3,
-                'placeholder': 'Delivery instructions or notes for the driver'
             }),
             'whatsapp_invoice_message': forms.Textarea(attrs={
                 'class': 'form-control',
