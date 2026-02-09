@@ -18,142 +18,295 @@
     </div>
 </div>
 
-<!-- Search Bar -->
-<div class="row mb-3">
-    <div class="col-md-6">
-        <div class="position-relative">
-            <input type="text" id="search-input" class="form-control" 
-                   placeholder="Search by invoice #, client name, customer ID, or status..." 
-                   value="{{ search_query }}" autofocus>
-            <div id="search-spinner" class="position-absolute top-50 end-0 translate-middle-y me-3" style="display: none;">
-                <div class="spinner-border spinner-border-sm text-primary" role="status">
-                    <span class="visually-hidden">Searching...</span>
+<!-- Filters Row -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" id="filter-form" class="row g-2 align-items-end">
+            <!-- Search -->
+            <div class="col-md-3">
+                <label class="form-label small mb-0">Search</label>
+                <div class="position-relative">
+                    <input type="text" id="search-input" name="search" class="form-control form-control-sm" 
+                           placeholder="Invoice #, client, address..." 
+                           value="{{ search_query }}" autofocus>
+                    <div id="search-spinner" class="position-absolute top-50 end-0 translate-middle-y me-2" style="display: none;">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Searching...</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        <small class="text-muted">Search updates automatically as you type</small>
-    </div>
-    <div class="col-md-6">
-        <div id="search-results-info" class="alert alert-info mb-0" style="display: none;">
-            <span id="results-text"></span>
-        </div>
+            <!-- Date From -->
+            <div class="col-md-2">
+                <label class="form-label small mb-0">From Date</label>
+                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}">
+            </div>
+            <!-- Date To -->
+            <div class="col-md-2">
+                <label class="form-label small mb-0">To Date</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}">
+            </div>
+            <!-- Per Page -->
+            <div class="col-md-1">
+                <label class="form-label small mb-0">Show</label>
+                <select name="per_page" class="form-select form-select-sm">
+                    <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                    <option value="200" {% if per_page == 200 %}selected{% endif %}>200</option>
+                </select>
+            </div>
+            <!-- Hidden sort -->
+            <input type="hidden" name="sort" value="{{ sort_by }}">
+            <input type="hidden" name="status" id="status-hidden" value="{{ status_filter }}">
+            <!-- Buttons -->
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-funnel"></i> Filter
+                </button>
+                <a href="{% url 'accounting_forms:invoice_list' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-x-circle"></i> Clear
+                </a>
+            </div>
+        </form>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-body">
-        {% if invoices %}
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th class="sortable" data-sort="invoice_number">
-                            Invoice #
-                            {% if sort_by == 'invoice_number' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-invoice_number' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
-                        </th>
-                        <th class="sortable" data-sort="client__name">
-                            Client
-                            {% if sort_by == 'client__name' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-client__name' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
-                        </th>
-                        <th class="sortable" data-sort="client__address">
-                            Address
-                            {% if sort_by == 'client__address' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-client__address' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
-                        </th>
-                        <th class="sortable" data-sort="issue_date">
-                            Issue Date
-                            {% if sort_by == 'issue_date' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-issue_date' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
-                        </th>
-                        <th class="sortable" data-sort="due_date">
-                            Due Date
-                            {% if sort_by == 'due_date' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-due_date' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
-                        </th>
-                        <th class="sortable" data-sort="total_amount">
-                            Total
-                            {% if sort_by == 'total_amount' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-total_amount' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
-                        </th>
-                        <th class="sortable" data-sort="paid_amount">
-                            Paid
-                            {% if sort_by == 'paid_amount' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-paid_amount' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
-                        </th>
-                        <th>Balance</th>
-                        <th class="sortable" data-sort="status">
-                            Status
-                            {% if sort_by == 'status' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-status' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
-                        </th>
-                        <th>WhatsApp</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for invoice in invoices %}
-                    <tr>
-                        <td><code>{{ invoice.invoice_number }}</code></td>
-                        <td>{{ invoice.client.name }}</td>
-                        <td>{{ invoice.client.address|default:"-" }}</td>
-                        <td>{{ invoice.issue_date|date:"Y-m-d" }}</td>
-                        <td>{{ invoice.due_date|date:"Y-m-d" }}</td>
-                        <td>R {{ invoice.total_amount|floatformat:2 }}</td>
-                        <td>R {{ invoice.paid_amount|floatformat:2 }}</td>
-                        <td>R {{ invoice.balance|floatformat:2 }}</td>
-                        <td>
-                            {% if invoice.status == 'paid' %}
-                            <span class="badge bg-success">Paid</span>
-                            {% elif invoice.status == 'partially_paid' %}
-                            <span class="badge bg-info">Partial</span>
-                            {% elif invoice.status == 'overdue' %}
-                            <span class="badge bg-danger">Overdue</span>
-                            {% else %}
-                            <span class="badge bg-warning">{{ invoice.get_status_display }}</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if invoice.whatsapp_sent %}
-                                <span class="badge bg-success" title="{{ invoice.whatsapp_sent_at|date:'Y-m-d H:i' }}"><i class="fab fa-whatsapp"></i> Sent</span>
-                            {% else %}
-                                <span class="badge bg-secondary"><i class="fab fa-whatsapp"></i> Not Sent</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <a href="{% url 'accounting_forms:invoice_detail' invoice.invoice_number %}" 
-                                   class="btn btn-outline-primary" title="View">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<!-- Status Filter Tabs -->
+<ul class="nav nav-tabs mb-3" id="status-tabs">
+    <li class="nav-item">
+        <a class="nav-link {% if not status_filter %}active{% endif %}" href="#" data-status="">
+            All <span class="badge bg-secondary">{{ status_counts.all }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if status_filter == 'draft' %}active{% endif %}" href="#" data-status="draft">
+            <i class="bi bi-file-earmark"></i> Draft <span class="badge bg-warning">{{ status_counts.draft }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if status_filter == 'sent' %}active{% endif %}" href="#" data-status="sent">
+            <i class="bi bi-send"></i> Sent <span class="badge bg-primary">{{ status_counts.sent }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if status_filter == 'paid' %}active{% endif %}" href="#" data-status="paid">
+            <i class="bi bi-check-circle"></i> Paid <span class="badge bg-success">{{ status_counts.paid }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if status_filter == 'partially_paid' %}active{% endif %}" href="#" data-status="partially_paid">
+            <i class="bi bi-clock-history"></i> Partial <span class="badge bg-info">{{ status_counts.partially_paid }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if status_filter == 'overdue' %}active{% endif %}" href="#" data-status="overdue">
+            <i class="bi bi-exclamation-triangle"></i> Overdue <span class="badge bg-danger">{{ status_counts.overdue }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if status_filter == 'cancelled' %}active{% endif %}" href="#" data-status="cancelled">
+            <i class="bi bi-x-circle"></i> Cancelled <span class="badge bg-dark">{{ status_counts.cancelled }}</span>
+        </a>
+    </li>
+</ul>
+
+<!-- Bulk Actions -->
+<form method="post" action="{% url 'accounting_forms:invoice_bulk_action' %}" id="bulk-form">
+    {% csrf_token %}
+    <div class="d-flex justify-content-between align-items-center mb-2" id="bulk-actions-bar" style="display: none !important;">
+        <div>
+            <span id="selected-count" class="fw-bold text-primary">0</span> invoice(s) selected
+            <button type="button" class="btn btn-link btn-sm" id="select-all-pages">Select all on this page</button>
+            <button type="button" class="btn btn-link btn-sm" id="deselect-all">Deselect all</button>
         </div>
-        <p class="text-muted mt-3">Total: {{ invoices.count }} invoice{{ invoices.count|pluralize }}</p>
-        {% else %}
-        <div class="text-center py-5">
-            <i class="bi bi-receipt" style="font-size: 4rem; color: #ccc;"></i>
-            {% if search_query %}
-            <h3 class="mt-3">No Invoices Found</h3>
-            <p class="text-muted">No invoices match your search "{{ search_query }}"</p>
-            <a href="{% url 'accounting_forms:invoice_list' %}" class="btn btn-secondary">
-                <i class="bi bi-x-circle"></i> Clear Search
-            </a>
+        <div class="btn-group btn-group-sm">
+            <button type="submit" name="action" value="export_csv" class="btn btn-outline-success">
+                <i class="bi bi-file-earmark-csv"></i> Export CSV
+            </button>
+            <button type="submit" name="action" value="mark_sent" class="btn btn-outline-primary">
+                <i class="bi bi-send"></i> Mark Sent
+            </button>
+            <button type="submit" name="action" value="mark_whatsapp_sent" class="btn btn-outline-success">
+                <i class="fab fa-whatsapp"></i> Mark WhatsApp Sent
+            </button>
+            <button type="submit" name="action" value="delete" class="btn btn-outline-danger" 
+                    onclick="return confirm('Are you sure you want to delete the selected invoices? This cannot be undone.')">
+                <i class="bi bi-trash"></i> Delete
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            {% if invoices %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width: 30px;">
+                                <input type="checkbox" class="form-check-input" id="select-all-checkbox" title="Select all">
+                            </th>
+                            <th class="sortable" data-sort="invoice_number">
+                                Invoice #
+                                {% if sort_by == 'invoice_number' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-invoice_number' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                            </th>
+                            <th class="sortable" data-sort="client__name">
+                                Client
+                                {% if sort_by == 'client__name' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-client__name' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                            </th>
+                            <th class="sortable" data-sort="client__address">
+                                Address
+                                {% if sort_by == 'client__address' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-client__address' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                            </th>
+                            <th class="sortable" data-sort="issue_date">
+                                Issue Date
+                                {% if sort_by == 'issue_date' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-issue_date' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                            </th>
+                            <th class="sortable" data-sort="due_date">
+                                Due Date
+                                {% if sort_by == 'due_date' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-due_date' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                            </th>
+                            <th class="sortable" data-sort="total_amount">
+                                Total
+                                {% if sort_by == 'total_amount' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-total_amount' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                            </th>
+                            <th class="sortable" data-sort="paid_amount">
+                                Paid
+                                {% if sort_by == 'paid_amount' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-paid_amount' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                            </th>
+                            <th>Balance</th>
+                            <th class="sortable" data-sort="status">
+                                Status
+                                {% if sort_by == 'status' %}<i class="bi bi-caret-up-fill"></i>{% elif sort_by == '-status' %}<i class="bi bi-caret-down-fill"></i>{% else %}<i class="bi bi-caret-down text-muted"></i>{% endif %}
+                            </th>
+                            <th>WhatsApp</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invoice in invoices %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" class="form-check-input row-checkbox" 
+                                       name="invoice_ids" value="{{ invoice.pk }}">
+                            </td>
+                            <td><a href="{% url 'accounting_forms:invoice_detail' invoice.invoice_number %}" class="text-decoration-none"><code>{{ invoice.invoice_number }}</code></a></td>
+                            <td>{{ invoice.client.name }}</td>
+                            <td>{{ invoice.client.address|default:"-"|truncatechars:30 }}</td>
+                            <td>{{ invoice.issue_date|date:"Y-m-d" }}</td>
+                            <td>{{ invoice.due_date|date:"Y-m-d" }}</td>
+                            <td class="text-end">R {{ invoice.total_amount|floatformat:2 }}</td>
+                            <td class="text-end">R {{ invoice.paid_amount|floatformat:2 }}</td>
+                            <td class="text-end">R {{ invoice.balance|floatformat:2 }}</td>
+                            <td>
+                                {% if invoice.status == 'paid' %}
+                                <span class="badge bg-success">Paid</span>
+                                {% elif invoice.status == 'partially_paid' %}
+                                <span class="badge bg-info">Partial</span>
+                                {% elif invoice.status == 'overdue' %}
+                                <span class="badge bg-danger">Overdue</span>
+                                {% elif invoice.status == 'cancelled' %}
+                                <span class="badge bg-dark">Cancelled</span>
+                                {% elif invoice.status == 'sent' %}
+                                <span class="badge bg-primary">Sent</span>
+                                {% else %}
+                                <span class="badge bg-warning">{{ invoice.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if invoice.whatsapp_sent %}
+                                    <span class="badge bg-success" title="{{ invoice.whatsapp_sent_at|date:'Y-m-d H:i' }}"><i class="fab fa-whatsapp"></i> Sent</span>
+                                {% else %}
+                                    <span class="badge bg-secondary"><i class="fab fa-whatsapp"></i></span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'accounting_forms:invoice_detail' invoice.invoice_number %}" 
+                                       class="btn btn-outline-primary btn-sm" title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'accounting_forms:invoice_edit' invoice.invoice_number %}" 
+                                       class="btn btn-outline-secondary btn-sm" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination & Info -->
+            <div class="card-footer d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ paginator.count }} invoice{{ paginator.count|pluralize }}
+                </small>
+                {% if paginator.num_pages > 1 %}
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}&per_page={{ per_page }}">&laquo;</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}&per_page={{ per_page }}">&lsaquo;</a>
+                        </li>
+                        {% endif %}
+
+                        {% for num in paginator.page_range %}
+                            {% if page_obj.number == num %}
+                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                            {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}&per_page={{ per_page }}">{{ num }}</a>
+                            </li>
+                            {% elif num == page_obj.number|add:"-3" or num == page_obj.number|add:"3" %}
+                            <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}&per_page={{ per_page }}">&rsaquo;</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}&per_page={{ per_page }}">&raquo;</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+
             {% else %}
-            <h3 class="mt-3">No Invoices Yet</h3>
-            <p class="text-muted">Create your first invoice</p>
-            <a href="{% url 'accounting_forms:invoice_create' %}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Create First Invoice
-            </a>
+            <div class="text-center py-5">
+                <i class="bi bi-receipt" style="font-size: 4rem; color: #ccc;"></i>
+                {% if search_query or status_filter or date_from or date_to %}
+                <h3 class="mt-3">No Invoices Found</h3>
+                <p class="text-muted">No invoices match your current filters</p>
+                <a href="{% url 'accounting_forms:invoice_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Clear Filters
+                </a>
+                {% else %}
+                <h3 class="mt-3">No Invoices Yet</h3>
+                <p class="text-muted">Create your first invoice</p>
+                <a href="{% url 'accounting_forms:invoice_create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Create First Invoice
+                </a>
+                {% endif %}
+            </div>
             {% endif %}
         </div>
-        {% endif %}
     </div>
-</div>
+</form>
 
 <style>
     .sortable { cursor: pointer; user-select: none; }
     .sortable:hover { background-color: #495057 !important; }
-    .table { 
-        font-size: 0.8rem;
-    }
+    .table { font-size: 0.8rem; }
     .table td, .table th { 
         white-space: nowrap; 
         overflow: hidden; 
@@ -162,27 +315,32 @@
         padding: 0.15rem 0.3rem;
         font-size: 0.8rem;
     }
-    .table td:first-child, .table th:first-child { max-width: 120px; }
-    .table td:nth-child(2), .table th:nth-child(2) { max-width: 150px; }
-    .table td:nth-child(3), .table th:nth-child(3) { max-width: 200px; }
-    
-    /* Alternating row colors */
-    .table tbody tr:nth-child(odd) {
-        background-color: #f8f9fa;
-    }
-    .table tbody tr:nth-child(even) {
-        background-color: #ffffff;
-    }
-    .table tbody tr:hover {
-        background-color: #e9ecef !important;
-    }
+    .table td:first-child, .table th:first-child { max-width: 40px; }
+    .table td:nth-child(2), .table th:nth-child(2) { max-width: 120px; }
+    .table td:nth-child(3), .table th:nth-child(3) { max-width: 150px; }
+    .table td:nth-child(4), .table th:nth-child(4) { max-width: 200px; }
+    .table tbody tr:nth-child(odd) { background-color: #f8f9fa; }
+    .table tbody tr:nth-child(even) { background-color: #ffffff; }
+    .table tbody tr:hover { background-color: #e9ecef !important; }
+    .nav-tabs .nav-link { font-size: 0.85rem; padding: 0.4rem 0.75rem; }
+    .nav-tabs .nav-link .badge { font-size: 0.7rem; }
+    .card-footer { background-color: #f8f9fa; }
 </style>
-<script>
-// Current sort state
-let currentSort = '{{ sort_by }}';
 
-// Sorting functionality
+<script>
 document.addEventListener('DOMContentLoaded', function() {
+    // ---- Status Tabs ----
+    document.querySelectorAll('#status-tabs .nav-link').forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            const status = this.dataset.status;
+            document.getElementById('status-hidden').value = status;
+            document.getElementById('filter-form').submit();
+        });
+    });
+
+    // ---- Sorting ----
+    const currentSort = '{{ sort_by }}';
     document.querySelectorAll('.sortable').forEach(header => {
         header.addEventListener('click', function() {
             const field = this.dataset.sort;
@@ -199,84 +357,72 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.href = url.toString();
         });
     });
-});
 
-// Real-time AJAX search functionality
-document.addEventListener('DOMContentLoaded', function() {
+    // ---- Bulk Selection ----
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+    const bulkBar = document.getElementById('bulk-actions-bar');
+    const selectedCount = document.getElementById('selected-count');
+
+    function updateBulkBar() {
+        const checked = document.querySelectorAll('.row-checkbox:checked').length;
+        selectedCount.textContent = checked;
+        if (checked > 0) {
+            bulkBar.style.setProperty('display', 'flex', 'important');
+        } else {
+            bulkBar.style.setProperty('display', 'none', 'important');
+        }
+    }
+
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            rowCheckboxes.forEach(cb => cb.checked = this.checked);
+            updateBulkBar();
+        });
+    }
+
+    rowCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            if (!this.checked && selectAllCheckbox) {
+                selectAllCheckbox.checked = false;
+            }
+            if (document.querySelectorAll('.row-checkbox:checked').length === rowCheckboxes.length && selectAllCheckbox) {
+                selectAllCheckbox.checked = true;
+            }
+            updateBulkBar();
+        });
+    });
+
+    const selectAllPagesBtn = document.getElementById('select-all-pages');
+    if (selectAllPagesBtn) {
+        selectAllPagesBtn.addEventListener('click', function() {
+            rowCheckboxes.forEach(cb => cb.checked = true);
+            if (selectAllCheckbox) selectAllCheckbox.checked = true;
+            updateBulkBar();
+        });
+    }
+
+    const deselectAllBtn = document.getElementById('deselect-all');
+    if (deselectAllBtn) {
+        deselectAllBtn.addEventListener('click', function() {
+            rowCheckboxes.forEach(cb => cb.checked = false);
+            if (selectAllCheckbox) selectAllCheckbox.checked = false;
+            updateBulkBar();
+        });
+    }
+
+    // ---- Real-time Search ----
     const searchInput = document.getElementById('search-input');
     const searchSpinner = document.getElementById('search-spinner');
-    const searchResultsInfo = document.getElementById('search-results-info');
-    const resultsText = document.getElementById('results-text');
-    const tableContainer = document.querySelector('.table-responsive');
-    const emptyState = document.querySelector('.text-center.py-5');
     let searchTimeout;
 
     searchInput.addEventListener('input', function() {
         clearTimeout(searchTimeout);
-        const query = this.value.trim();
-
         searchSpinner.style.display = 'block';
-
         searchTimeout = setTimeout(function() {
-            performSearch(query);
-        }, 300);
+            document.getElementById('filter-form').submit();
+        }, 500);
     });
-
-    function performSearch(query) {
-        const url = new URL(window.location.href);
-        url.searchParams.set('search', query);
-
-        fetch(url, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.text())
-        .then(html => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            
-            const newTableContainer = doc.querySelector('.table-responsive');
-            const newEmptyState = doc.querySelector('.text-center.py-5');
-            const invoiceCount = doc.querySelectorAll('tbody tr').length;
-
-            if (newTableContainer) {
-                if (tableContainer) {
-                    tableContainer.outerHTML = newTableContainer.outerHTML;
-                }
-                if (emptyState) {
-                    emptyState.style.display = 'none';
-                }
-            } else if (newEmptyState) {
-                if (emptyState) {
-                    emptyState.innerHTML = newEmptyState.innerHTML;
-                    emptyState.style.display = 'block';
-                }
-                if (tableContainer) {
-                    tableContainer.style.display = 'none';
-                }
-            }
-
-            if (query) {
-                searchResultsInfo.style.display = 'block';
-                resultsText.textContent = `Found ${invoiceCount} result${invoiceCount !== 1 ? 's' : ''} for "${query}"`;
-            } else {
-                searchResultsInfo.style.display = 'none';
-            }
-
-            searchSpinner.style.display = 'none';
-
-            if (query) {
-                window.history.pushState({}, '', url);
-            } else {
-                window.history.pushState({}, '', window.location.pathname);
-            }
-        })
-        .catch(error => {
-            console.error('Search error:', error);
-            searchSpinner.style.display = 'none';
-        });
-    }
 });
 </script>
 {% endblock %}

@@ -13,7 +13,7 @@ from ..views_forms import (
     quote_list, quote_create, quote_edit, quote_detail,
     
     # Invoices
-    invoice_list, invoice_create, invoice_edit, invoice_detail, invoice_mark_whatsapp_sent,
+    invoice_list, invoice_create, invoice_edit, invoice_detail, invoice_mark_whatsapp_sent, invoice_bulk_action,
     
     # Payments
     payment_create,
@@ -65,6 +65,7 @@ urlpatterns = [
     
     # Invoices
     path('invoices/', invoice_list, name='invoice_list'),
+    path('invoices/bulk-action/', invoice_bulk_action, name='invoice_bulk_action'),
     path('invoices/create/', invoice_create, name='invoice_create'),
     path('invoices/<str:invoice_number>/', invoice_detail, name='invoice_detail'),
     path('invoices/<str:invoice_number>/edit/', invoice_edit, name='invoice_edit'),

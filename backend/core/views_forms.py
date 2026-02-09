@@ -491,36 +491,149 @@ def quote_detail(request, pk):
 # Invoice Views
 @login_required
 def invoice_list(request):
-    """List all invoices with search and sort functionality"""
+    """List all invoices with search, sort, filter, and pagination"""
+    from django.core.paginator import Paginator
+    from django.db.models import Q
+    
     search_query = request.GET.get('search', '')
     sort_by = request.GET.get('sort', '-issue_date')
+    status_filter = request.GET.get('status', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    per_page = request.GET.get('per_page', '50')
     
     # Valid sort fields
     valid_sorts = ['invoice_number', '-invoice_number', 'client__name', '-client__name',
+                   'client__address', '-client__address',
                    'issue_date', '-issue_date', 'due_date', '-due_date',
                    'status', '-status', 'total_amount', '-total_amount', 
                    'paid_amount', '-paid_amount', 'created_at', '-created_at']
     if sort_by not in valid_sorts:
         sort_by = '-issue_date'
     
+    try:
+        per_page = int(per_page)
+        if per_page not in [25, 50, 100, 200]:
+            per_page = 50
+    except (ValueError, TypeError):
+        per_page = 50
+    
     invoices = Invoice.objects.all().select_related('client')
     
+    # Search filter
     if search_query:
-        from django.db.models import Q
         invoices = invoices.filter(
             Q(invoice_number__icontains=search_query) |
             Q(client__name__icontains=search_query) |
             Q(client__customer_id__icontains=search_query) |
+            Q(client__address__icontains=search_query) |
             Q(status__icontains=search_query)
         )
     
+    # Status filter
+    if status_filter:
+        invoices = invoices.filter(status=status_filter)
+    
+    # Date range filter
+    if date_from:
+        try:
+            invoices = invoices.filter(issue_date__gte=date_from)
+        except (ValueError, TypeError):
+            pass
+    if date_to:
+        try:
+            invoices = invoices.filter(issue_date__lte=date_to)
+        except (ValueError, TypeError):
+            pass
+    
+    # Get counts for status tabs (before pagination, after search/date filters)
+    status_counts = {
+        'all': invoices.count(),
+        'draft': invoices.filter(status='draft').count(),
+        'sent': invoices.filter(status='sent').count(),
+        'paid': invoices.filter(status='paid').count(),
+        'partially_paid': invoices.filter(status='partially_paid').count(),
+        'overdue': invoices.filter(status='overdue').count(),
+        'cancelled': invoices.filter(status='cancelled').count(),
+    }
+    
     invoices = invoices.order_by(sort_by)
     
+    # Pagination
+    paginator = Paginator(invoices, per_page)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
     return render(request, 'core/invoice_list.html', {
-        'invoices': invoices,
+        'invoices': page_obj,
+        'page_obj': page_obj,
+        'paginator': paginator,
         'search_query': search_query,
         'sort_by': sort_by,
+        'status_filter': status_filter,
+        'date_from': date_from,
+        'date_to': date_to,
+        'per_page': per_page,
+        'status_counts': status_counts,
     })
+
+
+@login_required
+@require_http_methods(["POST"])
+def invoice_bulk_action(request):
+    """Handle bulk actions on invoices"""
+    import csv
+    from io import StringIO
+    
+    action = request.POST.get('action', '')
+    invoice_ids = request.POST.getlist('invoice_ids')
+    
+    if not invoice_ids:
+        messages.warning(request, 'No invoices selected.')
+        return redirect('accounting_forms:invoice_list')
+    
+    invoices = Invoice.objects.filter(pk__in=invoice_ids).select_related('client')
+    
+    if action == 'delete':
+        count = invoices.count()
+        invoices.delete()
+        messages.success(request, f'Successfully deleted {count} invoice(s).')
+        return redirect('accounting_forms:invoice_list')
+    
+    elif action == 'export_csv':
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="invoices_export_{date.today().isoformat()}.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Invoice #', 'Client', 'Address', 'Issue Date', 'Due Date', 'Total', 'Paid', 'Balance', 'Status', 'WhatsApp Sent'])
+        for inv in invoices.order_by('-issue_date'):
+            writer.writerow([
+                inv.invoice_number,
+                inv.client.name,
+                inv.client.address or '',
+                inv.issue_date,
+                inv.due_date,
+                inv.total_amount,
+                inv.paid_amount,
+                inv.balance,
+                inv.get_status_display(),
+                'Yes' if inv.whatsapp_sent else 'No',
+            ])
+        return response
+    
+    elif action == 'mark_sent':
+        updated = invoices.filter(status='draft').update(status='sent')
+        messages.success(request, f'Marked {updated} invoice(s) as sent.')
+        return redirect('accounting_forms:invoice_list')
+    
+    elif action == 'mark_whatsapp_sent':
+        now = timezone.now()
+        updated = invoices.update(whatsapp_sent=True, whatsapp_sent_at=now)
+        messages.success(request, f'Marked {updated} invoice(s) as sent via WhatsApp.')
+        return redirect('accounting_forms:invoice_list')
+    
+    else:
+        messages.error(request, 'Invalid action.')
+        return redirect('accounting_forms:invoice_list')
 
 
 @login_required
