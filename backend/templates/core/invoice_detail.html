@@ -1310,12 +1310,12 @@ select.note-field {
                 .replace(/{invoice_amount}/g, totalAmount);
         }
         
-        // Format phone number (remove spaces, +, and ensure it starts with country code)
-        let formattedPhone = clientPhone.replace(/\s+/g, '').replace(/^\+/, '');
-        if (formattedPhone.startsWith('0')) {
+        // Format phone number for WhatsApp (remove spaces, preserve existing country codes)
+        let formattedPhone = clientPhone.replace(/[\s\-()]/g, '');
+        if (formattedPhone.startsWith('+')) {
+            formattedPhone = formattedPhone.substring(1);
+        } else if (formattedPhone.startsWith('0')) {
             formattedPhone = '27' + formattedPhone.substring(1);
-        } else if (!formattedPhone.startsWith('27')) {
-            formattedPhone = '27' + formattedPhone;
         }
         
         // Open WhatsApp with pre-filled message
@@ -2159,9 +2159,15 @@ select.note-field {
                             // Default to no phone number - will just create a WhatsApp message without a recipient
                             console.log('No phone number available for client');
                         } else {
-                            // Format the phone number for WhatsApp (remove spaces, ensure it starts with country code)
-                            phone = phone.replace(/\s+/g, '');
-                            if (!phone.startsWith('+')) phone = '+27' + phone.replace(/^0/, '');
+                            // Format the phone number for WhatsApp (remove spaces, preserve existing country codes)
+                            phone = phone.replace(/[\s\-()]/g, '');
+                            if (phone.startsWith('+')) {
+                                // Already has country code - keep as is
+                            } else if (phone.startsWith('0')) {
+                                phone = '+27' + phone.substring(1);
+                            } else {
+                                phone = '+' + phone;
+                            }
                         }
                         
                         // Create WhatsApp URL with the client's phone number if available
