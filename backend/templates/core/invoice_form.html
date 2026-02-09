@@ -89,7 +89,9 @@
             {{ formset.management_form }}
             <div id="formset-container">
                 {% for form in formset %}
-                <div class="card mb-3 formset-form">
+                <div class="card mb-3 formset-form" data-form-index="{{ forloop.counter0 }}">
+                    {{ form.id }}
+                    {{ form.DELETE }}
                     <div class="card-body">
                         {% if form.non_field_errors %}
                         <div class="alert alert-danger alert-sm">
@@ -117,8 +119,6 @@
                                 </button>
                             </div>
                         </div>
-                        {{ form.id }}
-                        {{ form.DELETE }}
                     </div>
                 </div>
                 {% endfor %}
@@ -130,7 +130,7 @@
 
             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                 <a href="{% url 'accounting_forms:invoice_list' %}" class="btn btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary" id="save-btn">
                     <i class="bi bi-save"></i> Save Invoice
                 </button>
             </div>
@@ -194,22 +194,64 @@ document.addEventListener('DOMContentLoaded', function() {
     
     addButton.addEventListener('click', function() {
         const formCount = parseInt(totalForms.value);
-        const newForm = container.querySelector('.formset-form').cloneNode(true);
+        const firstForm = container.querySelector('.formset-form');
+        const newForm = firstForm.cloneNode(true);
         
-        // Update form index
-        newForm.innerHTML = newForm.innerHTML.replace(/form-\d+-/g, `form-${formCount}-`);
-        newForm.querySelectorAll('input, select, textarea').forEach(input => {
-            input.value = '';
+        // Update form index using DOM manipulation (not innerHTML which destroys values)
+        newForm.querySelectorAll('input, select, textarea, label').forEach(el => {
+            if (el.name) {
+                el.name = el.name.replace(/items-\d+-/, `items-${formCount}-`);
+            }
+            if (el.id) {
+                el.id = el.id.replace(/items-\d+-/, `items-${formCount}-`);
+            }
+            if (el.htmlFor) {
+                el.htmlFor = el.htmlFor.replace(/items-\d+-/, `items-${formCount}-`);
+            }
         });
+        
+        // Clear values for the new form
+        newForm.querySelectorAll('input, select, textarea').forEach(input => {
+            if (input.type === 'hidden') {
+                input.value = '';
+            } else if (input.tagName === 'SELECT') {
+                input.selectedIndex = 0;
+            } else {
+                input.value = '';
+            }
+        });
+        
+        // Reset quantity to default of 1
+        const qtyInput = newForm.querySelector('input[name$="-quantity"]');
+        if (qtyInput) qtyInput.value = '1';
+        
+        // Remove any error messages from cloned form
+        newForm.querySelectorAll('.text-danger, .alert-danger').forEach(el => el.remove());
+        
+        // Make sure the new form is visible
+        newForm.style.display = '';
         
         container.appendChild(newForm);
         totalForms.value = formCount + 1;
     });
     
     container.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-form')) {
-            if (container.querySelectorAll('.formset-form').length > 1) {
-                e.target.closest('.formset-form').remove();
+        const btn = e.target.closest('.remove-form');
+        if (btn) {
+            const formCard = btn.closest('.formset-form');
+            const idInput = formCard.querySelector('input[name$="-id"]');
+            
+            if (idInput && idInput.value) {
+                // Existing item - mark for deletion instead of removing from DOM
+                const deleteInput = formCard.querySelector('input[name$="-DELETE"]');
+                if (deleteInput) {
+                    deleteInput.value = 'on';
+                    deleteInput.checked = true;
+                }
+                formCard.style.display = 'none';
+            } else {
+                // New item - just remove from DOM and decrement count
+                formCard.remove();
                 totalForms.value = parseInt(totalForms.value) - 1;
             }
         }

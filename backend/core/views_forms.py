@@ -607,11 +607,30 @@ def invoice_edit(request, invoice_number):
     
     if request.method == 'POST':
         form = InvoiceForm(request.POST, instance=invoice)
-        formset = InvoiceItemFormSet(request.POST, instance=invoice)
+        formset = InvoiceItemFormSet(
+            request.POST,
+            instance=invoice,
+        )
         
         if form.is_valid() and formset.is_valid():
             invoice = form.save()
-            formset.save()
+            
+            # Save items and populate from product for new items
+            for item_form in formset:
+                if item_form.cleaned_data and not item_form.cleaned_data.get('DELETE', False):
+                    item = item_form.save(commit=False)
+                    item.invoice = invoice
+                    if item.product and not item.unit_price:
+                        # Auto-populate from product for new items
+                        item.description = item.product.description
+                        item.unit_price = item.product.unit_price
+                        item.tax_rate = item.product.tax_rate
+                    item.save()
+            
+            # Delete items marked for deletion
+            for item_form in formset.deleted_forms:
+                if item_form.instance.pk:
+                    item_form.instance.delete()
             
             # Handle delivery zone changes
             new_delivery_zone = invoice.delivery_zone
@@ -648,7 +667,11 @@ def invoice_edit(request, invoice_number):
             messages.error(request, 'Please correct the errors below.')
     else:
         form = InvoiceForm(instance=invoice)
-        formset = InvoiceItemFormSet(instance=invoice)
+        # Exclude delivery fee items from the formset - they're managed automatically
+        formset = InvoiceItemFormSet(
+            instance=invoice,
+            queryset=invoice.items.exclude(product__name='Delivery Fee')
+        )
     
     return render(request, 'core/invoice_form.html', {
         'form': form,
@@ -670,10 +693,21 @@ def invoice_detail(request, invoice_number):
         payments = invoice.payments.all().order_by('-payment_date')
         company_settings = CompanySettings.load()
         
+        # Order items so delivery fee is always last
+        from django.db.models import Case, When, Value, IntegerField
+        ordered_items = invoice.items.all().annotate(
+            is_delivery=Case(
+                When(product__name='Delivery Fee', then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField(),
+            )
+        ).order_by('is_delivery', 'id')
+        
         return render(request, 'core/invoice_detail.html', {
             'invoice': invoice,
             'payments': payments,
-            'company_settings': company_settings
+            'company_settings': company_settings,
+            'ordered_items': ordered_items
         })
     except Exception as e:
         logger.error(f"Error in invoice_detail for {invoice_number}: {str(e)}", exc_info=True)

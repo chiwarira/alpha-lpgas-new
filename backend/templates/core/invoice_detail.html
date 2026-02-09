@@ -1169,7 +1169,7 @@ select.note-field {
                     </tr>
                 </thead>
                 <tbody>
-                    {% for item in invoice.items.all %}
+                    {% for item in ordered_items %}
                     <tr>
                         <td>{{ item.product.code }}</td>
                         <td>{{ item.description|default:item.product.name }}</td>
@@ -1197,7 +1197,7 @@ select.note-field {
             
             <!-- Mobile Card View -->
             <div class="mobile-card-table">
-                {% for item in invoice.items.all %}
+                {% for item in ordered_items %}
                 <div class="item-card">
                     <div class="item-card-header">
                         <div>{{ item.description|default:item.product.name }}</div>

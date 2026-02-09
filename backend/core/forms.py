@@ -334,6 +334,12 @@ class InvoiceItemForm(forms.ModelForm):
             }),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Allow id to be empty for new items added via JS
+        if 'id' in self.fields:
+            self.fields['id'].required = False
+
 
 class PaymentForm(forms.ModelForm):
     """Form for recording payments"""
