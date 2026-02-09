@@ -701,6 +701,10 @@ def invoice_create(request):
             'due_date': date.today() + timedelta(days=30),
             'payment_terms': 'immediate'
         }
+        # Pre-select client if passed via query param (e.g. from client detail page)
+        client_id = request.GET.get('client')
+        if client_id:
+            initial_data['client'] = client_id
         form = InvoiceForm(initial=initial_data)
         formset = InvoiceItemFormSet(queryset=InvoiceItem.objects.none())
     

@@ -1,5 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from .models import (
     Client, Product, Quote, QuoteItem, Invoice, InvoiceItem,
     Payment, CreditNote, CreditNoteItem, CompanySettings
@@ -339,6 +340,15 @@ class InvoiceItemForm(forms.ModelForm):
         # Allow id to be empty for new items added via JS
         if 'id' in self.fields:
             self.fields['id'].required = False
+        # Only show active products (plus the currently selected one if editing)
+        if self.instance and self.instance.pk and self.instance.product_id:
+            self.fields['product'].queryset = Product.objects.filter(
+                Q(is_active=True) | Q(pk=self.instance.product_id)
+            ).order_by('name')
+        else:
+            self.fields['product'].queryset = Product.objects.filter(is_active=True).order_by('name')
+        # Show product name, code, and price in dropdown
+        self.fields['product'].label_from_instance = lambda obj: f"{obj.name} ({obj.sku}) - R{obj.unit_price}"
 
 
 class PaymentForm(forms.ModelForm):

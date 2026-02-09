@@ -91,7 +91,7 @@
                 {% for form in formset %}
                 <div class="card mb-3 formset-form" data-form-index="{{ forloop.counter0 }}">
                     {{ form.id }}
-                    {{ form.DELETE }}
+                    <div style="display:none;">{{ form.DELETE }}</div>
                     <div class="card-body">
                         {% if form.non_field_errors %}
                         <div class="alert alert-danger alert-sm">
@@ -158,7 +158,7 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
-// Initialize Select2 for client search
+// Initialize Select2 for client and product search
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Select2 on client dropdown
     $('.client-select').select2({
@@ -167,24 +167,32 @@ document.addEventListener('DOMContentLoaded', function() {
         placeholder: 'Search for a client by name, phone, or address...',
         allowClear: true,
         matcher: function(params, data) {
-            // If there are no search terms, return all data
-            if ($.trim(params.term) === '') {
-                return data;
-            }
-
-            // Do not display the item if there is no 'text' property
-            if (typeof data.text === 'undefined') {
-                return null;
-            }
-
-            // Search in the text (which includes name, phone, and address)
-            if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
-                return data;
-            }
-
-            // Return null if the term should not be displayed
+            if ($.trim(params.term) === '') return data;
+            if (typeof data.text === 'undefined') return null;
+            if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) return data;
             return null;
         }
+    });
+
+    // Initialize Select2 on all existing product dropdowns
+    function initProductSelect2(element) {
+        $(element).select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Search for a product...',
+            allowClear: true,
+            matcher: function(params, data) {
+                if ($.trim(params.term) === '') return data;
+                if (typeof data.text === 'undefined') return null;
+                if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) return data;
+                return null;
+            }
+        });
+    }
+    
+    // Init Select2 on all existing product selects
+    $('.product-select').each(function() {
+        initProductSelect2(this);
     });
 
     // Simple formset management
@@ -196,6 +204,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const formCount = parseInt(totalForms.value);
         const firstForm = container.querySelector('.formset-form');
         const newForm = firstForm.cloneNode(true);
+        
+        // Remove cloned Select2 containers (they don't work when cloned)
+        newForm.querySelectorAll('.select2-container').forEach(el => el.remove());
+        // Show the original select elements that Select2 hides
+        newForm.querySelectorAll('select').forEach(sel => {
+            sel.style.display = '';
+            sel.classList.remove('select2-hidden-accessible');
+            sel.removeAttribute('data-select2-id');
+            sel.removeAttribute('aria-hidden');
+            sel.removeAttribute('tabindex');
+        });
         
         // Update form index using DOM manipulation (not innerHTML which destroys values)
         newForm.querySelectorAll('input, select, textarea, label').forEach(el => {
@@ -233,6 +252,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         container.appendChild(newForm);
         totalForms.value = formCount + 1;
+        
+        // Initialize Select2 on the new product dropdown
+        const newProductSelect = newForm.querySelector('.product-select');
+        if (newProductSelect) {
+            initProductSelect2(newProductSelect);
+        }
     });
     
     container.addEventListener('click', function(e) {
