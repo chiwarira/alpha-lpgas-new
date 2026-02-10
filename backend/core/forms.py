@@ -13,13 +13,21 @@ class ClientForm(forms.ModelForm):
     class Meta:
         model = Client
         fields = [
-            'name', 'email', 'phone', 'address', 'city', 
+            'name', 'company_name', 'company_reg', 'email', 'phone', 'address', 'city', 
             'postal_code', 'tax_id', 'is_active', 'notes'
         ]
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Client Name'
+            }),
+            'company_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Company or business name (optional)'
+            }),
+            'company_reg': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Company registration number (optional)'
             }),
             'email': forms.EmailInput(attrs={
                 'class': 'form-control',

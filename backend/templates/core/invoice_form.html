@@ -157,6 +157,14 @@
                     <input type="text" id="new-client-name" class="form-control" required>
                 </div>
                 <div class="mb-3">
+                    <label class="form-label">Company Name</label>
+                    <input type="text" id="new-client-company-name" class="form-control" placeholder="Company or business name (optional)">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Company Reg</label>
+                    <input type="text" id="new-client-company-reg" class="form-control" placeholder="Company registration number (optional)">
+                </div>
+                <div class="mb-3">
                     <label class="form-label">Phone</label>
                     <input type="text" id="new-client-phone" class="form-control" placeholder="+27...">
                 </div>
@@ -332,12 +340,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (saveClientBtn) {
         saveClientBtn.addEventListener('click', function() {
             const nameInput = document.getElementById('new-client-name');
+            const companyNameInput = document.getElementById('new-client-company-name');
+            const companyRegInput = document.getElementById('new-client-company-reg');
             const phoneInput = document.getElementById('new-client-phone');
             const emailInput = document.getElementById('new-client-email');
             const addressInput = document.getElementById('new-client-address');
             const cityInput = document.getElementById('new-client-city');
             const errorsDiv = document.getElementById('client-modal-errors');
             const name = nameInput ? nameInput.value.trim() : '';
+            const company_name = companyNameInput ? companyNameInput.value.trim() : '';
+            const company_reg = companyRegInput ? companyRegInput.value.trim() : '';
             const phone = phoneInput ? phoneInput.value.trim() : '';
             const email = emailInput ? emailInput.value.trim() : '';
             const address = addressInput ? addressInput.value.trim() : '';
@@ -361,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-CSRFToken': csrftoken,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ name, phone, email, address, city })
+                body: JSON.stringify({ name, company_name, company_reg, phone, email, address, city })
             })
             .then(response => response.json())
             .then(data => {
@@ -375,6 +387,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
                     modal.hide();
                     if (nameInput) nameInput.value = '';
+                    if (companyNameInput) companyNameInput.value = '';
+                    if (companyRegInput) companyRegInput.value = '';
                     if (phoneInput) phoneInput.value = '';
                     if (emailInput) emailInput.value = '';
                     if (addressInput) addressInput.value = '';

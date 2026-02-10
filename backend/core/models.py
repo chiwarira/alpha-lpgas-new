@@ -188,6 +188,8 @@ class Client(models.Model):
     """Model for managing clients/customers"""
     customer_id = models.CharField(max_length=100, blank=True, help_text="Auto-generated from name and phone")
     name = models.CharField(max_length=255)
+    company_name = models.CharField(max_length=255, blank=True, help_text="Company or business name")
+    company_reg = models.CharField(max_length=100, blank=True, help_text="Company registration number")
     email = models.EmailField(blank=True, null=True)
     phone = models.CharField(max_length=20)
     address = models.TextField(blank=True)

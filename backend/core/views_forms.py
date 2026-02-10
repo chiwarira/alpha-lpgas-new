@@ -64,6 +64,8 @@ def client_create_ajax(request):
         
         client = Client.objects.create(
             name=name,
+            company_name=data.get('company_name', '').strip(),
+            company_reg=data.get('company_reg', '').strip(),
             phone=data.get('phone', '').strip(),
             email=data.get('email', '').strip(),
             address=data.get('address', '').strip(),

@@ -1087,10 +1087,10 @@ select.note-field {
                 <div class="client-info-value">{{ invoice.client.company_name }}</div>
             </div>
             {% endif %}
-            {% if invoice.client.company_reg_no %}
+            {% if invoice.client.company_reg %}
             <div class="client-info-row">
                 <div class="client-info-label">Reg. No.:</div>
-                <div class="client-info-value">{{ invoice.client.company_reg_no }}</div>
+                <div class="client-info-value">{{ invoice.client.company_reg }}</div>
             </div>
             {% endif %}
             {% if invoice.client.vat_number %}
