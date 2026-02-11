@@ -2,6 +2,20 @@
 
 {% block title %}{{ title }} - Alpha LPGas{% endblock %}
 
+{% block extra_css %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<style>
+    .select2-container--bootstrap-5 .select2-selection {
+        min-height: 38px;
+    }
+    .select2-container {
+        width: 100% !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row mb-4">
     <div class="col-md-6">
@@ -18,6 +32,13 @@
     <div class="card-body">
         <form method="post" id="credit-note-form">
             {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+            {% if formset.non_form_errors %}
+            <div class="alert alert-danger">{{ formset.non_form_errors }}</div>
+            {% endif %}
             
             <!-- Credit Note Details -->
             <div class="row mb-3">
@@ -66,30 +87,36 @@
             
             <div id="items-container">
                 {% for item_form in formset %}
-                <div class="item-form border rounded p-3 mb-3">
-                    <div class="row">
-                        <div class="col-md-3">
+                <div class="item-form border rounded p-3 mb-3" data-form-index="{{ forloop.counter0 }}">
+                    {{ item_form.id }}
+                    <div style="display:none;">{{ item_form.DELETE }}</div>
+                    <div class="row align-items-end">
+                        <div class="col-md-3 mb-2">
                             <label class="form-label">Product *</label>
                             {{ item_form.product }}
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-3 mb-2">
                             <label class="form-label">Description</label>
                             {{ item_form.description }}
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-2 mb-2">
                             <label class="form-label">Quantity *</label>
                             {{ item_form.quantity }}
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-2 mb-2">
                             <label class="form-label">Unit Price *</label>
                             {{ item_form.unit_price }}
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Tax Rate (%)</label>
+                        <div class="col-md-1 mb-2">
+                            <label class="form-label">Tax %</label>
                             {{ item_form.tax_rate }}
                         </div>
+                        <div class="col-md-1 mb-2">
+                            <button type="button" class="btn btn-danger btn-sm w-100 remove-form">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
                     </div>
-                    {{ item_form.id }}
                 </div>
                 {% endfor %}
             </div>
@@ -111,28 +138,148 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
+const DEFAULT_TAX_RATE = '{{ default_tax_rate }}';
+
 document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('items-container');
     const addButton = document.getElementById('add-item');
     const totalForms = document.querySelector('#id_items-TOTAL_FORMS');
-    
+
+    // Fetch product prices from API
+    let productData = {};
+    fetch('/api/accounting/products/')
+        .then(r => r.json())
+        .then(data => {
+            const products = data.results || data;
+            products.forEach(p => {
+                productData[p.id] = {
+                    unit_price: p.unit_price,
+                    tax_rate: p.tax_rate,
+                    description: p.description || p.name
+                };
+            });
+        })
+        .catch(err => console.warn('Could not fetch product prices:', err));
+
+    // Initialize Select2 on product dropdowns
+    function initProductSelect2(element) {
+        $(element).select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Search for a product...',
+        });
+    }
+
+    // Auto-populate price when product changes
+    function bindProductChange(formEl) {
+        const productSelect = formEl.querySelector('.product-select');
+        if (productSelect) {
+            $(productSelect).on('change', function() {
+                const productId = this.value;
+                if (productId && productData[productId]) {
+                    const data = productData[productId];
+                    const priceInput = formEl.querySelector('input[name$="-unit_price"]');
+                    const taxInput = formEl.querySelector('input[name$="-tax_rate"]');
+                    const descInput = formEl.querySelector('input[name$="-description"]');
+                    if (priceInput) priceInput.value = data.unit_price;
+                    if (taxInput) taxInput.value = DEFAULT_TAX_RATE;
+                    if (descInput && !descInput.value) descInput.value = data.description;
+                }
+            });
+        }
+    }
+
+    // Init Select2 and product change on existing forms
+    $('.product-select').each(function() {
+        initProductSelect2(this);
+    });
+    container.querySelectorAll('.item-form').forEach(formEl => {
+        bindProductChange(formEl);
+    });
+
+    // Add new item
     addButton.addEventListener('click', function() {
         const formCount = parseInt(totalForms.value);
-        const newForm = container.children[0].cloneNode(true);
-        
-        // Update form index in all fields
-        newForm.innerHTML = newForm.innerHTML.replace(/items-0-/g, `items-${formCount}-`);
-        
+        const firstForm = container.querySelector('.item-form');
+        const newForm = firstForm.cloneNode(true);
+
+        // Remove cloned Select2 containers
+        newForm.querySelectorAll('.select2-container').forEach(el => el.remove());
+        newForm.querySelectorAll('select').forEach(sel => {
+            sel.style.display = '';
+            sel.classList.remove('select2-hidden-accessible');
+            sel.removeAttribute('data-select2-id');
+            sel.removeAttribute('aria-hidden');
+            sel.removeAttribute('tabindex');
+        });
+
+        // Update form index
+        newForm.querySelectorAll('input, select, textarea').forEach(field => {
+            if (field.name) field.name = field.name.replace(/items-\d+-/, `items-${formCount}-`);
+            if (field.id) field.id = field.id.replace(/items-\d+-/, `items-${formCount}-`);
+        });
+        newForm.querySelectorAll('label').forEach(label => {
+            if (label.htmlFor) label.htmlFor = label.htmlFor.replace(/items-\d+-/, `items-${formCount}-`);
+        });
+
         // Clear values
         newForm.querySelectorAll('input, select, textarea').forEach(field => {
-            if (field.type !== 'hidden') {
+            if (field.type === 'hidden' && field.name.endsWith('-id')) {
+                field.value = '';
+            } else if (field.type !== 'hidden') {
                 field.value = '';
             }
         });
-        
+
+        // Reset DELETE checkbox
+        const deleteInput = newForm.querySelector('input[name$="-DELETE"]');
+        if (deleteInput) {
+            deleteInput.value = '';
+            deleteInput.checked = false;
+        }
+
+        newForm.style.display = '';
+        newForm.querySelectorAll('.text-danger').forEach(el => el.remove());
+
         container.appendChild(newForm);
         totalForms.value = formCount + 1;
+
+        // Init Select2 and price binding on new form
+        const newProductSelect = newForm.querySelector('.product-select');
+        if (newProductSelect) {
+            initProductSelect2(newProductSelect);
+        }
+        bindProductChange(newForm);
+    });
+
+    // Remove item
+    container.addEventListener('click', function(e) {
+        const btn = e.target.closest('.remove-form');
+        if (btn) {
+            const formCard = btn.closest('.item-form');
+            const idInput = formCard.querySelector('input[name$="-id"]');
+
+            if (idInput && idInput.value) {
+                // Existing item - mark for deletion
+                const deleteInput = formCard.querySelector('input[name$="-DELETE"]');
+                if (deleteInput) {
+                    deleteInput.value = 'on';
+                    deleteInput.checked = true;
+                }
+                formCard.style.display = 'none';
+            } else {
+                // New item - remove from DOM
+                formCard.remove();
+                totalForms.value = parseInt(totalForms.value) - 1;
+            }
+        }
     });
 });
 </script>

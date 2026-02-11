@@ -42,44 +42,62 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link {% block nav_clients %}{% endblock %}" href="{% url 'accounting_forms:client_list' %}">
-                            <i class="bi bi-people"></i> Clients
+                    <!-- Sales & Billing -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="salesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-cash-stack"></i> Sales
                         </a>
+                        <ul class="dropdown-menu" aria-labelledby="salesDropdown">
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:quote_list' %}"><i class="bi bi-file-earmark-text"></i> Quotes</a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:invoice_list' %}"><i class="bi bi-receipt"></i> Invoices</a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:payment_list' %}"><i class="bi bi-credit-card"></i> Payments</a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:credit_note_list' %}"><i class="bi bi-file-earmark-minus"></i> Credit Notes</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:loyalty_card_list' %}"><i class="bi bi-award"></i> Loyalty Cards</a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:daily_sales_report' %}"><i class="bi bi-graph-up"></i> Daily Sales</a></li>
+                        </ul>
                     </li>
+                    
+                    <!-- People & Contacts -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="peopleDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-people"></i> People
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="peopleDropdown">
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:client_list' %}"><i class="bi bi-people"></i> Clients</a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:supplier_list' %}"><i class="bi bi-building"></i> Suppliers</a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:driver_list' %}"><i class="bi bi-truck"></i> Drivers</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:contact_submission_list' %}"><i class="bi bi-envelope"></i> Contact Submissions</a></li>
+                        </ul>
+                    </li>
+                    
+                    <!-- Products & Inventory -->
                     <li class="nav-item">
                         <a class="nav-link {% block nav_products %}{% endblock %}" href="{% url 'accounting_forms:product_list' %}">
                             <i class="bi bi-box"></i> Products
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% block nav_quotes %}{% endblock %}" href="{% url 'accounting_forms:quote_list' %}">
-                            <i class="bi bi-file-earmark-text"></i> Quotes
-                        </a>
-                    </li>
+                    
+                    <!-- Orders & Delivery -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% block nav_invoices %}{% endblock %}" href="#" id="invoicesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-receipt"></i> Invoices
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="invoicesDropdown">
-                            <li><a class="dropdown-item" href="{% url 'accounting_forms:invoice_list' %}">All Invoices</a></li>
-                            <li><a class="dropdown-item" href="{% url 'accounting_forms:loyalty_card_list' %}">Loyalty Cards</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% block nav_orders %}{% endblock %}" href="{% url 'accounting_forms:order_list' %}">
+                        <a class="nav-link dropdown-toggle" href="#" id="ordersDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-cart-check"></i> Orders
                         </a>
+                        <ul class="dropdown-menu" aria-labelledby="ordersDropdown">
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:order_list' %}"><i class="bi bi-cart-check"></i> All Orders</a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:delivery_zone_list' %}"><i class="bi bi-geo-alt"></i> Delivery Zones</a></li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% block nav_daily_sales %}{% endblock %}" href="{% url 'accounting_forms:daily_sales_report' %}">
-                            <i class="bi bi-graph-up"></i> Daily Sales
+                    
+                    <!-- Accounting -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="accountingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-journal-text"></i> Accounting
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% block nav_drivers %}{% endblock %}" href="{% url 'accounting_forms:driver_list' %}">
-                            <i class="bi bi-truck"></i> Drivers
-                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="accountingDropdown">
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:journal_entry_list' %}"><i class="bi bi-journal-text"></i> Journal Entries</a></li>
+                        </ul>
                     </li>
                 </ul>
                 <ul class="navbar-nav">

@@ -1,0 +1,56 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Contact: {{ submission.name }} - Alpha LPGas{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-envelope"></i> Contact Submission</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:contact_submission_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header"><strong>Message Details</strong></div>
+            <div class="card-body">
+                <p><strong>From:</strong> {{ submission.name }} ({{ submission.email }})</p>
+                {% if submission.phone %}<p><strong>Phone:</strong> {{ submission.phone }}</p>{% endif %}
+                <p><strong>Subject:</strong> {{ submission.subject|default:"No Subject" }}</p>
+                <p><strong>Date:</strong> {{ submission.created_at|date:"d M Y H:i" }}</p>
+                <hr>
+                <p>{{ submission.message|linebreaksbr }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header"><strong>Update Status</strong></div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="new" {% if submission.status == 'new' %}selected{% endif %}>New</option>
+                            <option value="in_progress" {% if submission.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                            <option value="resolved" {% if submission.status == 'resolved' %}selected{% endif %}>Resolved</option>
+                            <option value="spam" {% if submission.status == 'spam' %}selected{% endif %}>Spam</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Internal Notes</label>
+                        <textarea name="notes" class="form-control" rows="4">{{ submission.notes }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Update</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

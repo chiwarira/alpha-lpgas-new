@@ -16,16 +16,28 @@ from ..views_forms import (
     invoice_list, invoice_create, invoice_edit, invoice_detail, invoice_mark_whatsapp_sent, invoice_bulk_action,
     
     # Payments
-    payment_create,
+    payment_create, payment_list,
     
     # Credit Notes
-    credit_note_create, credit_note_detail,
+    credit_note_create, credit_note_detail, credit_note_list,
     
     # Orders
     order_list, order_detail, order_assign_driver,
     
     # Drivers
     driver_list, driver_create, driver_edit, driver_detail, driver_delete,
+    
+    # Contact Submissions
+    contact_submission_list, contact_submission_detail,
+    
+    # Delivery Zones
+    delivery_zone_list, delivery_zone_create, delivery_zone_edit, delivery_zone_delete,
+    
+    # Suppliers
+    supplier_list, supplier_create, supplier_edit, supplier_detail,
+    
+    # Journal Entries
+    journal_entry_list, journal_entry_detail,
 )
 
 from ..pdf_generator import download_invoice_pdf, download_quote_pdf
@@ -99,4 +111,30 @@ urlpatterns = [
     path('drivers/<int:pk>/', driver_detail, name='driver_detail'),
     path('drivers/<int:pk>/edit/', driver_edit, name='driver_edit'),
     path('drivers/<int:pk>/delete/', driver_delete, name='driver_delete'),
+    
+    # Contact Submissions
+    path('contact-submissions/', contact_submission_list, name='contact_submission_list'),
+    path('contact-submissions/<int:pk>/', contact_submission_detail, name='contact_submission_detail'),
+    
+    # Delivery Zones
+    path('delivery-zones/', delivery_zone_list, name='delivery_zone_list'),
+    path('delivery-zones/create/', delivery_zone_create, name='delivery_zone_create'),
+    path('delivery-zones/<int:pk>/edit/', delivery_zone_edit, name='delivery_zone_edit'),
+    path('delivery-zones/<int:pk>/delete/', delivery_zone_delete, name='delivery_zone_delete'),
+    
+    # Payments List
+    path('payments/', payment_list, name='payment_list'),
+    
+    # Credit Notes List
+    path('credit-notes/', credit_note_list, name='credit_note_list'),
+    
+    # Suppliers
+    path('suppliers/', supplier_list, name='supplier_list'),
+    path('suppliers/create/', supplier_create, name='supplier_create'),
+    path('suppliers/<int:pk>/', supplier_detail, name='supplier_detail'),
+    path('suppliers/<int:pk>/edit/', supplier_edit, name='supplier_edit'),
+    
+    # Journal Entries
+    path('journal-entries/', journal_entry_list, name='journal_entry_list'),
+    path('journal-entries/<int:pk>/', journal_entry_detail, name='journal_entry_detail'),
 ]

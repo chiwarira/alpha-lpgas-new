@@ -1,0 +1,81 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Payments - Alpha LPGas{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-credit-card"></i> Payments</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:payment_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Record Payment
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" name="search" class="form-control" placeholder="Search invoice, client, reference..." value="{{ search_query }}">
+            </div>
+            <div class="col-md-3">
+                <select name="method" class="form-select">
+                    <option value="">All Methods</option>
+                    <option value="cash" {% if method_filter == 'cash' %}selected{% endif %}>Cash</option>
+                    <option value="card" {% if method_filter == 'card' %}selected{% endif %}>Card</option>
+                    <option value="eft" {% if method_filter == 'eft' %}selected{% endif %}>EFT</option>
+                    <option value="mobile" {% if method_filter == 'mobile' %}selected{% endif %}>Mobile</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary -->
+<div class="alert alert-info mb-4">
+    <strong>Total:</strong> R{{ total_amount|floatformat:2 }}
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Invoice</th>
+                    <th>Client</th>
+                    <th>Method</th>
+                    <th>Reference</th>
+                    <th class="text-end">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td>{{ payment.payment_date|date:"d M Y" }}</td>
+                    <td>
+                        <a href="{% url 'accounting_forms:invoice_detail' payment.invoice.invoice_number %}">
+                            {{ payment.invoice.invoice_number }}
+                        </a>
+                    </td>
+                    <td>{{ payment.invoice.client.name }}</td>
+                    <td>{{ payment.get_payment_method_display }}</td>
+                    <td>{{ payment.reference|default:"-" }}</td>
+                    <td class="text-end">R{{ payment.amount|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">No payments found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

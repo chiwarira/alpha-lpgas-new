@@ -1,0 +1,60 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Delivery Zones - Alpha LPGas{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-geo-alt"></i> Delivery Zones</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:delivery_zone_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> New Zone
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Zone Name</th>
+                    <th>Postal Codes</th>
+                    <th>Delivery Fee</th>
+                    <th>Est. Time</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for zone in zones %}
+                <tr>
+                    <td>{{ zone.name }}</td>
+                    <td>{{ zone.postal_codes|truncatewords:5 }}</td>
+                    <td>R{{ zone.delivery_fee|floatformat:2 }}</td>
+                    <td>{{ zone.estimated_time|default:"-" }}</td>
+                    <td>
+                        <span class="badge bg-{% if zone.is_active %}success{% else %}secondary{% endif %}">
+                            {% if zone.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'accounting_forms:delivery_zone_edit' zone.pk %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="{% url 'accounting_forms:delivery_zone_delete' zone.pk %}" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">No delivery zones found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

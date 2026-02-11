@@ -38,7 +38,7 @@ class HeroBannerAdmin(admin.ModelAdmin):
 class CompanySettingsAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Company Information', {
-            'fields': ('company_name', 'registration_number', 'vat_number', 'phone', 'email', 'address')
+            'fields': ('company_name', 'registration_number', 'vat_number', 'default_tax_rate', 'phone', 'email', 'address')
         }),
         ('Branding', {
             'fields': ('logo', 'favicon'),

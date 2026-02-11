@@ -448,7 +448,7 @@ class CreditNoteForm(forms.ModelForm):
             }),
             'issue_date': forms.DateInput(attrs={
                 'class': 'form-control',
-                'type': 'date'
+                'type': 'date',
             }),
             'reason': forms.Textarea(attrs={
                 'class': 'form-control',
@@ -462,6 +462,12 @@ class CreditNoteForm(forms.ModelForm):
                 'placeholder': 'Additional notes'
             }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.instance.pk:
+            from datetime import date
+            self.fields['issue_date'].initial = date.today()
 
 
 class CreditNoteItemForm(forms.ModelForm):
@@ -472,7 +478,7 @@ class CreditNoteItemForm(forms.ModelForm):
         fields = ['product', 'description', 'quantity', 'unit_price', 'tax_rate']
         widgets = {
             'product': forms.Select(attrs={
-                'class': 'form-select'
+                'class': 'form-select product-select'
             }),
             'description': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -480,9 +486,9 @@ class CreditNoteItemForm(forms.ModelForm):
             }),
             'quantity': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'placeholder': '1',
                 'step': '0.01',
-                'min': '0.01'
+                'min': '0.01',
+                'value': '1'
             }),
             'unit_price': forms.NumberInput(attrs={
                 'class': 'form-control',
@@ -491,10 +497,18 @@ class CreditNoteItemForm(forms.ModelForm):
             }),
             'tax_rate': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'value': '15.00',
                 'step': '0.01'
             }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set defaults for new items
+        if not self.instance.pk:
+            company = CompanySettings.objects.first()
+            default_rate = company.default_tax_rate if company else 15.00
+            self.fields['tax_rate'].initial = default_rate
+            self.fields['quantity'].initial = 1
 
 
 class CompanySettingsForm(forms.ModelForm):
@@ -504,7 +518,7 @@ class CompanySettingsForm(forms.ModelForm):
         model = CompanySettings
         fields = [
             'company_name', 'email', 'phone', 'address',
-            'vat_number', 'registration_number',
+            'vat_number', 'registration_number', 'default_tax_rate',
             'bank_name', 'account_name', 'account_number',
             'account_type', 'branch_code', 'payment_reference_note'
         ]
@@ -533,6 +547,11 @@ class CompanySettingsForm(forms.ModelForm):
             'registration_number': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': '2023/822513/07'
+            }),
+            'default_tax_rate': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '15.00',
+                'step': '0.01'
             }),
             'bank_name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -588,7 +607,7 @@ CreditNoteItemFormSet = inlineformset_factory(
     CreditNote,
     CreditNoteItem,
     form=CreditNoteItemForm,
-    extra=1,
+    extra=0,
     can_delete=True,
     min_num=1,
     validate_min=True

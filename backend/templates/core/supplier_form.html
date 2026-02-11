@@ -1,0 +1,89 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ title }} - Alpha LPGas{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-building"></i> {{ title }}</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:supplier_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <h5 class="mb-3">Contact Information</h5>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Supplier Name *</label>
+                    <input type="text" name="name" class="form-control" value="{{ supplier.name|default:'' }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Contact Person</label>
+                    <input type="text" name="contact_person" class="form-control" value="{{ supplier.contact_person|default:'' }}">
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" value="{{ supplier.email|default:'' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Phone</label>
+                    <input type="text" name="phone" class="form-control" value="{{ supplier.phone|default:'' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Tax Number</label>
+                    <input type="text" name="tax_number" class="form-control" value="{{ supplier.tax_number|default:'' }}">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Address</label>
+                <textarea name="address" class="form-control" rows="2">{{ supplier.address|default:'' }}</textarea>
+            </div>
+
+            <hr class="my-4">
+            <h5 class="mb-3">Banking Details</h5>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Bank Name</label>
+                    <input type="text" name="bank_name" class="form-control" value="{{ supplier.bank_name|default:'' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Account Number</label>
+                    <input type="text" name="bank_account_number" class="form-control" value="{{ supplier.bank_account_number|default:'' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Branch Code</label>
+                    <input type="text" name="bank_branch_code" class="form-control" value="{{ supplier.bank_branch_code|default:'' }}">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Notes</label>
+                <textarea name="notes" class="form-control" rows="2">{{ supplier.notes|default:'' }}</textarea>
+            </div>
+
+            {% if supplier %}
+            <div class="mb-3">
+                <div class="form-check">
+                    <input type="checkbox" name="is_active" class="form-check-input" id="is_active" {% if supplier.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="is_active">Active</label>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="d-flex justify-content-end gap-2">
+                <a href="{% url 'accounting_forms:supplier_list' %}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

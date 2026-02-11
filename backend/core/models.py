@@ -119,6 +119,7 @@ class CompanySettings(models.Model):
     company_name = models.CharField(max_length=255, default='Alpha LPGas')
     registration_number = models.CharField(max_length=100, default='2023/822513/07', help_text='Company Registration Number')
     vat_number = models.CharField(max_length=100, default='9415233222', help_text='VAT Registration Number')
+    default_tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=15.00, help_text='Default VAT/Tax rate (%) applied to invoices, quotes, and credit notes')
     phone = models.CharField(max_length=50, default='074 454 5665')
     email = models.EmailField(default='info@alphalpgas.co.za')
     address = models.TextField(blank=True, help_text='Company physical address')

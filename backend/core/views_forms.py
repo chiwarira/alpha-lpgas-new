@@ -7,7 +7,8 @@ from django.db.models import Sum
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from datetime import date, timedelta
-from .models import Client, Product, Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, Order, Driver
+from .models import Client, Product, Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem, Order, Driver, DeliveryZone, ContactSubmission
+from .models_accounting import Supplier, Expense, ExpenseCategory, JournalEntry, TaxPeriod
 from .forms import (
     ClientForm, ProductForm, QuoteForm, QuoteItemFormSet,
     InvoiceForm, InvoiceItemFormSet, PaymentForm,
@@ -913,6 +914,11 @@ def credit_note_create(request, invoice_pk=None):
         invoice = get_object_or_404(Invoice, pk=invoice_pk)
         initial['invoice'] = invoice
     
+    # Get default tax rate from company settings
+    from .models import CompanySettings
+    company = CompanySettings.objects.first()
+    default_tax_rate = company.default_tax_rate if company else 15.00
+    
     if request.method == 'POST':
         form = CreditNoteForm(request.POST)
         formset = CreditNoteItemFormSet(request.POST)
@@ -922,13 +928,36 @@ def credit_note_create(request, invoice_pk=None):
             credit_note.created_by = request.user
             credit_note.save()
             
-            formset.instance = credit_note
-            formset.save()
+            for item_form in formset:
+                if item_form.cleaned_data and not item_form.cleaned_data.get('DELETE', False):
+                    item = item_form.save(commit=False)
+                    item.credit_note = credit_note
+                    if item.product and not item.unit_price:
+                        item.unit_price = item.product.unit_price
+                        item.description = item.product.description
+                    if not item.tax_rate:
+                        item.tax_rate = default_tax_rate
+                    item.save()
             
             credit_note.calculate_totals()
             
             messages.success(request, f'Credit Note {credit_note.credit_note_number} created successfully!')
             return redirect('accounting_forms:credit_note_detail', pk=credit_note.pk)
+        else:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'Credit note form errors: {form.errors}')
+            logger.error(f'Credit note formset errors: {formset.errors}')
+            logger.error(f'Credit note formset non_form_errors: {formset.non_form_errors()}')
+            if form.errors:
+                for field, errors in form.errors.items():
+                    messages.error(request, f'{field}: {", ".join(errors)}')
+            for i, item_errors in enumerate(formset.errors):
+                if item_errors:
+                    for field, errors in item_errors.items():
+                        messages.error(request, f'Item {i+1} - {field}: {", ".join(errors)}')
+            for error in formset.non_form_errors():
+                messages.error(request, f'Items: {error}')
     else:
         form = CreditNoteForm(initial=initial)
         formset = CreditNoteItemFormSet()
@@ -936,7 +965,8 @@ def credit_note_create(request, invoice_pk=None):
     return render(request, 'core/credit_note_form.html', {
         'form': form,
         'formset': formset,
-        'title': 'Create Credit Note'
+        'title': 'Create Credit Note',
+        'default_tax_rate': default_tax_rate,
     })
 
 
@@ -1338,4 +1368,295 @@ def driver_delete(request, pk):
     
     return render(request, 'core/driver_confirm_delete.html', {
         'driver': driver,
+    })
+
+
+# Contact Submissions Views
+@login_required
+def contact_submission_list(request):
+    """List all contact submissions"""
+    status_filter = request.GET.get('status', '')
+    search_query = request.GET.get('search', '')
+    
+    submissions = ContactSubmission.objects.all()
+    
+    if status_filter:
+        submissions = submissions.filter(status=status_filter)
+    if search_query:
+        from django.db.models import Q
+        submissions = submissions.filter(
+            Q(name__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(subject__icontains=search_query) |
+            Q(message__icontains=search_query)
+        )
+    
+    return render(request, 'core/contact_submission_list.html', {
+        'submissions': submissions,
+        'status_filter': status_filter,
+        'search_query': search_query,
+    })
+
+
+@login_required
+def contact_submission_detail(request, pk):
+    """View contact submission details"""
+    submission = get_object_or_404(ContactSubmission, pk=pk)
+    
+    if request.method == 'POST':
+        new_status = request.POST.get('status')
+        notes = request.POST.get('notes', '')
+        if new_status:
+            submission.status = new_status
+        submission.notes = notes
+        if new_status == 'resolved':
+            submission.resolved_at = timezone.now()
+        submission.save()
+        messages.success(request, 'Contact submission updated.')
+        return redirect('accounting_forms:contact_submission_detail', pk=pk)
+    
+    return render(request, 'core/contact_submission_detail.html', {
+        'submission': submission,
+    })
+
+
+# Credit Note List View
+@login_required
+def credit_note_list(request):
+    """List all credit notes"""
+    status_filter = request.GET.get('status', '')
+    search_query = request.GET.get('search', '')
+    
+    credit_notes = CreditNote.objects.select_related('invoice', 'invoice__client').all()
+    
+    if status_filter:
+        credit_notes = credit_notes.filter(status=status_filter)
+    if search_query:
+        from django.db.models import Q
+        credit_notes = credit_notes.filter(
+            Q(credit_note_number__icontains=search_query) |
+            Q(invoice__invoice_number__icontains=search_query) |
+            Q(invoice__client__name__icontains=search_query) |
+            Q(reason__icontains=search_query)
+        )
+    
+    return render(request, 'core/credit_note_list.html', {
+        'credit_notes': credit_notes,
+        'status_filter': status_filter,
+        'search_query': search_query,
+    })
+
+
+# Delivery Zone Views
+@login_required
+def delivery_zone_list(request):
+    """List all delivery zones"""
+    zones = DeliveryZone.objects.all().order_by('name')
+    return render(request, 'core/delivery_zone_list.html', {
+        'zones': zones,
+    })
+
+
+@login_required
+def delivery_zone_create(request):
+    """Create a new delivery zone"""
+    if request.method == 'POST':
+        zone = DeliveryZone(
+            name=request.POST.get('name', ''),
+            postal_codes=request.POST.get('postal_codes', ''),
+            delivery_fee=request.POST.get('delivery_fee', 0),
+            estimated_time=request.POST.get('estimated_time', ''),
+            is_active=request.POST.get('is_active') == 'on',
+        )
+        zone.save()
+        messages.success(request, f'Delivery zone "{zone.name}" created.')
+        return redirect('accounting_forms:delivery_zone_list')
+    
+    return render(request, 'core/delivery_zone_form.html', {
+        'title': 'Create Delivery Zone',
+    })
+
+
+@login_required
+def delivery_zone_edit(request, pk):
+    """Edit a delivery zone"""
+    zone = get_object_or_404(DeliveryZone, pk=pk)
+    
+    if request.method == 'POST':
+        zone.name = request.POST.get('name', '')
+        zone.postal_codes = request.POST.get('postal_codes', '')
+        zone.delivery_fee = request.POST.get('delivery_fee', 0)
+        zone.estimated_time = request.POST.get('estimated_time', '')
+        zone.is_active = request.POST.get('is_active') == 'on'
+        zone.save()
+        messages.success(request, f'Delivery zone "{zone.name}" updated.')
+        return redirect('accounting_forms:delivery_zone_list')
+    
+    return render(request, 'core/delivery_zone_form.html', {
+        'title': 'Edit Delivery Zone',
+        'zone': zone,
+    })
+
+
+@login_required
+def delivery_zone_delete(request, pk):
+    """Delete a delivery zone"""
+    zone = get_object_or_404(DeliveryZone, pk=pk)
+    if request.method == 'POST':
+        zone.delete()
+        messages.success(request, f'Delivery zone "{zone.name}" deleted.')
+        return redirect('accounting_forms:delivery_zone_list')
+    return render(request, 'core/delivery_zone_confirm_delete.html', {'zone': zone})
+
+
+# Payment List View
+@login_required
+def payment_list(request):
+    """List all payments"""
+    search_query = request.GET.get('search', '')
+    method_filter = request.GET.get('method', '')
+    
+    payments = Payment.objects.select_related('invoice', 'invoice__client').all().order_by('-payment_date')
+    
+    if method_filter:
+        payments = payments.filter(payment_method=method_filter)
+    if search_query:
+        from django.db.models import Q
+        payments = payments.filter(
+            Q(invoice__invoice_number__icontains=search_query) |
+            Q(invoice__client__name__icontains=search_query) |
+            Q(reference__icontains=search_query)
+        )
+    
+    total_amount = payments.aggregate(total=Sum('amount'))['total'] or 0
+    
+    return render(request, 'core/payment_list.html', {
+        'payments': payments,
+        'search_query': search_query,
+        'method_filter': method_filter,
+        'total_amount': total_amount,
+    })
+
+
+# Supplier Views
+@login_required
+def supplier_list(request):
+    """List all suppliers"""
+    search_query = request.GET.get('search', '')
+    suppliers = Supplier.objects.all()
+    
+    if search_query:
+        from django.db.models import Q
+        suppliers = suppliers.filter(
+            Q(name__icontains=search_query) |
+            Q(contact_person__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(phone__icontains=search_query)
+        )
+    
+    return render(request, 'core/supplier_list.html', {
+        'suppliers': suppliers,
+        'search_query': search_query,
+    })
+
+
+@login_required
+def supplier_create(request):
+    """Create a new supplier"""
+    if request.method == 'POST':
+        supplier = Supplier(
+            name=request.POST.get('name', ''),
+            contact_person=request.POST.get('contact_person', ''),
+            email=request.POST.get('email', ''),
+            phone=request.POST.get('phone', ''),
+            address=request.POST.get('address', ''),
+            tax_number=request.POST.get('tax_number', ''),
+            bank_name=request.POST.get('bank_name', ''),
+            bank_account_number=request.POST.get('bank_account_number', ''),
+            bank_branch_code=request.POST.get('bank_branch_code', ''),
+            notes=request.POST.get('notes', ''),
+        )
+        supplier.save()
+        messages.success(request, f'Supplier "{supplier.name}" created.')
+        return redirect('accounting_forms:supplier_list')
+    
+    return render(request, 'core/supplier_form.html', {
+        'title': 'Create Supplier',
+    })
+
+
+@login_required
+def supplier_edit(request, pk):
+    """Edit a supplier"""
+    supplier = get_object_or_404(Supplier, pk=pk)
+    
+    if request.method == 'POST':
+        supplier.name = request.POST.get('name', '')
+        supplier.contact_person = request.POST.get('contact_person', '')
+        supplier.email = request.POST.get('email', '')
+        supplier.phone = request.POST.get('phone', '')
+        supplier.address = request.POST.get('address', '')
+        supplier.tax_number = request.POST.get('tax_number', '')
+        supplier.bank_name = request.POST.get('bank_name', '')
+        supplier.bank_account_number = request.POST.get('bank_account_number', '')
+        supplier.bank_branch_code = request.POST.get('bank_branch_code', '')
+        supplier.notes = request.POST.get('notes', '')
+        supplier.is_active = request.POST.get('is_active') == 'on'
+        supplier.save()
+        messages.success(request, f'Supplier "{supplier.name}" updated.')
+        return redirect('accounting_forms:supplier_list')
+    
+    return render(request, 'core/supplier_form.html', {
+        'title': 'Edit Supplier',
+        'supplier': supplier,
+    })
+
+
+@login_required
+def supplier_detail(request, pk):
+    """View supplier details"""
+    supplier = get_object_or_404(Supplier, pk=pk)
+    expenses = supplier.expenses.all()[:20]
+    return render(request, 'core/supplier_detail.html', {
+        'supplier': supplier,
+        'expenses': expenses,
+    })
+
+
+# Journal Entry Views
+@login_required
+def journal_entry_list(request):
+    """List all journal entries"""
+    status_filter = request.GET.get('status', '')
+    type_filter = request.GET.get('type', '')
+    search_query = request.GET.get('search', '')
+    
+    entries = JournalEntry.objects.all()
+    
+    if status_filter:
+        entries = entries.filter(status=status_filter)
+    if type_filter:
+        entries = entries.filter(entry_type=type_filter)
+    if search_query:
+        from django.db.models import Q
+        entries = entries.filter(
+            Q(entry_number__icontains=search_query) |
+            Q(description__icontains=search_query) |
+            Q(reference__icontains=search_query)
+        )
+    
+    return render(request, 'core/journal_entry_list.html', {
+        'entries': entries,
+        'status_filter': status_filter,
+        'type_filter': type_filter,
+        'search_query': search_query,
+    })
+
+
+@login_required
+def journal_entry_detail(request, pk):
+    """View journal entry details"""
+    entry = get_object_or_404(JournalEntry, pk=pk)
+    return render(request, 'core/journal_entry_detail.html', {
+        'entry': entry,
     })
