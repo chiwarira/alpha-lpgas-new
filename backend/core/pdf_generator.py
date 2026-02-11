@@ -70,12 +70,18 @@ def generate_invoice_pdf(invoice):
     header_data = []
     if os.path.exists(logo_path):
         try:
-            logo = Image(logo_path, width=40*mm, height=15*mm)
+            logo = Image(logo_path, width=90*mm, height=17.5*mm)
+            company_details_style = ParagraphStyle(
+                'CompanyDetails',
+                parent=styles['Normal'],
+                fontSize=9,
+                textColor=colors.HexColor('#333333'),
+                leading=14,
+            )
             # Left: Logo and company info, Right: Invoice details
             header_data = [[
                 [logo, 
-                 Paragraph(company_name, company_name_style),
-                 Paragraph(f"Reg No: {company_reg}<br/>VAT No: {company_vat}<br/>Tel: {company_phone}<br/>Email: {company_email}", small_text_style)],
+                 Paragraph(f"{company_name}<br/>Reg No: {company_reg}<br/>VAT No: {company_vat}<br/>Tel: {company_phone}<br/>Email: {company_email}", company_details_style)],
                 [Paragraph(f"<b>Invoice No:</b><br/>{invoice.invoice_number}<br/><br/><b>Issue Date:</b><br/>{invoice.issue_date.strftime('%B %d, %Y')}<br/><br/><b>Due Date:</b><br/>{invoice.due_date.strftime('%B %d, %Y')}<br/><br/><b>Status:</b><br/>{invoice.get_status_display().upper()}", small_text_style)]
             ]]
         except:
@@ -236,10 +242,18 @@ def generate_quote_pdf(quote):
     from django.conf import settings
     
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=15*mm, bottomMargin=15*mm, leftMargin=15*mm, rightMargin=15*mm)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=15*mm, bottomMargin=20*mm, leftMargin=15*mm, rightMargin=15*mm)
     
     elements = []
     styles = getSampleStyleSheet()
+    
+    def add_page_footer(canvas, doc):
+        canvas.saveState()
+        canvas.setFont('Helvetica-Oblique', 10)
+        canvas.setFillColor(colors.HexColor('#CC0066'))
+        page_width = A4[0]
+        canvas.drawCentredString(page_width / 2, 10*mm, "Always striving for customer satisfaction!")
+        canvas.restoreState()
     
     # Custom styles
     company_name_style = ParagraphStyle(
@@ -281,18 +295,24 @@ def generate_quote_pdf(quote):
     header_data = []
     if os.path.exists(logo_path):
         try:
-            logo = Image(logo_path, width=40*mm, height=15*mm)
+            logo = Image(logo_path, width=90*mm, height=17.5*mm)
+            company_details_style = ParagraphStyle(
+                'CompanyDetails',
+                parent=styles['Normal'],
+                fontSize=9,
+                textColor=colors.HexColor('#333333'),
+                leading=14,
+            )
             header_data = [[
                 [logo, 
-                 Paragraph(company_name, company_name_style),
-                 Paragraph(f"Reg No: {company_reg}<br/>VAT No: {company_vat}<br/>Tel: {company_phone}<br/>Email: {company_email}", small_text_style)],
+                 Paragraph(f"{company_name}<br/>Reg No: {company_reg}<br/>VAT No: {company_vat}<br/>Tel: {company_phone}<br/>Email: {company_email}", company_details_style)],
                 [Paragraph(f"<b>Quote No:</b><br/>{quote.quote_number}<br/><br/><b>Issue Date:</b><br/>{quote.issue_date.strftime('%B %d, %Y')}<br/><br/><b>Valid Until:</b><br/>{quote.expiry_date.strftime('%B %d, %Y')}<br/><br/><b>Status:</b><br/>{quote.get_status_display().upper()}", small_text_style)]
             ]]
         except:
             pass
     
     if header_data:
-        header_table = Table(header_data, colWidths=[110*mm, 70*mm])
+        header_table = Table(header_data, colWidths=[160*mm, 20*mm])
         header_table.setStyle(TableStyle([
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
@@ -376,29 +396,18 @@ def generate_quote_pdf(quote):
     elements.append(totals_table)
     elements.append(Spacer(1, 10*mm))
     
-    # Footer message
-    footer_style = ParagraphStyle(
-        'Footer',
-        parent=styles['Normal'],
-        fontSize=10,
-        textColor=colors.HexColor('#CC0066'),
-        alignment=TA_CENTER,
-        fontName='Helvetica-Oblique'
-    )
-    elements.append(Paragraph("Always striving for customer satisfaction!", footer_style))
-    
-    # Terms and notes
+    # Terms and notes (footer message is rendered at page bottom via callback)
     if quote.terms:
         elements.append(Paragraph("Terms & Conditions:", heading_style))
-        elements.append(Paragraph(quote.terms, normal_style))
+        elements.append(Paragraph(quote.terms, styles['Normal']))
         elements.append(Spacer(1, 5*mm))
     
     if quote.notes:
         elements.append(Paragraph("Notes:", heading_style))
-        elements.append(Paragraph(quote.notes, normal_style))
+        elements.append(Paragraph(quote.notes, styles['Normal']))
     
     # Build PDF
-    doc.build(elements)
+    doc.build(elements, onFirstPage=add_page_footer, onLaterPages=add_page_footer)
     
     pdf = buffer.getvalue()
     buffer.close()
