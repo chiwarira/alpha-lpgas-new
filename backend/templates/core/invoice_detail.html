@@ -1002,27 +1002,32 @@ select.note-field {
 <div class="container mt-4">
     <!-- Action Buttons -->
     <div class="print-hide">
-        <div class="row mb-4">
-            <div class="col-md-6">
+        <div class="row mb-2">
+            <div class="col-12">
                 <h1><i class="bi bi-receipt"></i> Invoice {{ invoice.invoice_number }}</h1>
             </div>
-            <div class="col-md-6 text-end">
-                <a href="{% url 'accounting_forms:payment_create' %}?invoice={{ invoice.pk }}" class="btn btn-success">
+        </div>
+        <div class="row mb-4">
+            <div class="col-12 d-flex flex-wrap gap-1 justify-content-end">
+                <a href="{% url 'accounting_forms:invoice_create' %}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus-circle"></i> New Invoice
+                </a>
+                <a href="{% url 'accounting_forms:payment_create' %}?invoice={{ invoice.pk }}" class="btn btn-sm btn-success">
                     <i class="bi bi-cash-coin"></i> Add Payment
                 </a>
-                <a href="{% url 'accounting_forms:credit_note_create_for_invoice' invoice.pk %}" class="btn btn-warning">
+                <a href="{% url 'accounting_forms:credit_note_create_for_invoice' invoice.pk %}" class="btn btn-sm btn-warning">
                     <i class="bi bi-file-earmark-minus"></i> Create Credit Note
                 </a>
-                <button onclick="sendWhatsAppInvoice()" class="btn btn-success" id="whatsapp-btn">
+                <button onclick="sendWhatsAppInvoice()" class="btn btn-sm btn-success" id="whatsapp-btn">
                     <i class="fab fa-whatsapp"></i> Send via WhatsApp
                 </button>
-                <button onclick="printInvoiceWithCustomFilename()" class="btn btn-info">
+                <button onclick="printInvoiceWithCustomFilename()" class="btn btn-sm btn-info">
                     <i class="bi bi-printer"></i> Print
                 </button>
-                <a href="{% url 'accounting_forms:invoice_edit' invoice.invoice_number %}" class="btn btn-primary">
+                <a href="{% url 'accounting_forms:invoice_edit' invoice.invoice_number %}" class="btn btn-sm btn-primary">
                     <i class="bi bi-pencil"></i> Edit
                 </a>
-                <a href="{% url 'accounting_forms:invoice_list' %}" class="btn btn-secondary">
+                <a href="{% url 'accounting_forms:invoice_list' %}" class="btn btn-sm btn-secondary">
                     <i class="bi bi-arrow-left"></i> Back
                 </a>
             </div>
