@@ -1,5 +1,6 @@
 [build]
 builder = "NIXPACKS"
+watchPatterns = ["backend/**"]
 
 [deploy]
-startCommand = "echo 'This is a monorepo. Deploy backend and frontend separately.'"
+startCommand = "cd backend && bash start.sh"
