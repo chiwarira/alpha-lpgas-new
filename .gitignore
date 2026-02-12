@@ -87,3 +87,11 @@ backups/
 *.pem
 *.key
 *.crt
+
+# Debug/migration scripts with credentials
+backend/check_*.py
+backend/fix_*.py
+backend/debug_*.py
+backend/migrate_railway*.py
+backend/split_client*.py
+backend/find_clients*.py
