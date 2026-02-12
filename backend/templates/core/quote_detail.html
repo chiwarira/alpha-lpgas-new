@@ -993,13 +993,17 @@ select.note-field {
     <!-- Quote Header -->
     <div class="header">
         <div class="company-section">
+            {% if company_settings and company_settings.logo %}
+            <img src="{{ company_settings.logo.url }}" alt="{{ company_settings.company_name }} Logo" class="logo">
+            {% else %}
             <img src="{% static 'alpha-lpgas-logo.png' %}" alt="Alpha LPGas Logo" class="logo">
+            {% endif %}
             <div class="company-details">
-                Alpha LPGas<br>
-                Reg No: 2023/822513/07<br>
-                VAT No: 9415223222<br>
-                Tel: 074 454 5665<br>
-                Email: info@alphalpgas.co.za<br>
+                {{ company_settings.company_name|default:"Alpha LPGas" }}<br>
+                Reg No: {{ company_settings.registration_number|default:"2023/822513/07" }}<br>
+                VAT No: {{ company_settings.vat_number|default:"9415233222" }}<br>
+                Tel: {{ company_settings.phone|default:"074 454 5665" }}<br>
+                Email: {{ company_settings.email|default:"info@alphalpgas.co.za" }}<br>
             </div>
         </div>
         <div class="invoice-details">

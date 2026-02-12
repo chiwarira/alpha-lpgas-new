@@ -116,13 +116,20 @@ def generate_invoice_pdf(invoice):
     <b>Phone:</b> {invoice.client.phone}<br/>
     <b>Email:</b> {invoice.client.email if invoice.client.email else 'No email provided'}"""
     
+    bank_name = company.bank_name if company else "Nedbank"
+    account_name = company.account_name if company else "Alpha LPGas"
+    account_number = company.account_number if company else "1101466707"
+    account_type = company.account_type if company else "Current"
+    branch_code = company.branch_code if company else "125009"
+    payment_ref = company.payment_reference_note if company else "Please use your address as reference"
+    
     banking_info = f"""<b>Banking Details</b><br/>
-    <b>Name:</b> {company_name}<br/>
-    <b>Bank:</b> Nedbank<br/>
-    <b>Acc No:</b> 1191 646 707<br/>
-    <b>Acc Type:</b> Current<br/>
-    <b>Branch Code:</b> 125009<br/>
-    <font color='#CC0066'><i>Please use your address as reference</i></font>"""
+    <b>Name:</b> {account_name}<br/>
+    <b>Bank:</b> {bank_name}<br/>
+    <b>Acc No:</b> {account_number}<br/>
+    <b>Acc Type:</b> {account_type}<br/>
+    <b>Branch Code:</b> {branch_code}<br/>
+    <font color='#CC0066'><i>{payment_ref}</i></font>"""
     
     info_data = [[
         Paragraph(client_info, small_text_style),
@@ -489,8 +496,7 @@ def generate_client_statement_pdf(client, start_date, end_date):
     company_vat = company.vat_number if company else "9415233222"
     company_phone = company.phone if company else "074 454 5665"
     company_email = company.email if company else "info@alphalpgas.co.za"
-    company_address = company.address if company else "Sunny Acres Shopping Centre"
-    company_city = company.city if company else "Sunnyacres, Western Cape"
+    company_address = company.address if company else "Sunny Acres Shopping Centre, Sunnyacres, Western Cape"
     
     # Header with logo
     logo_path = os.path.join(settings.BASE_DIR, 'static', 'alpha-lpgas-logo.png')
@@ -509,7 +515,6 @@ def generate_client_statement_pdf(client, start_date, end_date):
     company_info = f"Company Reg No: {company_reg}<br/>"
     company_info += f"Company VAT No: {company_vat}<br/>"
     company_info += f"{company_address}<br/>"
-    company_info += f"{company_city}<br/>"
     company_info += f"Cell: {company_phone}<br/>"
     company_info += f"Email: {company_email}"
     
@@ -741,7 +746,7 @@ def generate_client_statement_pdf(client, start_date, end_date):
         alignment=TA_CENTER,
         fontName='Helvetica-Bold'
     )
-    elements.append(Paragraph("Make all EFT's payable to Alpha LPGas", footer_style))
+    elements.append(Paragraph(f"Make all EFT's payable to {company_name}", footer_style))
     elements.append(Spacer(1, 3*mm))
     
     thank_you_style = ParagraphStyle(
@@ -762,9 +767,10 @@ def generate_client_statement_pdf(client, start_date, end_date):
         textColor=colors.HexColor('#666666'),
         alignment=TA_CENTER
     )
-    contact_text = f"Should you have any enquiries concerning this statement, please contact Grace on 074-454-9665<br/>"
-    contact_text += f"Sunny Acres Shopping Centre, Lekkerwater, Sunnyacres, Western Cape<br/>"
-    contact_text += f"Tel: 074-454-9665 | Email: info@alphalpgas.co.za | Web: www.alphalpgas.co.za"
+    statement_footer = company.statement_footer_text if company and company.statement_footer_text else "Should you have any enquiries concerning this statement, please contact us."
+    contact_text = statement_footer.replace('\n', '<br/>') + "<br/>"
+    contact_text += f"{company_address}<br/>"
+    contact_text += f"Tel: {company_phone} | Email: {company_email}"
     elements.append(Paragraph(contact_text, contact_style
         ))
     

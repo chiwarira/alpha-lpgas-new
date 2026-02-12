@@ -1037,13 +1037,17 @@ select.note-field {
     <!-- Invoice Header -->
     <div class="header">
         <div class="company-section">
+            {% if company_settings and company_settings.logo %}
+            <img src="{{ company_settings.logo.url }}" alt="{{ company_settings.company_name }} Logo" class="logo">
+            {% else %}
             <img src="{% static 'alpha-lpgas-logo.png' %}" alt="Alpha LPGas Logo" class="logo">
+            {% endif %}
             <div class="company-details">
-                Alpha LPGas<br>
-                Reg No: 2023/822513/07<br>
-                VAT No: 9415223222<br>
-                Tel: 074 454 5665<br>
-                Email: info@alphalpgas.co.za<br>
+                {{ company_settings.company_name|default:"Alpha LPGas" }}<br>
+                Reg No: {{ company_settings.registration_number|default:"2023/822513/07" }}<br>
+                VAT No: {{ company_settings.vat_number|default:"9415233222" }}<br>
+                Tel: {{ company_settings.phone|default:"074 454 5665" }}<br>
+                Email: {{ company_settings.email|default:"info@alphalpgas.co.za" }}<br>
             </div>
         </div>
         <div class="invoice-details">
@@ -1130,27 +1134,27 @@ select.note-field {
                 <div class="banking-info-title">Banking Details</div>
                 <div class="banking-info-row">
                     <div class="banking-info-label">Name:</div>
-                    <div class="banking-info-value">Alpha LPGas</div>
+                    <div class="banking-info-value">{{ company_settings.account_name|default:"Alpha LPGas" }}</div>
                 </div>
                 <div class="banking-info-row">
                     <div class="banking-info-label">Bank:</div>
-                    <div class="banking-info-value">Nedbank</div>
+                    <div class="banking-info-value">{{ company_settings.bank_name|default:"Nedbank" }}</div>
                 </div>
                 <div class="banking-info-row">
                     <div class="banking-info-label">Acc. No:</div>
-                    <div class="banking-info-value">1191 646 707</div>
+                    <div class="banking-info-value">{{ company_settings.account_number|default:"1101466707" }}</div>
                 </div>
                 <div class="banking-info-row">
                     <div class="banking-info-label">Acc. Type:</div>
-                    <div class="banking-info-value">Current</div>
+                    <div class="banking-info-value">{{ company_settings.account_type|default:"Current" }}</div>
                 </div>
                 <div class="banking-info-row">
                     <div class="banking-info-label">Branch Code:</div>
-                    <div class="banking-info-value">125009</div>
+                    <div class="banking-info-value">{{ company_settings.branch_code|default:"125009" }}</div>
                 </div>
             </div>
             <div class="banking-reference">
-                <span style="color: #e01b84; font-size: 1.105em;">Please use your address as reference</span>
+                <span style="color: #e01b84; font-size: 1.105em;">{{ company_settings.payment_reference_note|default:"Please use your address as reference" }}</span>
             </div>
         </div>
     </div>

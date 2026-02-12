@@ -92,6 +92,7 @@ urlpatterns = [
     path('loyalty-cards/<int:pk>/download/', download_loyalty_card, name='download_loyalty_card'),
     
     # Payments
+    path('payments/', payment_list, name='payment_list'),
     path('payments/create/', payment_create, name='payment_create'),
     path('invoices/<int:invoice_pk>/payments/create/', payment_create, name='payment_create_for_invoice'),
     
@@ -121,9 +122,6 @@ urlpatterns = [
     path('delivery-zones/create/', delivery_zone_create, name='delivery_zone_create'),
     path('delivery-zones/<int:pk>/edit/', delivery_zone_edit, name='delivery_zone_edit'),
     path('delivery-zones/<int:pk>/delete/', delivery_zone_delete, name='delivery_zone_delete'),
-    
-    # Payments List
-    path('payments/', payment_list, name='payment_list'),
     
     # Credit Notes List
     path('credit-notes/', credit_note_list, name='credit_note_list'),
