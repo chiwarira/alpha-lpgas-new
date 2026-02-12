@@ -21,6 +21,26 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Left-align calendar icon on date inputs */
+        input[type="date"] {
+            position: relative;
+            direction: rtl;
+        }
+        input[type="date"]::-webkit-datetime-edit {
+            direction: ltr;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            position: absolute;
+            left: 8px;
+            right: auto;
+            cursor: pointer;
+        }
+        input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+            position: relative;
+            left: 16px;
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -54,7 +74,7 @@
                             <li><a class="dropdown-item" href="{% url 'accounting_forms:credit_note_list' %}"><i class="bi bi-file-earmark-minus"></i> Credit Notes</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'accounting_forms:loyalty_card_list' %}"><i class="bi bi-award"></i> Loyalty Cards</a></li>
-                            <li><a class="dropdown-item" href="{% url 'accounting_forms:daily_sales_report' %}"><i class="bi bi-graph-up"></i> Daily Sales</a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:daily_sales_report' %}"><i class="bi bi-graph-up"></i> Sales Report</a></li>
                         </ul>
                     </li>
                     

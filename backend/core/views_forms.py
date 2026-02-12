@@ -977,25 +977,88 @@ def credit_note_detail(request, pk):
     return render(request, 'core/credit_note_detail.html', {'credit_note': credit_note})
 
 
-# Daily Sales Report
+# Sales Report
 @login_required
 def daily_sales_report(request):
-    """Daily sales overview with payment type and product breakdown"""
+    """Sales overview with payment type and product breakdown - supports daily, weekly, monthly, yearly, and custom ranges"""
     from django.db.models import Sum, Count, Q, F
-    from datetime import datetime, date
+    from datetime import datetime, date, timedelta
+    import calendar
     
-    # Get selected date from query params or use today
-    selected_date_str = request.GET.get('date')
-    if selected_date_str:
+    today = date.today()
+    range_type = request.GET.get('range', 'daily')
+    
+    # Determine date range based on range_type
+    if range_type == 'weekly':
+        date_str = request.GET.get('date')
+        if date_str:
+            try:
+                ref_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                ref_date = today
+        else:
+            ref_date = today
+        start_date = ref_date - timedelta(days=ref_date.weekday())  # Monday
+        end_date = start_date + timedelta(days=6)  # Sunday
+        range_label = f"Week of {start_date.strftime('%b %d')} - {end_date.strftime('%b %d, %Y')}"
+    elif range_type == 'monthly':
+        month_str = request.GET.get('month')
+        if month_str:
+            try:
+                ref_date = datetime.strptime(month_str + '-01', '%Y-%m-%d').date()
+            except ValueError:
+                ref_date = today
+        else:
+            ref_date = today
+        start_date = ref_date.replace(day=1)
+        last_day = calendar.monthrange(ref_date.year, ref_date.month)[1]
+        end_date = ref_date.replace(day=last_day)
+        range_label = start_date.strftime('%B %Y')
+    elif range_type == 'yearly':
+        year_str = request.GET.get('year')
+        if year_str:
+            try:
+                year = int(year_str)
+            except ValueError:
+                year = today.year
+        else:
+            year = today.year
+        start_date = date(year, 1, 1)
+        end_date = date(year, 12, 31)
+        range_label = str(year)
+    elif range_type == 'custom':
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
         try:
-            selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+            start_date = datetime.strptime(date_from, '%Y-%m-%d').date() if date_from else today
         except ValueError:
-            selected_date = date.today()
+            start_date = today
+        try:
+            end_date = datetime.strptime(date_to, '%Y-%m-%d').date() if date_to else today
+        except ValueError:
+            end_date = today
+        if start_date > end_date:
+            start_date, end_date = end_date, start_date
+        range_label = f"{start_date.strftime('%b %d, %Y')} - {end_date.strftime('%b %d, %Y')}"
     else:
-        selected_date = date.today()
+        # Default: daily
+        range_type = 'daily'
+        date_str = request.GET.get('date')
+        if date_str:
+            try:
+                start_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                start_date = today
+        else:
+            start_date = today
+        end_date = start_date
+        range_label = start_date.strftime('%B %d, %Y')
     
-    # Get all payments for the selected date
-    payments = Payment.objects.filter(payment_date=selected_date).select_related('invoice', 'invoice__client')
+    # Get all payments for the date range
+    payments = Payment.objects.filter(
+        payment_date__gte=start_date,
+        payment_date__lte=end_date
+    ).select_related('invoice', 'invoice__client')
     
     # Calculate totals by payment method
     payment_summary = payments.values('payment_method').annotate(
@@ -1007,19 +1070,24 @@ def daily_sales_report(request):
     total_sales = payments.aggregate(total=Sum('amount'))['total'] or 0
     total_transactions = payments.count()
     
-    # Get invoices created on selected date
-    invoices_created = Invoice.objects.filter(issue_date=selected_date)
+    # Get invoices created in the date range
+    invoices_created = Invoice.objects.filter(
+        issue_date__gte=start_date,
+        issue_date__lte=end_date
+    )
     invoices_created_total = invoices_created.aggregate(total=Sum('total_amount'))['total'] or 0
     invoices_created_count = invoices_created.count()
     
-    # Get invoices paid on selected date (different from payments - shows invoice totals)
+    # Get invoices paid in the date range
     invoices_paid = Invoice.objects.filter(
-        payments__payment_date=selected_date
+        payments__payment_date__gte=start_date,
+        payments__payment_date__lte=end_date
     ).distinct()
     
-    # Get product sales breakdown for invoices paid on this date
+    # Get product sales breakdown for invoices paid in this range
     product_summary = InvoiceItem.objects.filter(
-        invoice__payments__payment_date=selected_date
+        invoice__payments__payment_date__gte=start_date,
+        invoice__payments__payment_date__lte=end_date
     ).values(
         'product__name'
     ).annotate(
@@ -1033,8 +1101,20 @@ def daily_sales_report(request):
     product_total_sales = sum(p['total_sales'] or 0 for p in product_summary)
     product_total_vat = sum(p['total_vat'] or 0 for p in product_summary)
     
+    # Calculate number of days in range
+    num_days = (end_date - start_date).days + 1
+    
+    # Year choices for yearly dropdown (current year back to 5 years ago)
+    year_choices = list(range(today.year, today.year - 6, -1))
+    
     context = {
-        'selected_date': selected_date,
+        'range_type': range_type,
+        'range_label': range_label,
+        'start_date': start_date,
+        'end_date': end_date,
+        'num_days': num_days,
+        'year_choices': year_choices,
+        'selected_date': start_date,  # backward compat
         'payments': payments.order_by('-payment_date', '-created_at'),
         'payment_summary': payment_summary,
         'total_sales': total_sales,
