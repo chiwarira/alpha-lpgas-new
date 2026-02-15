@@ -120,7 +120,7 @@
                 <tbody>
                     {% for transaction in transactions %}
                     <tr>
-                        <td class="small">{{ transaction.created_at|date:"Y-m-d" }}</td>
+                        <td class="small">{% if transaction.invoice %}{{ transaction.invoice.issue_date|date:"Y-m-d" }}{% else %}{{ transaction.created_at|date:"Y-m-d" }}{% endif %}</td>
                         <td class="small">
                             {% if transaction.transaction_type == 'stamp' %}
                                 <span class="badge bg-success badge-sm">Stamp</span>

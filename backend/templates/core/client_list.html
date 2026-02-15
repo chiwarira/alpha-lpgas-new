@@ -1,78 +1,17 @@
+{% extends 'core/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clients - Alpha LPGas</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'accounting_forms:dashboard' %}">
-                <i class="bi bi-calculator"></i> Alpha LPGas Accounting
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="{% url 'accounting_forms:client_list' %}">
-                            <i class="bi bi-people"></i> Clients
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'accounting_forms:product_list' %}">
-                            <i class="bi bi-box"></i> Products
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'accounting_forms:quote_list' %}">
-                            <i class="bi bi-file-earmark-text"></i> Quotes
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'accounting_forms:invoice_list' %}">
-                            <i class="bi bi-receipt"></i> Invoices
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'accounting_forms:order_list' %}">
-                            <i class="bi bi-cart-check"></i> Orders
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'accounting_forms:daily_sales_report' %}">
-                            <i class="bi bi-graph-up"></i> Sales Report
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'accounting_forms:driver_list' %}">
-                            <i class="bi bi-truck"></i> Drivers
-                        </a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/admin/">
-                            <i class="bi bi-gear"></i> Admin
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <span class="nav-link">
-                            <i class="bi bi-person-circle"></i> {{ user.username }}
-                        </span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
 
-    <div class="container-fluid mt-4">
-        <div class="row mb-4">
+{% block title %}Clients - Alpha LPGas{% endblock %}
+
+{% block extra_css %}
+<style>
+    .sortable { cursor: pointer; user-select: none; }
+    .sortable:hover { background-color: #495057 !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
             <div class="col-md-6">
                 <h1><i class="bi bi-people-fill"></i> Clients</h1>
             </div>
@@ -110,19 +49,6 @@
                 </div>
             </div>
         </div>
-
-        {% if messages %}
-        <div class="row">
-            <div class="col-12">
-                {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
 
         <div class="card">
             <div class="card-body">
@@ -301,42 +227,10 @@
                 {% endif %}
             </div>
         </div>
-    </div>
+{% endblock %}
 
-    <style>
-        .sortable { cursor: pointer; user-select: none; }
-        .sortable:hover { background-color: #495057 !important; }
-
-        .mobile-cards { display: none; }
-
-        @media (max-width: 767.98px) {
-            .desktop-table { display: none !important; }
-            .mobile-cards { display: block !important; }
-            .row.mb-4 > [class*="col-md-6"]:first-child { margin-bottom: 0.5rem; }
-            .row.mb-4 > [class*="col-md-6"]:last-child.text-end { text-align: left !important; }
-            .row.mb-4 > [class*="col-md-6"] h1 { font-size: 1.3rem; }
-            .row.mb-4 > [class*="col-md-6"] .btn { padding: 0.3rem 0.6rem; font-size: 0.8rem; margin-bottom: 0.25rem; }
-            .card .card-body form.row > [class*="col-md"] { margin-bottom: 0.5rem; }
-            .container-fluid { padding-left: 0.5rem; padding-right: 0.5rem; }
-            .mobile-card-item { background: #fff; border: 1px solid #dee2e6; border-radius: 0.5rem; padding: 0.85rem; margin-bottom: 0.6rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-            .mobile-card-item .card-item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
-            .mobile-card-item .card-item-header .title { font-weight: 600; font-size: 0.95rem; color: #212529; }
-            .mobile-card-item .card-item-header .subtitle { font-size: 0.8rem; color: #6c757d; }
-            .mobile-card-item .card-item-details { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem 1rem; font-size: 0.8rem; }
-            .mobile-card-item .card-item-details .detail-label { color: #6c757d; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; }
-            .mobile-card-item .card-item-details .detail-value { color: #212529; font-weight: 500; }
-            .mobile-card-item .card-item-actions { margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px solid #f0f0f0; display: flex; gap: 0.4rem; flex-wrap: wrap; }
-            .mobile-card-item .card-item-actions .btn { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
-            .alert { padding: 0.5rem 0.75rem; font-size: 0.8rem; }
-            #bulk-actions-bar { flex-direction: column; gap: 0.5rem; }
-            #bulk-actions-bar .btn-group { flex-wrap: wrap; }
-        }
-        @media (max-width: 575.98px) {
-            .mobile-card-item .card-item-details { grid-template-columns: 1fr; }
-        }
-    </style>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+{% block extra_js %}
+<script>
     // Current sort state
     let currentSort = '{{ sort_by }}';
     
@@ -508,6 +402,5 @@
             });
         }
     }
-    </script>
-</body>
-</html>
+</script>
+{% endblock %}
