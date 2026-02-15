@@ -4,10 +4,52 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Q
-from .models import Invoice
+from .models import Invoice, CompanySettings
 from .models_loyalty import LoyaltyCard
 from .utils_loyalty import generate_loyalty_card_image, send_loyalty_card_whatsapp, get_cylinder_size_from_invoice
 import base64
+
+
+def _build_loyalty_message(loyalty_card):
+    """Build WhatsApp message for a loyalty card using CompanySettings template."""
+    settings = CompanySettings.load()
+    stamps = loyalty_card.stamps
+    remaining = max(0, 9 - stamps)
+    reward_type_raw = loyalty_card.get_reward_type()
+
+    if stamps >= 9:
+        # Reward message
+        reward_type_display = 'a FREE cylinder' if reward_type_raw == 'free' else '50% OFF'
+        template = settings.whatsapp_loyalty_reward_message
+        message = template.format(
+            client_name=loyalty_card.client.name,
+            company_name=settings.company_name,
+            cylinder_size=loyalty_card.cylinder_size,
+            reward_type=reward_type_display,
+        )
+    else:
+        # Progress message
+        reward_text = f"Only {remaining} more purchase(s) to earn your reward!"
+        template = settings.whatsapp_loyalty_message
+        message = template.format(
+            client_name=loyalty_card.client.name,
+            company_name=settings.company_name,
+            cylinder_size=loyalty_card.cylinder_size,
+            stamps=stamps,
+            remaining=remaining,
+            reward_text=reward_text,
+        )
+    return message
+
+
+def _format_phone(phone_number):
+    """Format a South African phone number for WhatsApp (27...)."""
+    clean = ''.join(filter(str.isdigit, phone_number))
+    if clean.startswith('0'):
+        clean = '27' + clean[1:]
+    elif not clean.startswith('27'):
+        clean = '27' + clean
+    return clean
 
 
 @login_required
@@ -55,56 +97,32 @@ def send_loyalty_card_whatsapp_view(request, pk):
     """Send loyalty card via WhatsApp"""
     loyalty_card = get_object_or_404(LoyaltyCard, pk=pk)
     
-    # Generate the loyalty card image
-    image_bytes = generate_loyalty_card_image(loyalty_card)
-    
     # Get client phone number
     phone_number = loyalty_card.client.phone
     if not phone_number:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': 'Client does not have a phone number on file.'})
         messages.error(request, 'Client does not have a phone number on file.')
         return redirect('accounting_forms:loyalty_card_detail', pk=pk)
     
-    # Format phone number
-    clean_phone = ''.join(filter(str.isdigit, phone_number))
+    # Format phone number for WhatsApp
+    formatted_phone = _format_phone(phone_number)
     
-    # Prepare message
+    # Build message from CompanySettings template
+    message = _build_loyalty_message(loyalty_card)
+    
     stamps = loyalty_card.stamps
-    reward_type = loyalty_card.get_reward_type()
     
-    if stamps >= 9:
-        if reward_type == 'free':
-            message = f"🎉 Congratulations {loyalty_card.client.name}! You've earned a FREE {loyalty_card.cylinder_size} cylinder on your next purchase!"
-        else:
-            message = f"🎉 Congratulations {loyalty_card.client.name}! You've earned 50% OFF your next {loyalty_card.cylinder_size} cylinder purchase!"
-    else:
-        remaining = 9 - stamps
-        message = f"Thank you for your purchase, {loyalty_card.client.name}! You have {stamps}/9 stamps. Only {remaining} more purchase(s) to earn your reward! 🎁"
-    
-    # Convert image bytes to base64 for WhatsApp
-    image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-    
-    # Construct WhatsApp URL with image and message
-    whatsapp_url = f"https://wa.me/{clean_phone}?text={message}"
-    
-    # Store the image data in session for potential download
-    request.session['loyalty_card_image'] = image_base64
-    request.session['loyalty_card_phone'] = clean_phone
-    request.session['loyalty_card_message'] = message
-    
-    messages.success(request, f'Loyalty card ready to send! Stamps: {stamps}/9')
-    
-    # Return JSON response with WhatsApp URL and image data
+    # Return JSON response for AJAX calls
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({
             'success': True,
-            'whatsapp_url': whatsapp_url,
             'message': message,
             'stamps': stamps,
-            'phone': clean_phone,
-            'image_base64': image_base64
+            'phone': formatted_phone,
         })
     
-    # Redirect back to loyalty card detail
+    messages.success(request, f'Loyalty card ready to send! Stamps: {stamps}/9')
     return redirect('accounting_forms:loyalty_card_detail', pk=pk)
 
 
@@ -113,11 +131,12 @@ def download_loyalty_card(request, pk):
     """Download loyalty card image"""
     loyalty_card = get_object_or_404(LoyaltyCard, pk=pk)
     
-    # Generate the loyalty card image
-    image_bytes = generate_loyalty_card_image(loyalty_card)
+    # Generate the loyalty card image (returns BytesIO)
+    image_buffer = generate_loyalty_card_image(loyalty_card)
+    image_data = image_buffer.read()
     
     # Return as downloadable PNG
-    response = HttpResponse(image_bytes, content_type='image/png')
+    response = HttpResponse(image_data, content_type='image/png')
     response['Content-Disposition'] = f'attachment; filename="loyalty_card_{loyalty_card.client.name}_{loyalty_card.cylinder_size}.png"'
     
     return response

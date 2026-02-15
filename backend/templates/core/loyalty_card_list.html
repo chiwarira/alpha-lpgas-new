@@ -39,7 +39,7 @@
     <!-- Loyalty Cards Table -->
     <div class="card">
         <div class="card-body">
-            <div class="table-responsive">
+            <div class="table-responsive desktop-table">
                 <table class="table table-hover">
                     <thead>
                         <tr>
@@ -106,6 +106,61 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Mobile Card View -->
+            <div class="mobile-cards">
+                {% for card in loyalty_cards %}
+                <div class="mobile-card-item">
+                    <div class="card-item-header">
+                        <div>
+                            <div class="title"><a href="{% url 'accounting_forms:loyalty_card_detail' card.pk %}" class="text-decoration-none">{{ card.client.name }}</a></div>
+                            <div class="subtitle">{{ card.client.phone|default:"N/A" }}</div>
+                        </div>
+                        <div>
+                            {% if card.is_reward_eligible %}
+                                {% if card.get_reward_type == 'free' %}
+                                <span class="badge bg-success">Free Cylinder</span>
+                                {% else %}
+                                <span class="badge bg-success">50% Off</span>
+                                {% endif %}
+                            {% else %}
+                            <span class="badge bg-info">{{ card.cylinder_size }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-item-details">
+                        <div>
+                            <div class="detail-label">Stamps</div>
+                            <div class="detail-value">{{ card.stamps }}/9</div>
+                        </div>
+                        <div>
+                            <div class="detail-label">Cylinder Size</div>
+                            <div class="detail-value">{{ card.cylinder_size }}</div>
+                        </div>
+                        <div>
+                            <div class="detail-label">Progress</div>
+                            <div class="detail-value">
+                                <div class="progress" style="height: 16px; min-width: 80px;">
+                                    <div class="progress-bar {% if card.stamps >= 9 %}bg-success{% else %}bg-primary{% endif %}" style="width: {% widthratio card.stamps 9 100 %}%">{{ card.stamps }}/9</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="detail-label">Last Updated</div>
+                            <div class="detail-value">{{ card.updated_at|date:"d M Y" }}</div>
+                        </div>
+                    </div>
+                    <div class="card-item-actions">
+                        <a href="{% url 'accounting_forms:loyalty_card_detail' card.pk %}" class="btn btn-primary btn-sm"><i class="bi bi-eye"></i> View</a>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                    <p>No loyalty cards found.</p>
+                </div>
+                {% endfor %}
             </div>
         </div>
     </div>

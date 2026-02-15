@@ -43,7 +43,7 @@
 <div class="card">
     <div class="card-body">
         {% if quotes %}
-        <div class="table-responsive">
+        <div class="table-responsive desktop-table">
             <table class="table table-hover">
                 <thead class="table-dark">
                     <tr>
@@ -110,6 +110,50 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Mobile Card View -->
+        <div class="mobile-cards">
+            {% for quote in quotes %}
+            <div class="mobile-card-item">
+                <div class="card-item-header">
+                    <div>
+                        <div class="title">{{ quote.quote_number }}</div>
+                        <div class="subtitle">{{ quote.client.name }}</div>
+                    </div>
+                    <div>
+                        {% if quote.status == 'accepted' %}
+                        <span class="badge bg-success">Accepted</span>
+                        {% elif quote.status == 'rejected' %}
+                        <span class="badge bg-danger">Rejected</span>
+                        {% elif quote.status == 'expired' %}
+                        <span class="badge bg-secondary">Expired</span>
+                        {% else %}
+                        <span class="badge bg-warning">{{ quote.get_status_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-item-details">
+                    <div>
+                        <div class="detail-label">Total</div>
+                        <div class="detail-value">R {{ quote.total_amount|floatformat:2 }}</div>
+                    </div>
+                    <div>
+                        <div class="detail-label">Issue Date</div>
+                        <div class="detail-value">{{ quote.issue_date|date:"d M Y" }}</div>
+                    </div>
+                    <div>
+                        <div class="detail-label">Expiry Date</div>
+                        <div class="detail-value">{{ quote.expiry_date|date:"d M Y" }}</div>
+                    </div>
+                </div>
+                <div class="card-item-actions">
+                    <a href="{% url 'accounting_forms:quote_detail' quote.pk %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-eye"></i> View</a>
+                    <a href="{% url 'accounting_forms:quote_pdf' quote.pk %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-pdf"></i> PDF</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
         <p class="text-muted mt-3">Total: {{ quotes.count }} quote{{ quotes.count|pluralize }}</p>
         {% else %}
         <div class="text-center py-5">

@@ -81,7 +81,7 @@
 <div class="card">
     <div class="card-body">
         {% if drivers %}
-        <div class="table-responsive">
+        <div class="table-responsive desktop-table">
             <table class="table table-hover">
                 <thead class="table-dark">
                     <tr>
@@ -162,6 +162,69 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Mobile Card View -->
+        <div class="mobile-cards">
+            {% for driver in drivers %}
+            <div class="mobile-card-item">
+                <div class="card-item-header">
+                    <div>
+                        <div class="title">{{ driver.user.get_full_name|default:driver.user.username }}</div>
+                        <div class="subtitle"><a href="tel:{{ driver.phone }}">{{ driver.phone }}</a></div>
+                    </div>
+                    <div>
+                        {% if driver.status == 'available' %}
+                        <span class="badge bg-success">Available</span>
+                        {% elif driver.status == 'on_delivery' %}
+                        <span class="badge bg-warning">On Delivery</span>
+                        {% elif driver.status == 'off_duty' %}
+                        <span class="badge bg-secondary">Off Duty</span>
+                        {% elif driver.status == 'on_break' %}
+                        <span class="badge bg-info">On Break</span>
+                        {% endif %}
+                        {% if not driver.is_active %}
+                        <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-item-details">
+                    <div>
+                        <div class="detail-label">Vehicle</div>
+                        <div class="detail-value">{{ driver.vehicle_type }}</div>
+                    </div>
+                    <div>
+                        <div class="detail-label">Registration</div>
+                        <div class="detail-value">{{ driver.vehicle_registration }}</div>
+                    </div>
+                    <div>
+                        <div class="detail-label">Active Deliveries</div>
+                        <div class="detail-value">{{ driver.active_deliveries }}</div>
+                    </div>
+                    <div>
+                        <div class="detail-label">Total Deliveries</div>
+                        <div class="detail-value">{{ driver.total_deliveries }}</div>
+                    </div>
+                    <div>
+                        <div class="detail-label">Rating</div>
+                        <div class="detail-value">
+                            <span class="text-warning">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= driver.rating %}<i class="bi bi-star-fill"></i>{% else %}<i class="bi bi-star"></i>{% endif %}
+                                {% endfor %}
+                            </span>
+                            ({{ driver.rating }})
+                        </div>
+                    </div>
+                </div>
+                <div class="card-item-actions">
+                    <a href="{% url 'accounting_forms:driver_detail' driver.pk %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-eye"></i> View</a>
+                    <a href="{% url 'accounting_forms:driver_edit' driver.pk %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
+                    <a href="{% url 'accounting_forms:driver_delete' driver.pk %}" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Delete</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
         <div class="mt-3">
             <p class="text-muted">Total: {{ drivers.count }} driver{{ drivers.count|pluralize }}</p>
         </div>

@@ -43,7 +43,7 @@
 </div>
 
 <div class="card">
-    <div class="table-responsive">
+    <div class="table-responsive desktop-table">
         <table class="table table-hover mb-0">
             <thead class="table-light">
                 <tr>
@@ -90,6 +90,56 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+
+    <!-- Mobile Card View -->
+    <div class="mobile-cards">
+        {% for entry in entries %}
+        <div class="mobile-card-item">
+            <div class="card-item-header">
+                <div>
+                    <div class="title">{{ entry.entry_number }}</div>
+                    <div class="subtitle">{{ entry.description|truncatewords:8 }}</div>
+                </div>
+                <div>
+                    <span class="badge bg-{% if entry.status == 'draft' %}secondary{% elif entry.status == 'posted' %}success{% else %}danger{% endif %}">
+                        {{ entry.get_status_display }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-item-details">
+                <div>
+                    <div class="detail-label">Date</div>
+                    <div class="detail-value">{{ entry.date|date:"d M Y" }}</div>
+                </div>
+                <div>
+                    <div class="detail-label">Type</div>
+                    <div class="detail-value">
+                        <span class="badge bg-{% if entry.entry_type == 'income' %}success{% elif entry.entry_type == 'expense' %}danger{% elif entry.entry_type == 'transfer' %}info{% else %}secondary{% endif %}">
+                            {{ entry.get_entry_type_display }}
+                        </span>
+                    </div>
+                </div>
+                <div>
+                    <div class="detail-label">Debit</div>
+                    <div class="detail-value">{% if entry.debit_amount %}R{{ entry.debit_amount|floatformat:2 }}{% else %}-{% endif %}</div>
+                </div>
+                <div>
+                    <div class="detail-label">Credit</div>
+                    <div class="detail-value">{% if entry.credit_amount %}R{{ entry.credit_amount|floatformat:2 }}{% else %}-{% endif %}</div>
+                </div>
+                <div>
+                    <div class="detail-label">Reference</div>
+                    <div class="detail-value">{{ entry.reference|default:"-" }}</div>
+                </div>
+            </div>
+            <div class="card-item-actions">
+                <a href="{% url 'accounting_forms:journal_entry_detail' entry.pk %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-eye"></i> View</a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center text-muted py-4">No journal entries found.</div>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}

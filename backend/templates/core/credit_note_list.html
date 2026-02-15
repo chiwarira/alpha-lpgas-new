@@ -38,7 +38,7 @@
 </div>
 
 <div class="card">
-    <div class="table-responsive">
+    <div class="table-responsive desktop-table">
         <table class="table table-hover mb-0">
             <thead class="table-light">
                 <tr>
@@ -77,6 +77,44 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+
+    <!-- Mobile Card View -->
+    <div class="mobile-cards">
+        {% for cn in credit_notes %}
+        <div class="mobile-card-item">
+            <div class="card-item-header">
+                <div>
+                    <div class="title">{{ cn.credit_note_number }}</div>
+                    <div class="subtitle">{{ cn.invoice.client.name }}</div>
+                </div>
+                <div>
+                    <span class="badge bg-{% if cn.status == 'draft' %}secondary{% elif cn.status == 'issued' %}primary{% elif cn.status == 'applied' %}success{% else %}danger{% endif %}">
+                        {{ cn.get_status_display }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-item-details">
+                <div>
+                    <div class="detail-label">Amount</div>
+                    <div class="detail-value">R{{ cn.total_amount|floatformat:2 }}</div>
+                </div>
+                <div>
+                    <div class="detail-label">Invoice</div>
+                    <div class="detail-value">{{ cn.invoice.invoice_number }}</div>
+                </div>
+                <div>
+                    <div class="detail-label">Date</div>
+                    <div class="detail-value">{{ cn.issue_date|date:"d M Y" }}</div>
+                </div>
+            </div>
+            <div class="card-item-actions">
+                <a href="{% url 'accounting_forms:credit_note_detail' cn.pk %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-eye"></i> View</a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center text-muted py-4">No credit notes found.</div>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}

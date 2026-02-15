@@ -51,7 +51,7 @@ class CompanySettingsAdmin(admin.ModelAdmin):
             'fields': ('statement_footer_text',)
         }),
         ('WhatsApp Message Templates', {
-            'fields': ('whatsapp_invoice_message', 'whatsapp_quote_message', 'whatsapp_statement_message'),
+            'fields': ('whatsapp_invoice_message', 'whatsapp_quote_message', 'whatsapp_statement_message', 'whatsapp_loyalty_message', 'whatsapp_loyalty_reward_message'),
             'description': 'Customize WhatsApp message templates. Available variables will be replaced automatically.'
         }),
         ('System', {

@@ -156,7 +156,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <div class="table-responsive">
+                    <div class="table-responsive desktop-table">
                         <table class="table table-hover">
                             <thead class="table-dark">
                                 <tr>
@@ -231,6 +231,49 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Mobile Card View -->
+                    <div class="mobile-cards">
+                        {% for order in orders %}
+                        <div class="mobile-card-item">
+                            <div class="card-item-header">
+                                <div>
+                                    <div class="title">{{ order.order_number }}</div>
+                                    <div class="subtitle">{{ order.customer_name }} &middot; {{ order.customer_phone }}</div>
+                                </div>
+                                <div>
+                                    <span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
+                                </div>
+                            </div>
+                            <div class="card-item-details">
+                                <div>
+                                    <div class="detail-label">Total</div>
+                                    <div class="detail-value">R{{ order.total|floatformat:2 }}</div>
+                                </div>
+                                <div>
+                                    <div class="detail-label">Payment</div>
+                                    <div class="detail-value">
+                                        <span class="status-badge payment-{{ order.payment_status }}">{{ order.get_payment_status_display }}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="detail-label">Method</div>
+                                    <div class="detail-value">{{ order.get_payment_method_display }}</div>
+                                </div>
+                                <div>
+                                    <div class="detail-label">Date</div>
+                                    <div class="detail-value">{{ order.created_at|date:"d M Y" }} {{ order.created_at|time:"H:i" }}</div>
+                                </div>
+                            </div>
+                            <div class="card-item-actions">
+                                <a href="{% url 'accounting_forms:order_detail' order.id %}" class="btn btn-primary btn-sm"><i class="fas fa-eye"></i> View</a>
+                                <a href="{% url 'accounting_forms:order_assign_driver' order.id %}" class="btn btn-success btn-sm"><i class="fas fa-user-plus"></i> Assign</a>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center text-muted py-4">No orders found</div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>

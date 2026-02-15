@@ -372,10 +372,6 @@
 
     function sendLoyaltyCardWhatsApp() {
         const clientPhone = "{{ loyalty_card.client.phone }}";
-        const clientName = "{{ loyalty_card.client.name|escapejs }}";
-        const stamps = {{ loyalty_card.stamps }};
-        const cylinderSize = "{{ loyalty_card.cylinder_size }}";
-        const rewardType = "{{ loyalty_card.get_reward_type }}";
         
         if (!clientPhone) {
             alert('Client does not have a phone number on file.');
@@ -385,45 +381,35 @@
         // Show loading state
         const btn = document.getElementById('whatsapp-btn');
         const originalHTML = btn.innerHTML;
-        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Sending...';
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Preparing...';
         btn.disabled = true;
 
-        // Fetch loyalty card data
-        const csrftoken = getCookie('csrftoken');
+        // Fetch message from server (uses CompanySettings template)
         fetch("{% url 'accounting_forms:send_loyalty_card' loyalty_card.pk %}", {
             method: 'GET',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': csrftoken,
             }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Format phone number
-                let formattedPhone = clientPhone.replace(/\s+/g, '');
-                if (formattedPhone.startsWith('0')) {
-                    formattedPhone = '27' + formattedPhone.substring(1);
-                } else if (!formattedPhone.startsWith('27')) {
-                    formattedPhone = '27' + formattedPhone;
-                }
-                
-                // Open WhatsApp with pre-filled message
-                const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(data.message)}`;
-                window.open(whatsappUrl, '_blank');
-                
-                // Download the loyalty card image
+                // Download the loyalty card image first
                 const downloadUrl = "{% url 'accounting_forms:download_loyalty_card' loyalty_card.pk %}";
                 const link = document.createElement('a');
                 link.href = downloadUrl;
-                link.download = `loyalty_card_${clientName}_${cylinderSize}.png`;
+                link.download = 'loyalty_card.png';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                
-                alert(`Loyalty card ready! Stamps: ${data.stamps}/9`);
+
+                // Open WhatsApp with pre-filled message (phone already formatted by server)
+                setTimeout(function() {
+                    const whatsappUrl = `https://wa.me/${data.phone}?text=${encodeURIComponent(data.message)}`;
+                    window.open(whatsappUrl, '_blank');
+                }, 500);
             } else {
-                alert('Failed to generate loyalty card');
+                alert(data.error || 'Failed to prepare loyalty card');
             }
             
             // Restore button
@@ -431,8 +417,8 @@
             btn.disabled = false;
         })
         .catch(error => {
-            console.error('Error sending loyalty card:', error);
-            alert('Error sending loyalty card');
+            console.error('Error:', error);
+            alert('Error preparing loyalty card. Please try again.');
             btn.innerHTML = originalHTML;
             btn.disabled = false;
         });

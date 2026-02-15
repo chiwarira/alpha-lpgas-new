@@ -33,7 +33,7 @@
 </div>
 
 <div class="card">
-    <div class="table-responsive">
+    <div class="table-responsive desktop-table">
         <table class="table table-hover mb-0">
             <thead class="table-light">
                 <tr>
@@ -70,6 +70,40 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+
+    <!-- Mobile Card View -->
+    <div class="mobile-cards">
+        {% for sub in submissions %}
+        <div class="mobile-card-item">
+            <div class="card-item-header">
+                <div>
+                    <div class="title">{{ sub.name }}</div>
+                    <div class="subtitle">{{ sub.subject|default:"No Subject"|truncatewords:8 }}</div>
+                </div>
+                <div>
+                    <span class="badge bg-{% if sub.status == 'new' %}primary{% elif sub.status == 'in_progress' %}warning{% elif sub.status == 'resolved' %}success{% else %}secondary{% endif %}">
+                        {{ sub.get_status_display }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-item-details">
+                <div>
+                    <div class="detail-label">Email</div>
+                    <div class="detail-value">{{ sub.email }}</div>
+                </div>
+                <div>
+                    <div class="detail-label">Date</div>
+                    <div class="detail-value">{{ sub.created_at|date:"d M Y H:i" }}</div>
+                </div>
+            </div>
+            <div class="card-item-actions">
+                <a href="{% url 'accounting_forms:contact_submission_detail' sub.pk %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-eye"></i> View</a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center text-muted py-4">No contact submissions found.</div>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}

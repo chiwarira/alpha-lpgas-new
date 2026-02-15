@@ -43,7 +43,7 @@
 </div>
 
 <div class="card">
-    <div class="table-responsive">
+    <div class="table-responsive desktop-table">
         <table class="table table-hover mb-0">
             <thead class="table-light">
                 <tr>
@@ -76,6 +76,39 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+
+    <!-- Mobile Card View -->
+    <div class="mobile-cards">
+        {% for payment in payments %}
+        <div class="mobile-card-item">
+            <div class="card-item-header">
+                <div>
+                    <div class="title"><a href="{% url 'accounting_forms:invoice_detail' payment.invoice.invoice_number %}" class="text-decoration-none">{{ payment.invoice.invoice_number }}</a></div>
+                    <div class="subtitle">{{ payment.invoice.client.name }}</div>
+                </div>
+                <div>
+                    <span class="badge bg-primary">{{ payment.get_payment_method_display }}</span>
+                </div>
+            </div>
+            <div class="card-item-details">
+                <div>
+                    <div class="detail-label">Amount</div>
+                    <div class="detail-value">R{{ payment.amount|floatformat:2 }}</div>
+                </div>
+                <div>
+                    <div class="detail-label">Date</div>
+                    <div class="detail-value">{{ payment.payment_date|date:"d M Y" }}</div>
+                </div>
+                <div>
+                    <div class="detail-label">Reference</div>
+                    <div class="detail-value">{{ payment.reference|default:"-" }}</div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center text-muted py-4">No payments found.</div>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}

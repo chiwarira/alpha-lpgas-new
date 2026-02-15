@@ -26,6 +26,37 @@
             position: relative;
             left: 16px;
         }
+
+        /* Mobile Responsive Styles */
+        .mobile-cards { display: none; }
+
+        @media (max-width: 767.98px) {
+            .desktop-table { display: none !important; }
+            .mobile-cards { display: block !important; }
+            .row.mb-4 > [class*="col-md-6"]:first-child { margin-bottom: 0.5rem; }
+            .row.mb-4 > [class*="col-md-6"]:last-child.text-end { text-align: left !important; }
+            .row.mb-4 > [class*="col-md-6"] h1 { font-size: 1.3rem; }
+            .row.mb-4 > [class*="col-md-6"] .btn { padding: 0.3rem 0.6rem; font-size: 0.8rem; margin-bottom: 0.25rem; }
+            .row.mb-4 > .col-md-3 { flex: 0 0 50%; max-width: 50%; margin-bottom: 0.5rem; }
+            .row.mb-4 > .col-md-3 .card-body { padding: 0.6rem; }
+            .row.mb-4 > .col-md-3 h3, .row.mb-4 > .col-md-3 h2 { font-size: 1.1rem; }
+            .row.mb-4 > .col-md-3 h6, .row.mb-4 > .col-md-3 h5 { font-size: 0.7rem; }
+            .row.mb-4 > .col-md-4 { flex: 0 0 100%; max-width: 100%; margin-bottom: 0.5rem; }
+            .container-fluid { padding-left: 0.5rem; padding-right: 0.5rem; }
+            .mobile-card-item { background: #fff; border: 1px solid #dee2e6; border-radius: 0.5rem; padding: 0.85rem; margin-bottom: 0.6rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+            .mobile-card-item .card-item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+            .mobile-card-item .card-item-header .title { font-weight: 600; font-size: 0.95rem; color: #212529; }
+            .mobile-card-item .card-item-header .subtitle { font-size: 0.8rem; color: #6c757d; }
+            .mobile-card-item .card-item-details { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem 1rem; font-size: 0.8rem; }
+            .mobile-card-item .card-item-details .detail-label { color: #6c757d; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; }
+            .mobile-card-item .card-item-details .detail-value { color: #212529; font-weight: 500; }
+            .mobile-card-item .card-item-actions { margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px solid #f0f0f0; display: flex; gap: 0.4rem; flex-wrap: wrap; }
+            .mobile-card-item .card-item-actions .btn { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
+        }
+        @media (max-width: 575.98px) {
+            .row.mb-4 > .col-md-3 { flex: 0 0 50%; max-width: 50%; }
+            .mobile-card-item .card-item-details { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
