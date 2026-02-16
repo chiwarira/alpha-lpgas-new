@@ -414,6 +414,8 @@ class PaymentForm(forms.ModelForm):
                 ).order_by('-created_at')
                 # Set initial value to the current invoice
                 self.initial['invoice'] = invoice
+                # Pre-populate amount with remaining balance
+                self.initial['amount'] = invoice.total_amount - invoice.paid_amount
             except Invoice.DoesNotExist:
                 pass
         

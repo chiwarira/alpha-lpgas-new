@@ -74,9 +74,9 @@
                 <div class="alert alert-success py-1 mb-2" role="alert">
                     <strong>🎉 Reward Eligible!</strong>
                     {% if loyalty_card.get_reward_type == 'free' %}
-                        FREE {{ loyalty_card.cylinder_size }} cylinder
+                        FREE {{ loyalty_card.cylinder_size }} cylinder on your next purchase!
                     {% else %}
-                        50% OFF {{ loyalty_card.cylinder_size }} cylinder
+                        50% DISCOUNT on your next {{ loyalty_card.cylinder_size }} cylinder purchase!
                     {% endif %}
                 </div>
             {% else %}

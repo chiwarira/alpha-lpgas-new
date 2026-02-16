@@ -904,6 +904,17 @@ def payment_create(request, invoice_pk=None):
     })
 
 
+@login_required
+def invoice_balance_api(request, pk):
+    """Return invoice balance as JSON for payment form auto-populate."""
+    invoice = get_object_or_404(Invoice, pk=pk)
+    return JsonResponse({
+        'total_amount': float(invoice.total_amount),
+        'paid_amount': float(invoice.paid_amount),
+        'balance': float(invoice.total_amount - invoice.paid_amount),
+    })
+
+
 # Credit Note Views
 @login_required
 @transaction.atomic

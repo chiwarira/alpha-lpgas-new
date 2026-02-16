@@ -165,7 +165,7 @@ class CompanySettings(models.Model):
         help_text='WhatsApp message template for loyalty cards. Available variables: {client_name}, {company_name}, {cylinder_size}, {stamps}, {remaining}, {reward_text}'
     )
     whatsapp_loyalty_reward_message = models.TextField(
-        default='🎉 Congratulations {client_name}! You have earned {reward_type} on your next {cylinder_size} cylinder purchase from {company_name}! Present this message to claim your reward. Thank you for your loyalty! Best regards, {company_name} Team',
+        default='🎉 Congratulations {client_name}! You have earned {reward_type} from {company_name}! Present this message to claim your reward. Thank you for your loyalty! Best regards, {company_name} Team',
         blank=True,
         help_text='WhatsApp message for when a loyalty card reaches 9 stamps. Available variables: {client_name}, {company_name}, {cylinder_size}, {reward_type}'
     )

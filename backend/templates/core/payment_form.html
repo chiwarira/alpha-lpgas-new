@@ -9,3 +9,30 @@
     <a href="{% url 'accounting_forms:dashboard' %}" class="btn btn-secondary">Cancel</a>
 </form>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const invoiceSelect = document.getElementById('id_invoice');
+    const amountInput = document.getElementById('id_amount');
+
+    if (invoiceSelect) {
+        invoiceSelect.addEventListener('change', function() {
+            const invoiceId = this.value;
+            if (!invoiceId) {
+                amountInput.value = '';
+                return;
+            }
+            fetch(`/accounting/api/invoices/${invoiceId}/balance/`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                amountInput.value = data.balance.toFixed(2);
+            })
+            .catch(err => console.error('Error fetching invoice balance:', err));
+        });
+    }
+});
+</script>
+{% endblock %}

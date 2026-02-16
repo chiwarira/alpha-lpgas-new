@@ -19,7 +19,7 @@ def _build_loyalty_message(loyalty_card):
 
     if stamps >= 9:
         # Reward message
-        reward_type_display = 'a FREE cylinder' if reward_type_raw == 'free' else '50% OFF'
+        reward_type_display = f'a FREE {loyalty_card.cylinder_size} cylinder' if reward_type_raw == 'free' else f'a 50% DISCOUNT on your next {loyalty_card.cylinder_size} cylinder'
         template = settings.whatsapp_loyalty_reward_message
         message = template.format(
             client_name=loyalty_card.client.name,
