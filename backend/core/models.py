@@ -535,6 +535,8 @@ class Invoice(models.Model):
 
     def calculate_totals(self):
         """Calculate subtotal, VAT, and total from line items (VAT-inclusive)"""
+        from datetime import date
+        
         items = self.items.all()
         items_total = sum(item.total for item in items)
         self.tax_amount = sum(item.tax_amount for item in items)
@@ -544,11 +546,18 @@ class Invoice(models.Model):
         self.total_amount = items_total - self.discount_amount
         self.balance = self.total_amount - self.paid_amount
         
-        # Update status based on payment
-        if self.paid_amount >= self.total_amount:
-            self.status = 'paid'
-        elif self.paid_amount > 0:
-            self.status = 'partially_paid'
+        # Update status based on payment and due date
+        # Don't change status if it's draft or cancelled
+        if self.status not in ['draft', 'cancelled']:
+            if self.paid_amount >= self.total_amount:
+                self.status = 'paid'
+            elif self.paid_amount > 0:
+                self.status = 'partially_paid'
+            elif self.due_date and self.due_date < date.today():
+                self.status = 'overdue'
+            else:
+                # No payment made and not overdue
+                self.status = 'unpaid'
         
         self.save()
 
