@@ -1,7 +1,7 @@
 {% extends 'core/base.html' %}
-{% block title %}Record Payment - Alpha LPGas{% endblock %}
+{% block title %}Add Payment - Alpha LPGas{% endblock %}
 {% block content %}
-<h1>Record Payment</h1>
+<h1>Add Payment</h1>
 <form method="post">
     {% csrf_token %}
     {{ form.as_p }}

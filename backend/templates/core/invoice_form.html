@@ -71,6 +71,17 @@
                 </div>
             </div>
 
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.discount_amount.id_for_label }}" class="form-label">Discount Amount (R)</label>
+                    {{ form.discount_amount }}
+                    {% if form.discount_amount.errors %}
+                    <div class="text-danger">{{ form.discount_amount.errors }}</div>
+                    {% endif %}
+                    <small class="form-text text-muted">Enter discount amount to be subtracted from the total</small>
+                </div>
+            </div>
+
             <div class="mb-3">
                 <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
                 {{ form.notes }}
@@ -213,7 +224,10 @@
 <script>
 // Initialize Select2 for client and product search
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== Invoice Form JavaScript Initialized ===');
+    
     // Initialize Select2 on client dropdown
+    console.log('Initializing client Select2...');
     $('.client-select').select2({
         theme: 'bootstrap-5',
         width: '100%',
@@ -226,25 +240,35 @@ document.addEventListener('DOMContentLoaded', function() {
             return null;
         }
     });
+    console.log('Client Select2 initialized');
 
     // Initialize Select2 on all existing product dropdowns
     function initProductSelect2(element) {
-        $(element).select2({
-            theme: 'bootstrap-5',
-            width: '100%',
-            placeholder: 'Search for a product...',
-            allowClear: true,
-            matcher: function(params, data) {
-                if ($.trim(params.term) === '') return data;
-                if (typeof data.text === 'undefined') return null;
-                if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) return data;
-                return null;
-            }
-        });
+        console.log('Initializing Select2 on product dropdown:', element);
+        try {
+            $(element).select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: 'Search for a product...',
+                allowClear: true,
+                matcher: function(params, data) {
+                    if ($.trim(params.term) === '') return data;
+                    if (typeof data.text === 'undefined') return null;
+                    if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) return data;
+                    return null;
+                }
+            });
+            console.log('Select2 initialized successfully on:', element);
+        } catch (error) {
+            console.error('Error initializing Select2 on product dropdown:', error);
+        }
     }
     
     // Init Select2 on all existing product selects
-    $('.product-select').each(function() {
+    console.log('Initializing Select2 on existing product dropdowns...');
+    const existingProductSelects = $('.product-select');
+    console.log('Found', existingProductSelects.length, 'existing product selects');
+    existingProductSelects.each(function() {
         initProductSelect2(this);
     });
 
@@ -253,26 +277,79 @@ document.addEventListener('DOMContentLoaded', function() {
     const addButton = document.getElementById('add-form');
     const totalForms = document.querySelector('[name$=TOTAL_FORMS]');
     
+    console.log('Formset container:', container);
+    console.log('Add button:', addButton);
+    console.log('Total forms input:', totalForms);
+    console.log('Initial form count:', totalForms ? totalForms.value : 'NOT FOUND');
+    
     addButton.addEventListener('click', function() {
+        console.log('\n=== Add Line Item Button Clicked ===');
         const formCount = parseInt(totalForms.value);
+        console.log('Current form count:', formCount);
+        
         const firstForm = container.querySelector('.formset-form');
+        console.log('First form element:', firstForm);
+        
+        if (!firstForm) {
+            console.error('ERROR: Could not find first form to clone!');
+            return;
+        }
+        
+        // Destroy Select2 on the first form's product select before cloning
+        console.log('Destroying Select2 on first form before cloning...');
+        const firstFormProductSelect = firstForm.querySelector('.product-select');
+        if (firstFormProductSelect && $(firstFormProductSelect).data('select2')) {
+            console.log('Select2 found on first form, destroying...');
+            $(firstFormProductSelect).select2('destroy');
+            console.log('Select2 destroyed');
+        }
+        
+        console.log('Cloning form...');
         const newForm = firstForm.cloneNode(true);
+        console.log('Form cloned successfully');
+        
+        // Re-initialize Select2 on the first form's product select
+        console.log('Re-initializing Select2 on first form...');
+        if (firstFormProductSelect) {
+            initProductSelect2(firstFormProductSelect);
+        }
         
         // Remove cloned Select2 containers (they don't work when cloned)
-        newForm.querySelectorAll('.select2-container').forEach(el => el.remove());
+        console.log('Removing cloned Select2 containers...');
+        const select2Containers = newForm.querySelectorAll('.select2-container');
+        console.log('Found', select2Containers.length, 'Select2 containers to remove');
+        select2Containers.forEach(el => el.remove());
+        
         // Show the original select elements that Select2 hides
-        newForm.querySelectorAll('select').forEach(sel => {
+        console.log('Restoring select elements...');
+        const selectElements = newForm.querySelectorAll('select');
+        console.log('Found', selectElements.length, 'select elements');
+        selectElements.forEach(sel => {
+            console.log('Restoring select:', sel.name, 'Classes:', sel.className);
             sel.style.display = '';
             sel.classList.remove('select2-hidden-accessible');
             sel.removeAttribute('data-select2-id');
             sel.removeAttribute('aria-hidden');
             sel.removeAttribute('tabindex');
+            
+            // Ensure product-select class is present
+            if (sel.name && sel.name.includes('product')) {
+                if (!sel.classList.contains('product-select')) {
+                    console.warn('Adding missing product-select class to:', sel.name);
+                    sel.classList.add('product-select');
+                }
+            }
         });
         
         // Update form index using DOM manipulation (not innerHTML which destroys values)
-        newForm.querySelectorAll('input, select, textarea, label').forEach(el => {
+        console.log('Updating form indices to:', formCount);
+        const elementsToUpdate = newForm.querySelectorAll('input, select, textarea, label');
+        console.log('Updating', elementsToUpdate.length, 'elements');
+        elementsToUpdate.forEach(el => {
             if (el.name) {
+                const oldName = el.name;
                 el.name = el.name.replace(/items-\d+-/, `items-${formCount}-`);
+                console.log('Updated name:', oldName, '->', el.name);
             }
             if (el.id) {
                 el.id = el.id.replace(/items-\d+-/, `items-${formCount}-`);
@@ -283,6 +360,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Clear values for the new form
+        console.log('Clearing form values...');
         newForm.querySelectorAll('input, select, textarea').forEach(input => {
             if (input.type === 'hidden') {
                 input.value = '';
@@ -295,50 +373,102 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Reset quantity to default of 1
         const qtyInput = newForm.querySelector('input[name$="-quantity"]');
-        if (qtyInput) qtyInput.value = '1';
+        if (qtyInput) {
+            qtyInput.value = '1';
+            console.log('Set quantity to 1');
+        } else {
+            console.warn('Could not find quantity input');
+        }
         
         // Remove any error messages from cloned form
+        console.log('Removing error messages...');
         newForm.querySelectorAll('.text-danger, .alert-danger').forEach(el => el.remove());
         
         // Make sure the new form is visible
         newForm.style.display = '';
         
+        console.log('Appending new form to container...');
         container.appendChild(newForm);
+        console.log('New form appended');
+        
+        console.log('Updating total forms count from', formCount, 'to', formCount + 1);
         totalForms.value = formCount + 1;
         
         // Initialize Select2 on the new product dropdown
         const newProductSelect = newForm.querySelector('.product-select');
+        console.log('Looking for product select in new form:', newProductSelect);
+        console.log('Product select name:', newProductSelect ? newProductSelect.name : 'NOT FOUND');
+        console.log('Product select classes:', newProductSelect ? newProductSelect.className : 'NOT FOUND');
+        console.log('Product select options count:', newProductSelect ? newProductSelect.options.length : 'NOT FOUND');
+        
         if (newProductSelect) {
-            initProductSelect2(newProductSelect);
+            console.log('Initializing Select2 on new product dropdown...');
+            try {
+                // Small delay to ensure DOM is ready
+                setTimeout(() => {
+                    initProductSelect2(newProductSelect);
+                    console.log('Select2 initialized on new form');
+                    
+                    // Verify initialization
+                    if ($(newProductSelect).data('select2')) {
+                        console.log('✓ Select2 successfully initialized and verified');
+                    } else {
+                        console.error('✗ Select2 initialization failed - no data attribute found');
+                    }
+                }, 100);
+            } catch (error) {
+                console.error('ERROR initializing Select2 on new form:', error);
+            }
+        } else {
+            console.error('ERROR: Could not find product select in new form!');
+            console.log('All selects in new form:', newForm.querySelectorAll('select'));
         }
+        
+        console.log('=== Add Line Item Complete ===\n');
     });
     
     container.addEventListener('click', function(e) {
         const btn = e.target.closest('.remove-form');
         if (btn) {
+            console.log('\n=== Remove Line Item Button Clicked ===');
             const formCard = btn.closest('.formset-form');
+            console.log('Form card to remove:', formCard);
+            
             const idInput = formCard.querySelector('input[name$="-id"]');
+            console.log('ID input:', idInput, 'Value:', idInput ? idInput.value : 'N/A');
             
             if (idInput && idInput.value) {
                 // Existing item - mark for deletion instead of removing from DOM
+                console.log('Existing item - marking for deletion');
                 const deleteInput = formCard.querySelector('input[name$="-DELETE"]');
+                console.log('Delete input:', deleteInput);
                 if (deleteInput) {
                     deleteInput.value = 'on';
                     deleteInput.checked = true;
+                    console.log('Marked for deletion');
                 }
                 formCard.style.display = 'none';
+                console.log('Form hidden');
             } else {
                 // New item - just remove from DOM and decrement count
+                console.log('New item - removing from DOM');
                 formCard.remove();
+                const oldCount = totalForms.value;
                 totalForms.value = parseInt(totalForms.value) - 1;
+                console.log('Form removed. Count updated from', oldCount, 'to', totalForms.value);
             }
+            console.log('=== Remove Line Item Complete ===\n');
         }
     });
 
     // ---- Add Client Modal ----
+    console.log('Setting up Add Client Modal...');
     const saveClientBtn = document.getElementById('save-new-client');
+    console.log('Save client button:', saveClientBtn);
+    
     if (saveClientBtn) {
         saveClientBtn.addEventListener('click', function() {
+            console.log('\n=== Save New Client Button Clicked ===');
             const nameInput = document.getElementById('new-client-name');
             const companyNameInput = document.getElementById('new-client-company-name');
             const companyRegInput = document.getElementById('new-client-company-reg');
@@ -347,6 +477,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const addressInput = document.getElementById('new-client-address');
             const cityInput = document.getElementById('new-client-city');
             const errorsDiv = document.getElementById('client-modal-errors');
+            
             const name = nameInput ? nameInput.value.trim() : '';
             const company_name = companyNameInput ? companyNameInput.value.trim() : '';
             const company_reg = companyRegInput ? companyRegInput.value.trim() : '';
@@ -355,18 +486,24 @@ document.addEventListener('DOMContentLoaded', function() {
             const address = addressInput ? addressInput.value.trim() : '';
             const city = cityInput ? cityInput.value.trim() : '';
             
+            console.log('Client data:', { name, company_name, company_reg, phone, email, address, city });
+            
             if (!name) {
+                console.warn('Validation failed: Client name is required');
                 if (errorsDiv) { errorsDiv.textContent = 'Client name is required.'; errorsDiv.style.display = 'block'; }
                 return;
             }
             
+            console.log('Validation passed, submitting client...');
             if (errorsDiv) errorsDiv.style.display = 'none';
             this.disabled = true;
             this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
             
             const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            console.log('CSRF token found:', csrftoken ? 'Yes' : 'No');
             const btn = this;
             
+            console.log('Sending fetch request to create client...');
             fetch("{% url 'accounting_forms:client_create_ajax' %}", {
                 method: 'POST',
                 headers: {
@@ -375,17 +512,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify({ name, company_name, company_reg, phone, email, address, city })
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Fetch response received:', response.status, response.statusText);
+                return response.json();
+            })
             .then(data => {
+                console.log('Response data:', data);
                 if (data.success) {
+                    console.log('Client created successfully:', data.client);
                     const clientSelect = document.querySelector('.client-select');
                     const label = data.client.name + ' - ' + (data.client.phone || 'No phone') + ' - ' + (data.client.address || 'No address');
+                    console.log('Creating new option with label:', label);
                     const newOption = new Option(label, data.client.id, true, true);
                     $(clientSelect).append(newOption).trigger('change');
+                    console.log('New client added to dropdown');
                     
                     const modalEl = document.getElementById('addClientModal');
                     const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
                     modal.hide();
+                    console.log('Modal hidden');
+                    
+                    // Clear form fields
                     if (nameInput) nameInput.value = '';
                     if (companyNameInput) companyNameInput.value = '';
                     if (companyRegInput) companyRegInput.value = '';
@@ -393,9 +540,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (emailInput) emailInput.value = '';
                     if (addressInput) addressInput.value = '';
                     if (cityInput) cityInput.value = '';
+                    console.log('Form fields cleared');
                 } else {
+                    console.error('Client creation failed:', data.error);
                     if (errorsDiv) { errorsDiv.textContent = data.error || 'Failed to create client.'; errorsDiv.style.display = 'block'; }
                 }
+                console.log('=== Save New Client Complete ===\n');
             })
             .catch(err => {
                 console.error('Client create error:', err);
@@ -404,9 +554,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .finally(() => {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-check-circle"></i> Save Client';
+                console.log('Button re-enabled');
             });
         });
+    } else {
+        console.warn('Save client button not found - modal functionality may not work');
     }
+    
+    console.log('=== Invoice Form JavaScript Setup Complete ===\n');
 });
 </script>
 {% endblock %}

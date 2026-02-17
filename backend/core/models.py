@@ -470,6 +470,7 @@ class Invoice(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='unpaid')
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Discount amount to be subtracted from total")
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -535,9 +536,12 @@ class Invoice(models.Model):
     def calculate_totals(self):
         """Calculate subtotal, VAT, and total from line items (VAT-inclusive)"""
         items = self.items.all()
-        self.total_amount = sum(item.total for item in items)
+        items_total = sum(item.total for item in items)
         self.tax_amount = sum(item.tax_amount for item in items)
-        self.subtotal = self.total_amount - self.tax_amount
+        self.subtotal = items_total - self.tax_amount
+        
+        # Apply discount to the total
+        self.total_amount = items_total - self.discount_amount
         self.balance = self.total_amount - self.paid_amount
         
         # Update status based on payment

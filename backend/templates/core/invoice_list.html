@@ -12,6 +12,9 @@
         <a href="{% url 'accounting_forms:invoice_create' %}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> New Invoice
         </a>
+        <a href="{% url 'accounting_forms:add_payment' %}" class="btn btn-success">
+            <i class="bi bi-cash-coin"></i> Add Payment
+        </a>
         <a href="{% url 'accounting_forms:dashboard' %}" class="btn btn-secondary">
             <i class="bi bi-arrow-left"></i> Dashboard
         </a>
@@ -231,6 +234,15 @@
                                        class="btn btn-outline-secondary btn-sm" title="Edit">
                                         <i class="bi bi-pencil"></i>
                                     </a>
+                                    {% if invoice.balance > 0 %}
+                                    <button type="button" class="btn btn-success btn-sm quick-payment-btn" 
+                                            title="Add Payment (R{{ invoice.balance|floatformat:2 }})"
+                                            data-invoice-id="{{ invoice.pk }}"
+                                            data-invoice-number="{{ invoice.invoice_number }}"
+                                            data-balance="{{ invoice.balance|floatformat:2 }}">
+                                        <i class="bi bi-cash-coin"></i>
+                                    </button>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -293,6 +305,14 @@
                     <div class="card-item-actions">
                         <a href="{% url 'accounting_forms:invoice_detail' invoice.invoice_number %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-eye"></i> View</a>
                         <a href="{% url 'accounting_forms:invoice_edit' invoice.invoice_number %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
+                        {% if invoice.balance > 0 %}
+                        <button type="button" class="btn btn-success btn-sm quick-payment-btn"
+                                data-invoice-id="{{ invoice.pk }}"
+                                data-invoice-number="{{ invoice.invoice_number }}"
+                                data-balance="{{ invoice.balance|floatformat:2 }}">
+                            <i class="bi bi-cash-coin"></i> Pay R{{ invoice.balance|floatformat:2 }}
+                        </button>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
@@ -481,6 +501,37 @@ document.addEventListener('DOMContentLoaded', function() {
         searchTimeout = setTimeout(function() {
             document.getElementById('filter-form').submit();
         }, 500);
+    });
+
+    // ---- Quick Payment ----
+    document.querySelectorAll('.quick-payment-btn').forEach(function(button) {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const invoiceId = this.getAttribute('data-invoice-id');
+            const invoiceNumber = this.getAttribute('data-invoice-number');
+            const balance = this.getAttribute('data-balance');
+            
+            if (confirm('Record cash payment of R' + balance + ' for ' + invoiceNumber + '?')) {
+                // Create a hidden form and submit it
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/accounting/invoices/' + invoiceId + '/quick-payment/';
+                
+                // Add CSRF token
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrfmiddlewaretoken';
+                csrfInput.value = csrfToken;
+                form.appendChild(csrfInput);
+                
+                // Append to body and submit
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
     });
 });
 </script>

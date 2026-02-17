@@ -282,7 +282,7 @@ class InvoiceForm(forms.ModelForm):
         model = Invoice
         fields = [
             'client', 'delivery_zone', 'issue_date', 'payment_terms',
-            'notes', 'delivery_note', 'whatsapp_invoice_message'
+            'discount_amount', 'notes', 'delivery_note', 'whatsapp_invoice_message'
         ]
         widgets = {
             'client': forms.Select(attrs={
@@ -299,6 +299,12 @@ class InvoiceForm(forms.ModelForm):
             }),
             'payment_terms': forms.Select(attrs={
                 'class': 'form-select'
+            }),
+            'discount_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': '0.00'
             }),
             'notes': forms.Textarea(attrs={
                 'class': 'form-control',
@@ -433,6 +439,113 @@ class PaymentForm(forms.ModelForm):
                 )
         
         return cleaned_data
+
+
+class MultiPaymentForm(forms.ModelForm):
+    """Form for creating payments that can be allocated to multiple invoices"""
+    client = forms.ModelChoiceField(
+        queryset=None,
+        widget=forms.Select(attrs={
+            'class': 'form-select client-select',
+            'data-placeholder': 'Select a client'
+        }),
+        label='Client'
+    )
+
+    selected_invoices = forms.ModelMultipleChoiceField(
+        queryset=None,
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={
+            'class': 'form-check-input invoice-checkbox'
+        }),
+        help_text="Select invoices to allocate this payment to, or leave empty to auto-allocate",
+        label='Select Invoices'
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .models import Client, Invoice
+        
+        # Set client queryset
+        self.fields['client'].queryset = Client.objects.all().order_by('name')
+        
+        # Initialize invoice queryset as empty
+        self.fields['selected_invoices'].queryset = Invoice.objects.none()
+
+        # Update amount field styling
+        self.fields['amount'].widget.attrs.update({
+            'class': 'form-control payment-amount',
+            'step': '0.01',
+            'min': '0.01',
+            'required': True
+        })
+
+        # If client is selected in POST data, filter invoices
+        if 'client' in self.data:
+            try:
+                client_id = int(self.data.get('client'))
+                self.fields['selected_invoices'].queryset = Invoice.objects.filter(
+                    client_id=client_id,
+                    status__in=['unpaid', 'partially_paid']
+                ).order_by('issue_date')
+            except (ValueError, TypeError):
+                self.fields['selected_invoices'].queryset = Invoice.objects.none()
+
+    def clean(self):
+        """Validate that selected invoices belong to the client"""
+        cleaned_data = super().clean()
+        client = cleaned_data.get('client')
+        amount = cleaned_data.get('amount')
+        selected_invoices = cleaned_data.get('selected_invoices', [])
+
+        if not client:
+            raise ValidationError("Please select a client.")
+
+        if amount is not None and amount <= 0:
+            raise ValidationError("Payment amount must be greater than zero.")
+
+        # Check that all selected invoices belong to the client
+        if selected_invoices:
+            for invoice in selected_invoices:
+                if invoice.client != client:
+                    raise ValidationError(
+                        f"Invoice {invoice.invoice_number} does not belong to {client.name}."
+                    )
+
+        return cleaned_data
+
+    class Meta:
+        model = Payment
+        fields = [
+            'client',
+            'amount',
+            'payment_date',
+            'payment_method',
+            'reference_number',
+            'notes'
+        ]
+        widgets = {
+            'payment_date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control'
+            }),
+            'payment_method': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0.01'
+            }),
+            'reference_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Payment reference/transaction ID'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3
+            }),
+        }
 
 
 class CreditNoteForm(forms.ModelForm):

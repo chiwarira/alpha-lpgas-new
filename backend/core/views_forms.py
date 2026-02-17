@@ -11,7 +11,7 @@ from .models import Client, Product, Quote, QuoteItem, Invoice, InvoiceItem, Pay
 from .models_accounting import Supplier, Expense, ExpenseCategory, JournalEntry, TaxPeriod
 from .forms import (
     ClientForm, ProductForm, QuoteForm, QuoteItemFormSet,
-    InvoiceForm, InvoiceItemFormSet, PaymentForm,
+    InvoiceForm, InvoiceItemFormSet, PaymentForm, MultiPaymentForm,
     CreditNoteForm, CreditNoteItemFormSet, CompanySettingsForm
 )
 
@@ -900,8 +900,37 @@ def payment_create(request, invoice_pk=None):
     
     return render(request, 'core/payment_form.html', {
         'form': form,
-        'title': 'Record Payment'
+        'title': 'Add Payment'
     })
+
+
+@login_required
+@require_http_methods(["POST"])
+def quick_payment(request, pk):
+    """One-click full balance payment from the invoice list."""
+    invoice = get_object_or_404(Invoice, pk=pk)
+    balance = invoice.total_amount - invoice.paid_amount
+
+    if balance > 0:
+        from datetime import date
+        payment = Payment(
+            invoice=invoice,
+            amount=balance,
+            payment_date=date.today(),
+            payment_method='cash',
+            reference_number=f'Quick payment for {invoice.invoice_number}',
+            notes='Payment applied from invoice list',
+            created_by=request.user,
+        )
+        payment.save()
+        messages.success(request, f'Payment of R{balance:,.2f} applied to {invoice.invoice_number}.')
+    else:
+        messages.info(request, f'{invoice.invoice_number} has no balance due.')
+
+    referer = request.META.get('HTTP_REFERER')
+    if referer and 'invoices' in referer:
+        return redirect(referer)
+    return redirect('accounting_forms:invoice_list')
 
 
 @login_required
@@ -912,6 +941,140 @@ def invoice_balance_api(request, pk):
         'total_amount': float(invoice.total_amount),
         'paid_amount': float(invoice.paid_amount),
         'balance': float(invoice.total_amount - invoice.paid_amount),
+    })
+
+
+@login_required
+def client_unpaid_invoices(request, client_id):
+    """API endpoint to get unpaid invoices for a client"""
+    try:
+        client = get_object_or_404(Client, pk=client_id)
+        
+        # Get unpaid invoices
+        unpaid_invoices = Invoice.objects.filter(
+            client=client,
+            status__in=['unpaid', 'partially_paid']
+        ).order_by('issue_date')
+        
+        # Format invoice data
+        invoices_data = []
+        for invoice in unpaid_invoices:
+            status_display = invoice.get_status_display()
+            balance = invoice.total_amount - invoice.paid_amount
+            
+            invoice_data = {
+                'id': invoice.pk,
+                'number': invoice.invoice_number,
+                'issue_date': invoice.issue_date.strftime('%Y-%m-%d'),
+                'due_date': invoice.due_date.strftime('%Y-%m-%d') if invoice.due_date else '',
+                'total_amount': "{:.2f}".format(float(invoice.total_amount)),
+                'balance_due': "{:.2f}".format(float(balance)),
+                'status': invoice.status,
+                'status_display': status_display
+            }
+            invoices_data.append(invoice_data)
+        
+        return JsonResponse({
+            'success': True,
+            'invoices': invoices_data,
+            'count': len(invoices_data)
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': 'Server error',
+            'message': str(e)
+        }, status=500)
+
+
+@login_required
+def add_payment(request):
+    """View for adding a payment that can be allocated to multiple invoices"""
+    if request.method == 'POST':
+        form = MultiPaymentForm(request.POST)
+        if form.is_valid():
+            try:
+                # Get payment details
+                client = form.cleaned_data['client']
+                amount = form.cleaned_data['amount']
+                selected_invoices = form.cleaned_data.get('selected_invoices', [])
+                
+                # Create and save payment
+                payment = form.save(commit=False)
+                payment.created_by = request.user
+                payment.save()
+                
+                # Allocate payment to selected invoices
+                if selected_invoices:
+                    # Allocate to specific invoices
+                    remaining_amount = amount
+                    for invoice in selected_invoices:
+                        if remaining_amount <= 0:
+                            break
+                        
+                        balance = invoice.total_amount - invoice.paid_amount
+                        allocation_amount = min(remaining_amount, balance)
+                        
+                        # Update invoice paid amount
+                        invoice.paid_amount += allocation_amount
+                        invoice.save()
+                        
+                        remaining_amount -= allocation_amount
+                    
+                    invoice_numbers = ", ".join([inv.invoice_number for inv in selected_invoices])
+                    messages.success(request, f'Payment of R{amount:,.2f} recorded and allocated to invoices: {invoice_numbers}')
+                    
+                    if remaining_amount > 0:
+                        messages.info(request, f'R{remaining_amount:,.2f} remains unallocated.')
+                else:
+                    # Auto-allocate to oldest unpaid invoices
+                    unpaid_invoices = Invoice.objects.filter(
+                        client=client,
+                        status__in=['unpaid', 'partially_paid']
+                    ).order_by('issue_date')
+                    
+                    remaining_amount = amount
+                    allocated_invoices = []
+                    
+                    for invoice in unpaid_invoices:
+                        if remaining_amount <= 0:
+                            break
+                        
+                        balance = invoice.total_amount - invoice.paid_amount
+                        allocation_amount = min(remaining_amount, balance)
+                        
+                        # Update invoice paid amount
+                        invoice.paid_amount += allocation_amount
+                        invoice.save()
+                        
+                        allocated_invoices.append(invoice.invoice_number)
+                        remaining_amount -= allocation_amount
+                    
+                    if allocated_invoices:
+                        invoice_numbers = ", ".join(allocated_invoices)
+                        messages.success(request, f'Payment of R{amount:,.2f} recorded and auto-allocated to invoices: {invoice_numbers}')
+                    else:
+                        messages.warning(request, f'Payment of R{amount:,.2f} recorded but no unpaid invoices found for auto-allocation.')
+                    
+                    if remaining_amount > 0:
+                        messages.info(request, f'R{remaining_amount:,.2f} remains unallocated.')
+                
+                return redirect('accounting_forms:invoice_list')
+            
+            except Exception as e:
+                messages.error(request, f'An error occurred while processing the payment: {str(e)}')
+        else:
+            # Form validation errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+    else:
+        form = MultiPaymentForm()
+    
+    return render(request, 'core/multi_payment_form.html', {
+        'form': form,
+        'title': 'Add Payment'
     })
 
 

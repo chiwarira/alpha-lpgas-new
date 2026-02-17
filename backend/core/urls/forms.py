@@ -16,7 +16,7 @@ from ..views_forms import (
     invoice_list, invoice_create, invoice_edit, invoice_detail, invoice_mark_whatsapp_sent, invoice_bulk_action,
     
     # Payments
-    payment_create, payment_list, invoice_balance_api,
+    payment_create, payment_list, invoice_balance_api, quick_payment, add_payment, client_unpaid_invoices,
     
     # Credit Notes
     credit_note_create, credit_note_detail, credit_note_list,
@@ -96,6 +96,9 @@ urlpatterns = [
     path('payments/create/', payment_create, name='payment_create'),
     path('invoices/<int:invoice_pk>/payments/create/', payment_create, name='payment_create_for_invoice'),
     path('api/invoices/<int:pk>/balance/', invoice_balance_api, name='invoice_balance_api'),
+    path('invoices/<int:pk>/quick-payment/', quick_payment, name='quick_payment'),
+    path('payments/add/', add_payment, name='add_payment'),
+    path('api/clients/<int:client_id>/unpaid-invoices/', client_unpaid_invoices, name='client_unpaid_invoices'),
     
     # Credit Notes
     path('credit-notes/create/', credit_note_create, name='credit_note_create'),

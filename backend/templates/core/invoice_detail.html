@@ -1192,10 +1192,21 @@ select.note-field {
                 <tfoot>
                     <tr>
                         <td colspan="4"></td>
+                        <td style="text-align: right;"><strong>Subtotal:</strong></td>
+                        <td style="text-align: right;">R{{ invoice.subtotal|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="4"></td>
                         <td style="text-align: right;"><strong>Total VAT:</strong></td>
                         <td style="text-align: right;">R{{ invoice.tax_amount|floatformat:2 }}</td>
                     </tr>
-
+                    {% if invoice.discount_amount > 0 %}
+                    <tr>
+                        <td colspan="4"></td>
+                        <td style="text-align: right;"><strong>Discount:</strong></td>
+                        <td style="text-align: right; color: #dc3545;">-R{{ invoice.discount_amount|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
                     <tr>
                         <td colspan="4"></td>
                         <td style="text-align: right;"><strong>Total:</strong></td>
@@ -1233,10 +1244,19 @@ select.note-field {
                 
                 <div class="mobile-totals">
                     <div class="mobile-total-row">
+                        <div><strong>Subtotal:</strong></div>
+                        <div>R{{ invoice.subtotal|floatformat:2 }}</div>
+                    </div>
+                    <div class="mobile-total-row">
                         <div><strong>Total VAT:</strong></div>
                         <div>R{{ invoice.tax_amount|floatformat:2 }}</div>
                     </div>
-
+                    {% if invoice.discount_amount > 0 %}
+                    <div class="mobile-total-row">
+                        <div><strong>Discount:</strong></div>
+                        <div style="color: #dc3545;">-R{{ invoice.discount_amount|floatformat:2 }}</div>
+                    </div>
+                    {% endif %}
                     <div class="mobile-total-row mobile-grand-total">
                         <div><strong>TOTAL:</strong></div>
                         <div>R{{ invoice.total_amount|floatformat:2 }}</div>
