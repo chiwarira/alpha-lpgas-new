@@ -651,6 +651,11 @@ class Payment(models.Model):
 
     class Meta:
         ordering = ['-payment_date']
+        indexes = [
+            models.Index(fields=['payment_date', 'payment_method']),
+            models.Index(fields=['invoice', 'payment_date']),
+            models.Index(fields=['-payment_date']),
+        ]
 
     def __str__(self):
         return f"Payment {self.payment_number} - {self.amount}"

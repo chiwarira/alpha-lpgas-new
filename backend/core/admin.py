@@ -184,10 +184,32 @@ class InvoiceAdmin(admin.ModelAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ['payment_number', 'invoice', 'payment_date', 'amount', 'payment_method', 'created_at']
+    list_display = ['payment_number', 'get_invoice_number', 'get_client_name', 'payment_date', 'amount', 'payment_method', 'created_at']
     list_filter = ['payment_method', 'payment_date', 'created_at']
-    search_fields = ['payment_number', 'reference_number', 'invoice__invoice_number']
+    search_fields = ['payment_number', 'reference_number', 'invoice__invoice_number', 'invoice__client__name']
     readonly_fields = ['created_at', 'updated_at']
+    list_select_related = ['invoice', 'invoice__client', 'created_by']
+    
+    def get_queryset(self, request):
+        """Optimize queryset with select_related to avoid N+1 queries"""
+        qs = super().get_queryset(request)
+        return qs.select_related('invoice', 'invoice__client', 'created_by')
+    
+    def get_invoice_number(self, obj):
+        """Display invoice number with link"""
+        if obj.invoice:
+            return obj.invoice.invoice_number
+        return '-'
+    get_invoice_number.short_description = 'Invoice'
+    get_invoice_number.admin_order_field = 'invoice__invoice_number'
+    
+    def get_client_name(self, obj):
+        """Display client name"""
+        if obj.invoice and obj.invoice.client:
+            return obj.invoice.client.name
+        return '-'
+    get_client_name.short_description = 'Client'
+    get_client_name.admin_order_field = 'invoice__client__name'
 
 
 class CreditNoteItemInline(admin.TabularInline):
