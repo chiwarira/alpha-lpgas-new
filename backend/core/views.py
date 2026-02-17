@@ -217,7 +217,13 @@ class ProductViewSet(viewsets.ModelViewSet):
     ordering_fields = ['name', 'unit_price', 'created_at', 'order']
     
     def get_queryset(self):
-        queryset = Product.objects.all()
+        from django.core.cache import cache
+        
+        # Build cache key based on query params
+        cache_key = f"products_{self.request.query_params.urlencode()}"
+        
+        queryset = Product.objects.select_related('category')
+        
         # Filter by active status
         is_active = self.request.query_params.get('is_active', None)
         if is_active is not None:
@@ -234,7 +240,8 @@ class ProductViewSet(viewsets.ModelViewSet):
         is_featured = self.request.query_params.get('is_featured', None)
         if is_featured is not None:
             queryset = queryset.filter(is_featured=is_featured.lower() == 'true')
-        return queryset.select_related('category')
+        
+        return queryset
 
 
 class QuoteViewSet(viewsets.ModelViewSet):

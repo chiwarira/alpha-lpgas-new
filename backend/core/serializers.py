@@ -95,16 +95,34 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     """Serializer for Product model"""
-    category_name = serializers.CharField(source='category.name', read_only=True)
-    is_on_sale = serializers.ReadOnlyField()
-    discount_percentage = serializers.ReadOnlyField()
-    is_low_stock = serializers.ReadOnlyField()
-    is_out_of_stock = serializers.ReadOnlyField()
+    category_name = serializers.CharField(source='category.name', read_only=True, allow_null=True)
+    is_on_sale = serializers.SerializerMethodField()
+    discount_percentage = serializers.SerializerMethodField()
+    is_low_stock = serializers.SerializerMethodField()
+    is_out_of_stock = serializers.SerializerMethodField()
     
     class Meta:
         model = Product
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at', 'slug']
+    
+    def get_is_on_sale(self, obj):
+        return obj.compare_at_price and obj.compare_at_price > obj.unit_price
+    
+    def get_discount_percentage(self, obj):
+        if obj.compare_at_price and obj.compare_at_price > obj.unit_price:
+            return int(((obj.compare_at_price - obj.unit_price) / obj.compare_at_price) * 100)
+        return 0
+    
+    def get_is_low_stock(self, obj):
+        if obj.track_inventory:
+            return obj.stock_quantity <= obj.low_stock_threshold
+        return False
+    
+    def get_is_out_of_stock(self, obj):
+        if obj.track_inventory:
+            return obj.stock_quantity <= 0
+        return False
 
 
 class QuoteItemSerializer(serializers.ModelSerializer):

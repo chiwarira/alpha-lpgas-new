@@ -307,6 +307,12 @@ class Product(models.Model):
 
     class Meta:
         ordering = ['order', 'name']
+        indexes = [
+            models.Index(fields=['is_active', 'show_on_website']),
+            models.Index(fields=['is_featured']),
+            models.Index(fields=['category', 'is_active']),
+            models.Index(fields=['order']),
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.sku})"
