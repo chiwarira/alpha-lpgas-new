@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
             });
         })
-        .catch(err => console.warn('Could not fetch product prices:', err));
+        .catch(err => {});
 
     // Initialize Select2 on product dropdowns
     function initProductSelect2(element) {

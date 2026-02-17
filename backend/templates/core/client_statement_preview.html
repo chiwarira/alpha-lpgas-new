@@ -680,10 +680,6 @@
                 const clientId = "{{ client.id }}";
                 
                 // Debug information
-                console.log('WhatsApp share clicked for statement');
-                console.log('Client:', clientName);
-                console.log('Statement Date:', statementDate);
-                console.log('Balance Due:', balanceDue);
                 
                 // Show loading indicator
                 const originalButtonText = button.innerHTML;
@@ -719,9 +715,7 @@
                             
                             // Google Drive functionality is still used for saving, but link is not added to message
                             if (data.google_drive && data.google_drive.success) {
-                                console.log('Statement saved to Google Drive:', data.google_drive.view_url);
                             } else if (data.google_drive && !data.google_drive.success) {
-                                console.warn('Google Drive upload failed:', data.google_drive.error);
                             }
                             
                             // Format phone number (remove spaces, preserve existing country codes)
@@ -743,7 +737,6 @@
                                 showToast('Please allow pop-ups to open WhatsApp.', 'warning');
                             }
                         } else {
-                            console.error('Error preparing WhatsApp share:', data.error);
                             // Show toast notification instead of alert
                             showToast('Error: ' + data.error, 'danger');
                         }
@@ -753,7 +746,6 @@
                         button.disabled = false;
                     })
                     .catch(error => {
-                        console.error('WhatsApp sharing error:', error);
                         // Show toast notification instead of alert
                         showToast('Could not prepare WhatsApp message: ' + error.message, 'danger');
                         

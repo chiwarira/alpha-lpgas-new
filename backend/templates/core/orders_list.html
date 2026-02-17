@@ -436,8 +436,6 @@ function viewOrder(orderId) {
             document.getElementById('orderModal').classList.add('active');
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('Failed to load order details');
         });
 }
 
@@ -463,13 +461,10 @@ function updateOrderStatus(orderId, newStatus) {
     })
     .then(response => response.json())
     .then(data => {
-        alert('Order status updated successfully!');
         closeModal();
         location.reload();
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to update order status');
     });
 }
 

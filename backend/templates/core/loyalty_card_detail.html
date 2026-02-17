@@ -374,7 +374,6 @@
         const clientPhone = "{{ loyalty_card.client.phone }}";
         
         if (!clientPhone) {
-            alert('Client does not have a phone number on file.');
             return;
         }
 
@@ -409,7 +408,6 @@
                     window.open(whatsappUrl, '_blank');
                 }, 500);
             } else {
-                alert(data.error || 'Failed to prepare loyalty card');
             }
             
             // Restore button
@@ -417,8 +415,6 @@
             btn.disabled = false;
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('Error preparing loyalty card. Please try again.');
             btn.innerHTML = originalHTML;
             btn.disabled = false;
         });

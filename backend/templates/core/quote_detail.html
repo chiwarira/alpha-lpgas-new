@@ -1254,16 +1254,12 @@ select.note-field {
             }
         }
         
-        console.log('Site URL:', siteUrl);
-        console.log('Base path:', basePath || 'No base path detected');
 
         // Verify that the invoice ID is present
         const invoiceIdElement = document.getElementById('invoice-id');
         if (!invoiceIdElement) {
-            console.error('Invoice ID element not found. Autosave functionality will not work properly.');
             showToast('Warning: Autosave functionality may not work properly', 'error', 5000);
         } else {
-            console.log('Invoice ID found:', invoiceIdElement.value);
         }
         
         // DEBUG MODE - Enable for verbose logging
@@ -1272,7 +1268,6 @@ select.note-field {
         // Debug logger function
         function debugLog(...args) {
             if (DEBUG) {
-                console.log('[AUTOSAVE DEBUG]', ...args);
             }
         }
         
@@ -1325,7 +1320,6 @@ select.note-field {
         
         // Function to initialize note fields with proper styling and event handling
         function initializeNoteFields() {
-            console.log('Initializing note fields...');
             noteFields.forEach(field => {
                 // Add appropriate styling based on field content
                 if (field.tagName === 'TEXTAREA') {
@@ -1354,7 +1348,6 @@ select.note-field {
                     }
                 }
             });
-            console.log('Note fields initialization complete');
         }
         
         // Enhanced CSRF token handling
@@ -1407,10 +1400,8 @@ select.note-field {
         
         // Validate CSRF token
         if (!csrfToken || csrfToken === 'None' || csrfToken === '') {
-            console.error('CSRF token not found. Autosave will not work.');
             showToast('Error: CSRF token missing. Autosave disabled.', 'error', 5000);
         } else {
-            console.log('CSRF token found and ready for use');
         }
         
         // Show autosave status indicators
@@ -1480,11 +1471,9 @@ select.note-field {
         // Function to save changes to a field with retry logic
         function saveField(field, isRetry = false) {
             // Log the save attempt for debugging
-            console.log(`Attempting to save field: ${field.name}, value: ${field.value}, isRetry: ${isRetry}`);
             
             // Check if value has actually changed
             if (!isRetry && fieldValues[field.name] === field.value) {
-                console.log(`No change detected for ${field.name}, skipping save`);
                 return; // No change, don't save
             }
             
@@ -1514,7 +1503,6 @@ select.note-field {
             const indicator = field.parentElement.querySelector('.save-indicator');
             
             if (!indicator) {
-                console.error(`Save indicator not found for field ${fieldName}`);
                 showToast(`Error: Save indicator missing for ${fieldName}`, 'error');
                 return;
             }
@@ -1535,7 +1523,6 @@ select.note-field {
             debugLog('Invoice ID:', invoiceId);
             
             if (!invoiceId) {
-                console.error('Cannot save: Missing invoice ID');
                 field.classList.remove('saving');
                 indicator.className = 'save-indicator error visible';
                 showToast('Error: Could not save changes - missing invoice ID', 'error');
@@ -1553,16 +1540,13 @@ select.note-field {
                 // Use the stored numeric value if available
                 if (field._numericValue !== undefined) {
                     data[fieldName] = field._numericValue;
-                    console.log(`Using pre-parsed numeric value for cylinders_collected: ${data[fieldName]}`);
                 } else {
                     // Fallback to parsing the string value
                     data[fieldName] = parseInt(fieldValue, 10);
-                    console.log(`Converting cylinders_collected from string '${fieldValue}' to integer ${data[fieldName]}`);
                 }
                 
                 // Ensure we're sending a valid number
                 if (isNaN(data[fieldName])) {
-                    console.error(`Failed to convert cylinders_collected to a valid number: '${fieldValue}'`);
                     showError(`Failed to save cylinders collected: Invalid number format`);
                     return;
                 }
@@ -1571,7 +1555,6 @@ select.note-field {
             }
             
             // Log for debugging
-            console.log(`Saving field ${fieldName} with value:`, fieldValue);
             
             // Status indicator for the specific field type
             let statusText = '';
@@ -1601,7 +1584,6 @@ select.note-field {
             let apiUrl = `/api/invoices/${invoiceId}/update-notes/`;
             
             // Log the constructed URL
-            console.log(`API URL for saving ${fieldName}: ${apiUrl}`);
             
             // Ensure we're using an absolute URL if needed
             if (window.location.pathname.includes('/invoices/')) {
@@ -1611,7 +1593,6 @@ select.note-field {
                 if (invoicesIndex > 0) {
                     const basePath = currentPath.substring(0, invoicesIndex);
                     apiUrl = `${basePath}/api/invoices/${invoiceId}/update-notes/`;
-                    console.log(`Using base path from current URL: ${basePath}`);
                 }
             }
             
@@ -1652,14 +1633,11 @@ select.note-field {
             .then(response => {
                 // Log response status and timing
                 const requestTime = Date.now() - startTime;
-                console.log(`API response received in ${requestTime}ms with status: ${response.status}`);
                 // Check if the response is OK (status in 200-299 range)
                 if (!response.ok) {
-                    console.error(`Server error: ${response.status} ${response.statusText}`);
                     
                     // Handle different types of errors based on status code
                     return response.text().then(errorText => {
-                        console.error(`Error saving ${fieldName}:`, errorText);
                         
                         // Try to parse the error response as JSON
                         let errorDetails = '';
@@ -1685,15 +1663,11 @@ select.note-field {
                 
                 // If response is OK, try to parse it as JSON
                 return response.json().catch(jsonError => {
-                    console.error('Error parsing JSON response:', jsonError);
                     throw new Error('Invalid response format from server');
                 });
             })
             .then(data => {
                 // Log the complete response data in a collapsed group for easy debugging
-                console.groupCollapsed('API Response Data');
-                console.log(data);
-                console.groupEnd();
                 
                 // Remove saving styles
                 field.classList.remove('saving');
@@ -1736,7 +1710,6 @@ select.note-field {
                 } else {
                     // Show error indicator
                     indicator.className = 'save-indicator error visible';
-                    console.error('Error saving field:', data.error);
                     
                     // Update status text
                     if (statusElement) {
@@ -1765,13 +1738,6 @@ select.note-field {
             })
             .catch(error => {
                 // Log detailed error information
-                console.group('API Request Error');
-                console.error('Error object:', error);
-                console.error('Error message:', error.message);
-                console.error('Requested URL:', apiUrl);
-                console.error('Request data:', data);
-                console.error('Attempt:', saveAttempts[fieldName]);
-                console.groupEnd();
                 
                 // Remove saving styles
                 field.classList.remove('saving');
@@ -1842,7 +1808,6 @@ select.note-field {
                     toastMessage = 'Your session has expired. The page will refresh to restore your session.';
                     showToast(toastMessage, 'error', 3000);
                     
-                    console.error('CSRF validation failed. Refreshing page in 3 seconds');
                     
                     // Reload the page after a delay to get a fresh CSRF token
                     setTimeout(() => {
@@ -1885,12 +1850,9 @@ select.note-field {
             } else if (field.tagName === 'SELECT') {
                 // Special handling for cylinders_collected field
                 if (field.name === 'cylinders_collected') {
-                    console.log(`Setting up event listener for cylinders_collected select field`);
                     field.addEventListener('change', function() {
-                        console.log(`Cylinders collected changed to: ${this.value} (${typeof this.value})`);
                         // Ensure we're sending a number, not a string
                         const numValue = parseInt(this.value, 10);
-                        console.log(`Parsed value: ${numValue} (${typeof numValue})`);
                         // Store the parsed value back in the field for saving
                         this._numericValue = numValue;
                         saveField(this);
@@ -1908,7 +1870,6 @@ select.note-field {
         
         // Function to show error messages to the user
         function showError(message, fieldName = null) {
-            console.error(message);
             
             // Display error message to the user
             const errorElement = document.createElement('div');
@@ -1978,7 +1939,6 @@ select.note-field {
             const clientId = $(this).data('client-id');
             const clientPhone = $(this).data('client-phone');
             
-            console.log('WhatsApp share clicked for invoice');
             
             // Show a loading toast
             showToast('Preparing invoice for WhatsApp and Google Drive...', 'info');
@@ -1997,7 +1957,6 @@ select.note-field {
                         if (data.google_drive && data.google_drive.success) {
                             showToast('Invoice saved to Google Drive', 'success');
                         } else if (data.google_drive && !data.google_drive.success) {
-                            console.warn('Google Drive upload failed:', data.google_drive.error);
                             showToast('Google Drive upload failed: ' + data.google_drive.error, 'warning');
                         }
                         
@@ -2006,7 +1965,6 @@ select.note-field {
                         
                         if (!phone) {
                             // Default to no phone number - will just create a WhatsApp message without a recipient
-                            console.log('No phone number available for client');
                         } else {
                             // Format the phone number for WhatsApp (remove spaces, preserve existing country codes)
                             phone = phone.replace(/[\s\-()]/g, '');
@@ -2038,12 +1996,10 @@ select.note-field {
                             showToast('WhatsApp opened successfully', 'success');
                         }
                     } else {
-                        console.error('Error preparing WhatsApp share:', data.error);
                         showToast('Error: ' + data.error, 'error');
                     }
                 },
                 error: function(error) {
-                    console.error('Error with WhatsApp share API:', error);
                     showToast('Could not prepare WhatsApp message', 'error');
                 }
             });

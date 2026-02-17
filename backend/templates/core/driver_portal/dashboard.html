@@ -176,11 +176,9 @@ document.querySelectorAll('.status-btn').forEach(btn => {
             if (data.success) {
                 location.reload();
             } else {
-                alert(data.error || 'Failed to update status');
             }
         })
         .catch(error => {
-            alert('Error updating status');
         });
     });
 });

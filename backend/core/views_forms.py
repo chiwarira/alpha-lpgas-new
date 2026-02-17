@@ -585,6 +585,7 @@ def invoice_list(request):
         'all': invoices.count(),
         'draft': invoices.filter(status='draft').count(),
         'sent': invoices.filter(status='sent').count(),
+        'unpaid': invoices.filter(status='unpaid').count(),
         'paid': invoices.filter(status='paid').count(),
         'partially_paid': invoices.filter(status='partially_paid').count(),
         'overdue': invoices.filter(status='overdue').count(),
@@ -1790,6 +1791,31 @@ def payment_list(request):
         'method_filter': method_filter,
         'total_amount': total_amount,
     })
+
+
+@login_required
+@require_http_methods(["POST"])
+def payment_delete(request, pk):
+    """Delete a payment and update the related invoice"""
+    payment = get_object_or_404(Payment, pk=pk)
+    invoice = payment.invoice
+    payment_amount = payment.amount
+    payment_number = payment.payment_number
+    
+    # Delete the payment
+    payment.delete()
+    
+    # Recalculate invoice paid_amount from remaining payments
+    invoice.paid_amount = sum(p.amount for p in invoice.payments.all())
+    invoice.calculate_totals()
+    
+    messages.success(request, f'Payment {payment_number} (R{payment_amount:,.2f}) deleted successfully. Invoice updated.')
+    
+    # Redirect to referring page or payment list
+    referer = request.META.get('HTTP_REFERER')
+    if referer and 'payments' in referer:
+        return redirect(referer)
+    return redirect('accounting_forms:payment_list')
 
 
 # Supplier Views
