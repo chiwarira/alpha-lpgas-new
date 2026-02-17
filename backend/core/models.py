@@ -633,7 +633,7 @@ class Payment(models.Model):
     ]
 
     payment_number = models.CharField(max_length=50, unique=True)
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='payments')
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='payments', null=True, blank=True)
     payment_date = models.DateField()
     amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES)
@@ -675,9 +675,10 @@ class Payment(models.Model):
             self.payment_number = f"{prefix}-{new_seq:03d}"
         
         super().save(*args, **kwargs)
-        # Update invoice paid amount and status
-        self.invoice.paid_amount = sum(p.amount for p in self.invoice.payments.all())
-        self.invoice.calculate_totals()
+        # Update invoice paid amount and status (only if invoice is set)
+        if self.invoice:
+            self.invoice.paid_amount = sum(p.amount for p in self.invoice.payments.all())
+            self.invoice.calculate_totals()
 
 
 class CreditNote(models.Model):

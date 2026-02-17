@@ -486,7 +486,7 @@ class MultiPaymentForm(forms.ModelForm):
                 client_id = int(self.data.get('client'))
                 self.fields['selected_invoices'].queryset = Invoice.objects.filter(
                     client_id=client_id,
-                    status__in=['unpaid', 'partially_paid']
+                    status__in=['unpaid', 'partially_paid', 'overdue']
                 ).order_by('issue_date')
             except (ValueError, TypeError):
                 self.fields['selected_invoices'].queryset = Invoice.objects.none()

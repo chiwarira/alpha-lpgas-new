@@ -1039,7 +1039,7 @@ def add_payment(request):
                     # Auto-allocate to oldest unpaid invoices
                     unpaid_invoices = Invoice.objects.filter(
                         client=client,
-                        status__in=['unpaid', 'partially_paid']
+                        status__in=['unpaid', 'partially_paid', 'overdue']
                     ).order_by('issue_date')
                     
                     remaining_amount = amount
