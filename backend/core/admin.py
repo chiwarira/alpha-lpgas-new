@@ -189,6 +189,8 @@ class PaymentAdmin(admin.ModelAdmin):
     search_fields = ['payment_number', 'reference_number', 'invoice__invoice_number', 'invoice__client__name']
     readonly_fields = ['created_at', 'updated_at']
     list_select_related = ['invoice', 'invoice__client', 'created_by']
+    raw_id_fields = ['invoice', 'created_by']
+    autocomplete_fields = ['invoice']
     
     def get_queryset(self, request):
         """Optimize queryset with select_related to avoid N+1 queries"""
