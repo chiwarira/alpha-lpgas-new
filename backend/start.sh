@@ -14,7 +14,9 @@ echo "Starting gunicorn on port $PORT..."
 exec gunicorn alphalpgas.wsgi:application \
     --bind 0.0.0.0:$PORT \
     --workers 2 \
-    --timeout 120 \
+    --timeout 300 \
+    --graceful-timeout 300 \
+    --keep-alive 5 \
     --access-logfile - \
     --error-logfile - \
     --log-level info
