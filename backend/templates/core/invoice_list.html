@@ -83,16 +83,6 @@
         </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link {% if status_filter == 'draft' %}active{% endif %}" href="#" data-status="draft">
-            <i class="bi bi-file-earmark"></i> Draft <span class="badge bg-warning">{{ status_counts.draft }}</span>
-        </a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link {% if status_filter == 'sent' %}active{% endif %}" href="#" data-status="sent">
-            <i class="bi bi-send"></i> Sent <span class="badge bg-primary">{{ status_counts.sent }}</span>
-        </a>
-    </li>
-    <li class="nav-item">
         <a class="nav-link {% if status_filter == 'unpaid' %}active{% endif %}" href="#" data-status="unpaid">
             <i class="bi bi-wallet2"></i> Unpaid <span class="badge bg-warning">{{ status_counts.unpaid }}</span>
         </a>
@@ -110,11 +100,6 @@
     <li class="nav-item">
         <a class="nav-link {% if status_filter == 'overdue' %}active{% endif %}" href="#" data-status="overdue">
             <i class="bi bi-exclamation-triangle"></i> Overdue <span class="badge bg-danger">{{ status_counts.overdue }}</span>
-        </a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link {% if status_filter == 'cancelled' %}active{% endif %}" href="#" data-status="cancelled">
-            <i class="bi bi-x-circle"></i> Cancelled <span class="badge bg-dark">{{ status_counts.cancelled }}</span>
         </a>
     </li>
 </ul>

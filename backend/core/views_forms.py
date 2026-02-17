@@ -528,12 +528,19 @@ def invoice_list(request):
     """List all invoices with search, sort, filter, and pagination"""
     from django.core.paginator import Paginator
     from django.db.models import Q
+    from datetime import date, timedelta
     
     search_query = request.GET.get('search', '')
     sort_by = request.GET.get('sort', '-issue_date')
     status_filter = request.GET.get('status', '')
-    date_from = request.GET.get('date_from', '')
-    date_to = request.GET.get('date_to', '')
+    
+    # Default to last 30 days if no date filters provided
+    today = date.today()
+    default_date_from = (today - timedelta(days=30)).strftime('%Y-%m-%d')
+    default_date_to = today.strftime('%Y-%m-%d')
+    
+    date_from = request.GET.get('date_from', default_date_from)
+    date_to = request.GET.get('date_to', default_date_to)
     per_page = request.GET.get('per_page', '50')
     
     # Valid sort fields
@@ -951,10 +958,10 @@ def client_unpaid_invoices(request, client_id):
     try:
         client = get_object_or_404(Client, pk=client_id)
         
-        # Get unpaid invoices
+        # Get unpaid, partially paid, and overdue invoices
         unpaid_invoices = Invoice.objects.filter(
             client=client,
-            status__in=['unpaid', 'partially_paid']
+            status__in=['unpaid', 'partially_paid', 'overdue']
         ).order_by('issue_date')
         
         # Format invoice data
