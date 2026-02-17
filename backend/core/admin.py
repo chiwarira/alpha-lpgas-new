@@ -195,6 +195,17 @@ class PaymentAdmin(admin.ModelAdmin):
         qs = super().get_queryset(request)
         return qs.select_related('invoice', 'invoice__client', 'created_by')
     
+    def get_object(self, request, object_id, from_field=None):
+        """Optimize individual object loading with select_related"""
+        queryset = self.get_queryset(request)
+        model = self.model
+        field = model._meta.pk if from_field is None else model._meta.get_field(from_field)
+        try:
+            object_id = field.to_python(object_id)
+            return queryset.get(**{field.name: object_id})
+        except (model.DoesNotExist, ValueError):
+            return None
+    
     def get_invoice_number(self, obj):
         """Display invoice number with link"""
         if obj.invoice:
