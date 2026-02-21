@@ -93,12 +93,13 @@ urlpatterns = [
     
     # Payments
     path('payments/', payment_list, name='payment_list'),
-    path('payments/create/', payment_create, name='payment_create'),
+    path('payments/create/single/', payment_create, name='payment_create_single'),  # Single invoice payment
+    path('payments/create/multi/', add_payment, name='payment_create_multi'),  # Multi-invoice payment
+    path('payments/create/', add_payment, name='payment_create'),  # Default to multi-invoice
     path('payments/<int:pk>/delete/', payment_delete, name='payment_delete'),
     path('invoices/<int:invoice_pk>/payments/create/', payment_create, name='payment_create_for_invoice'),
     path('api/invoices/<int:pk>/balance/', invoice_balance_api, name='invoice_balance_api'),
     path('invoices/<int:pk>/quick-payment/', quick_payment, name='quick_payment'),
-    path('payments/add/', add_payment, name='add_payment'),
     path('api/clients/<int:client_id>/unpaid-invoices/', client_unpaid_invoices, name='client_unpaid_invoices'),
     
     # Credit Notes

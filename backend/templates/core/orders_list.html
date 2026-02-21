@@ -444,10 +444,6 @@ function closeModal() {
 }
 
 function updateOrderStatus(orderId, newStatus) {
-    if (!confirm(`Update order status to ${newStatus.replace('_', ' ')}?`)) {
-        return;
-    }
-    
     fetch(`/api/accounting/orders/${orderId}/update_status/`, {
         method: 'POST',
         headers: {

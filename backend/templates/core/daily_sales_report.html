@@ -338,11 +338,23 @@
                     <tr>
                         <td><code>{{ payment.payment_number }}</code></td>
                         <td>
+                            {% if payment.invoice %}
                             <a href="{% url 'accounting_forms:invoice_detail' payment.invoice.invoice_number %}">
                                 {{ payment.invoice.invoice_number }}
                             </a>
+                            {% else %}
+                            <em>Multi-invoice</em>
+                            {% endif %}
                         </td>
-                        <td>{{ payment.invoice.client.name }}</td>
+                        <td>
+                            {% if payment.invoice %}
+                            {{ payment.invoice.client.name }}
+                            {% elif payment.client %}
+                            {{ payment.client.name }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
                         <td>
                             {% if payment.payment_method == 'cash' %}
                                 <span class="badge bg-success"><i class="bi bi-cash"></i> Cash</span>

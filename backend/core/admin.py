@@ -186,16 +186,16 @@ class InvoiceAdmin(admin.ModelAdmin):
 class PaymentAdmin(admin.ModelAdmin):
     list_display = ['payment_number', 'get_invoice_number', 'get_client_name', 'payment_date', 'amount', 'payment_method', 'created_at']
     list_filter = ['payment_method', 'payment_date', 'created_at']
-    search_fields = ['payment_number', 'reference_number', 'invoice__invoice_number', 'invoice__client__name']
+    search_fields = ['payment_number', 'reference_number', 'invoice__invoice_number', 'invoice__client__name', 'client__name']
     readonly_fields = ['created_at', 'updated_at']
-    list_select_related = ['invoice', 'invoice__client', 'created_by']
-    raw_id_fields = ['invoice', 'created_by']
-    autocomplete_fields = ['invoice']
+    list_select_related = ['invoice', 'invoice__client', 'client', 'created_by']
+    raw_id_fields = ['invoice', 'client', 'created_by']
+    autocomplete_fields = ['invoice', 'client']
     
     def get_queryset(self, request):
         """Optimize queryset with select_related to avoid N+1 queries"""
         qs = super().get_queryset(request)
-        return qs.select_related('invoice', 'invoice__client', 'created_by')
+        return qs.select_related('invoice', 'invoice__client', 'client', 'created_by')
     
     def get_object(self, request, object_id, from_field=None):
         """Optimize individual object loading with select_related"""
@@ -220,6 +220,8 @@ class PaymentAdmin(admin.ModelAdmin):
         """Display client name"""
         if obj.invoice and obj.invoice.client:
             return obj.invoice.client.name
+        elif obj.client:
+            return obj.client.name
         return '-'
     get_client_name.short_description = 'Client'
     get_client_name.admin_order_field = 'invoice__client__name'

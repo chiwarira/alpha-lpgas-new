@@ -306,6 +306,7 @@
                     <div class="card-body p-0">
                         <div class="list-group list-group-flush">
                             {% for payment in recent_payments %}
+                            {% if payment.invoice %}
                             <a href="{% url 'accounting_forms:invoice_detail' payment.invoice.invoice_number %}" class="list-group-item list-group-item-action">
                                 <div class="d-flex w-100 justify-content-between">
                                     <h6 class="mb-1">{{ payment.payment_number }}</h6>
@@ -314,6 +315,16 @@
                                 <p class="mb-1">{{ payment.invoice.client.name }}</p>
                                 <small>R {{ payment.amount|floatformat:2 }} - {{ payment.get_payment_method_display }}</small>
                             </a>
+                            {% else %}
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ payment.payment_number }}</h6>
+                                    <small>{{ payment.payment_date }}</small>
+                                </div>
+                                <p class="mb-1"><em>Multi-invoice payment</em></p>
+                                <small>R {{ payment.amount|floatformat:2 }} - {{ payment.get_payment_method_display }}</small>
+                            </div>
+                            {% endif %}
                             {% empty %}
                             <div class="list-group-item">No payments yet</div>
                             {% endfor %}

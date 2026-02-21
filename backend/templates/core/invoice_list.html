@@ -12,7 +12,7 @@
         <a href="{% url 'accounting_forms:invoice_create' %}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> New Invoice
         </a>
-        <a href="{% url 'accounting_forms:add_payment' %}" class="btn btn-success">
+        <a href="{% url 'accounting_forms:payment_create' %}" class="btn btn-success">
             <i class="bi bi-cash-coin"></i> Add Payment
         </a>
         <a href="{% url 'accounting_forms:dashboard' %}" class="btn btn-secondary">
@@ -123,8 +123,7 @@
             <button type="submit" name="action" value="mark_whatsapp_sent" class="btn btn-outline-success">
                 <i class="fab fa-whatsapp"></i> Mark WhatsApp Sent
             </button>
-            <button type="submit" name="action" value="delete" class="btn btn-outline-danger" 
-                    onclick="return confirm('Are you sure you want to delete the selected invoices? This cannot be undone.')">
+            <button type="submit" name="action" value="delete" class="btn btn-outline-danger">
                 <i class="bi bi-trash"></i> Delete
             </button>
         </div>
@@ -503,26 +502,49 @@ document.addEventListener('DOMContentLoaded', function() {
             const invoiceNumber = this.getAttribute('data-invoice-number');
             const balance = this.getAttribute('data-balance');
             
-            if (confirm('Record cash payment of R' + balance + ' for ' + invoiceNumber + '?')) {
-                // Create a hidden form and submit it
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '/accounting/invoices/' + invoiceId + '/quick-payment/';
-                
-                // Add CSRF token
-                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = 'csrfmiddlewaretoken';
-                csrfInput.value = csrfToken;
-                form.appendChild(csrfInput);
-                
-                // Append to body and submit
-                document.body.appendChild(form);
-                form.submit();
-            }
+            // Create a hidden form and submit it
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/accounting/invoices/' + invoiceId + '/quick-payment/';
+            
+            // Add CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
+            
+            // Append to body and submit
+            document.body.appendChild(form);
+            form.submit();
         });
     });
+
+    // Remove confirm() dialog from bulk delete button
+    const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/accounting/invoices/bulk-delete/';
+            
+            // Add CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
+            
+            // Append to body and submit
+            document.body.appendChild(form);
+            form.submit();
+        });
+    }
 });
 </script>
 {% endblock %}

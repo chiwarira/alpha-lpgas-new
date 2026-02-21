@@ -465,9 +465,16 @@ class MultiPaymentForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from .models import Client, Invoice
+        from django.db.models import Q, Exists, OuterRef
         
-        # Set client queryset
-        self.fields['client'].queryset = Client.objects.all().order_by('name')
+        # Optimize: Only load clients that have unpaid invoices
+        unpaid_invoices = Invoice.objects.filter(
+            client=OuterRef('pk'),
+            status__in=['unpaid', 'partially_paid', 'overdue']
+        )
+        self.fields['client'].queryset = Client.objects.filter(
+            Exists(unpaid_invoices)
+        ).order_by('name')
         
         # Initialize invoice queryset as empty
         self.fields['selected_invoices'].queryset = Invoice.objects.none()

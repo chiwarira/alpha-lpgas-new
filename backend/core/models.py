@@ -639,6 +639,7 @@ class Payment(models.Model):
     ]
 
     payment_number = models.CharField(max_length=50, unique=True)
+    client = models.ForeignKey('Client', on_delete=models.CASCADE, related_name='payments', null=True, blank=True)
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='payments', null=True, blank=True)
     payment_date = models.DateField()
     amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])

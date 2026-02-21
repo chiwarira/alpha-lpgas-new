@@ -61,16 +61,28 @@
                 <tr>
                     <td>{{ payment.payment_date|date:"d M Y" }}</td>
                     <td>
+                        {% if payment.invoice %}
                         <a href="{% url 'accounting_forms:invoice_detail' payment.invoice.invoice_number %}">
                             {{ payment.invoice.invoice_number }}
                         </a>
+                        {% else %}
+                        <em>Multi-invoice</em>
+                        {% endif %}
                     </td>
-                    <td>{{ payment.invoice.client.name }}</td>
+                    <td>
+                        {% if payment.invoice %}
+                        {{ payment.invoice.client.name }}
+                        {% elif payment.client %}
+                        {{ payment.client.name }}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
                     <td>{{ payment.get_payment_method_display }}</td>
                     <td>{{ payment.reference|default:"-" }}</td>
                     <td class="text-end">R{{ payment.amount|floatformat:2 }}</td>
                     <td class="text-end">
-                        <form method="post" action="{% url 'accounting_forms:payment_delete' payment.pk %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this payment? The invoice will be updated accordingly.');">
+                        <form method="post" action="{% url 'accounting_forms:payment_delete' payment.pk %}" style="display: inline;">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-danger btn-sm" title="Delete Payment">
                                 <i class="bi bi-trash"></i>
@@ -93,8 +105,13 @@
         <div class="mobile-card-item">
             <div class="card-item-header">
                 <div>
+                    {% if payment.invoice %}
                     <div class="title"><a href="{% url 'accounting_forms:invoice_detail' payment.invoice.invoice_number %}" class="text-decoration-none">{{ payment.invoice.invoice_number }}</a></div>
                     <div class="subtitle">{{ payment.invoice.client.name }}</div>
+                    {% else %}
+                    <div class="title"><em>Multi-invoice payment</em></div>
+                    <div class="subtitle">{% if payment.client %}{{ payment.client.name }}{% else %}{{ payment.payment_number }}{% endif %}</div>
+                    {% endif %}
                 </div>
                 <div>
                     <span class="badge bg-primary">{{ payment.get_payment_method_display }}</span>
@@ -115,7 +132,7 @@
                 </div>
             </div>
             <div class="card-item-actions mt-2">
-                <form method="post" action="{% url 'accounting_forms:payment_delete' payment.pk %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this payment? The invoice will be updated accordingly.');">
+                <form method="post" action="{% url 'accounting_forms:payment_delete' payment.pk %}" style="display: inline;">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-danger btn-sm w-100">
                         <i class="bi bi-trash"></i> Delete Payment

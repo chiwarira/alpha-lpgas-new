@@ -534,13 +534,12 @@ def invoice_list(request):
     sort_by = request.GET.get('sort', '-issue_date')
     status_filter = request.GET.get('status', '')
     
-    # Default to last 30 days if no date filters provided
+    # Default to current day if no date filters provided
     today = date.today()
-    default_date_from = (today - timedelta(days=30)).strftime('%Y-%m-%d')
-    default_date_to = today.strftime('%Y-%m-%d')
+    default_date = today.strftime('%Y-%m-%d')
     
-    date_from = request.GET.get('date_from', default_date_from)
-    date_to = request.GET.get('date_to', default_date_to)
+    date_from = request.GET.get('date_from', default_date)
+    date_to = request.GET.get('date_to', default_date)
     per_page = request.GET.get('per_page', '50')
     
     # Valid sort fields
@@ -925,7 +924,7 @@ def quick_payment(request, pk):
             invoice=invoice,
             amount=balance,
             payment_date=date.today(),
-            payment_method='cash',
+            payment_method='eft',
             reference_number=f'Quick payment for {invoice.invoice_number}',
             notes='Payment applied from invoice list',
             created_by=request.user,
@@ -1010,6 +1009,7 @@ def add_payment(request):
                 
                 # Create and save payment
                 payment = form.save(commit=False)
+                payment.client = client  # Store client for multi-invoice payments
                 payment.created_by = request.user
                 payment.save()
                 
