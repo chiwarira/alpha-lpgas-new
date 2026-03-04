@@ -28,16 +28,9 @@
             <!-- Search -->
             <div class="col-md-3">
                 <label class="form-label small mb-0">Search</label>
-                <div class="position-relative">
-                    <input type="text" id="search-input" name="search" class="form-control form-control-sm" 
-                           placeholder="Invoice #, client, address..." 
-                           value="{{ search_query }}" autofocus>
-                    <div id="search-spinner" class="position-absolute top-50 end-0 translate-middle-y me-2" style="display: none;">
-                        <div class="spinner-border spinner-border-sm text-primary" role="status">
-                            <span class="visually-hidden">Searching...</span>
-                        </div>
-                    </div>
-                </div>
+                <input type="text" id="search-input" name="search" class="form-control form-control-sm" 
+                       placeholder="Invoice #, client, address..." 
+                       value="{{ search_query }}">
             </div>
             <!-- Date From -->
             <div class="col-md-2">
@@ -189,21 +182,15 @@
                             <td>{{ invoice.issue_date|date:"Y-m-d" }}</td>
                             <td>{{ invoice.due_date|date:"Y-m-d" }}</td>
                             <td class="text-end">R {{ invoice.total_amount|floatformat:2 }}</td>
-                            <td class="text-end">R {{ invoice.paid_amount|floatformat:2 }}</td>
-                            <td class="text-end">R {{ invoice.balance|floatformat:2 }}</td>
+                            <td class="text-end paid-amount">R {{ invoice.paid_amount|floatformat:2 }}</td>
+                            <td class="text-end balance-amount">R {{ invoice.balance|floatformat:2 }}</td>
                             <td>
                                 {% if invoice.status == 'paid' %}
-                                <span class="badge bg-success">Paid</span>
+                                <span class="badge bg-success status-badge">Paid</span>
                                 {% elif invoice.status == 'partially_paid' %}
-                                <span class="badge bg-info">Partial</span>
-                                {% elif invoice.status == 'overdue' %}
-                                <span class="badge bg-danger">Overdue</span>
-                                {% elif invoice.status == 'cancelled' %}
-                                <span class="badge bg-dark">Cancelled</span>
-                                {% elif invoice.status == 'sent' %}
-                                <span class="badge bg-primary">Sent</span>
+                                <span class="badge bg-info status-badge">Partially Paid</span>
                                 {% else %}
-                                <span class="badge bg-warning">{{ invoice.get_status_display }}</span>
+                                <span class="badge bg-warning status-badge">Unpaid</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -225,13 +212,34 @@
                                     </a>
                                     {% if invoice.balance > 0 %}
                                     <button type="button" class="btn btn-success btn-sm quick-payment-btn" 
-                                            title="Add Payment (R{{ invoice.balance|floatformat:2 }})"
+                                            title="Cash Payment (R{{ invoice.balance|floatformat:2 }})"
                                             data-invoice-id="{{ invoice.pk }}"
                                             data-invoice-number="{{ invoice.invoice_number }}"
-                                            data-balance="{{ invoice.balance|floatformat:2 }}">
-                                        <i class="bi bi-cash-coin"></i>
+                                            data-balance="{{ invoice.balance|floatformat:2 }}"
+                                            data-payment-method="cash">
+                                        <i class="bi bi-cash-stack"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-info btn-sm quick-payment-btn" 
+                                            title="Card Payment (R{{ invoice.balance|floatformat:2 }})"
+                                            data-invoice-id="{{ invoice.pk }}"
+                                            data-invoice-number="{{ invoice.invoice_number }}"
+                                            data-balance="{{ invoice.balance|floatformat:2 }}"
+                                            data-payment-method="card">
+                                        <i class="bi bi-credit-card"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-primary btn-sm quick-payment-btn" 
+                                            title="EFT Payment (R{{ invoice.balance|floatformat:2 }})"
+                                            data-invoice-id="{{ invoice.pk }}"
+                                            data-invoice-number="{{ invoice.invoice_number }}"
+                                            data-balance="{{ invoice.balance|floatformat:2 }}"
+                                            data-payment-method="eft">
+                                        <i class="bi bi-bank"></i>
                                     </button>
                                     {% endif %}
+                                    <a href="{% url 'accounting_forms:invoice_delete' invoice.invoice_number %}" 
+                                       class="btn btn-outline-danger btn-sm" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
                                 </div>
                             </td>
                         </tr>
@@ -253,26 +261,20 @@
                             {% if invoice.status == 'paid' %}
                             <span class="badge bg-success">Paid</span>
                             {% elif invoice.status == 'partially_paid' %}
-                            <span class="badge bg-info">Partial</span>
-                            {% elif invoice.status == 'overdue' %}
-                            <span class="badge bg-danger">Overdue</span>
-                            {% elif invoice.status == 'cancelled' %}
-                            <span class="badge bg-dark">Cancelled</span>
-                            {% elif invoice.status == 'sent' %}
-                            <span class="badge bg-primary">Sent</span>
+                            <span class="badge bg-info">Partially Paid</span>
                             {% else %}
-                            <span class="badge bg-warning">{{ invoice.get_status_display }}</span>
+                            <span class="badge bg-warning">Unpaid</span>
                             {% endif %}
                         </div>
                     </div>
-                    <div class="card-item-details">
+                    <div class="card-item-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                         <div>
                             <div class="detail-label">Total</div>
                             <div class="detail-value">R {{ invoice.total_amount|floatformat:2 }}</div>
                         </div>
                         <div>
                             <div class="detail-label">Balance</div>
-                            <div class="detail-value">R {{ invoice.balance|floatformat:2 }}</div>
+                            <div class="detail-value balance-amount">R {{ invoice.balance|floatformat:2 }}</div>
                         </div>
                         <div>
                             <div class="detail-label">Issue Date</div>
@@ -284,7 +286,7 @@
                         </div>
                         <div>
                             <div class="detail-label">Paid</div>
-                            <div class="detail-value">R {{ invoice.paid_amount|floatformat:2 }}</div>
+                            <div class="detail-value paid-amount">R {{ invoice.paid_amount|floatformat:2 }}</div>
                         </div>
                         <div>
                             <div class="detail-label">Address</div>
@@ -296,12 +298,31 @@
                         <a href="{% url 'accounting_forms:invoice_edit' invoice.invoice_number %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
                         {% if invoice.balance > 0 %}
                         <button type="button" class="btn btn-success btn-sm quick-payment-btn"
+                                title="Cash Payment"
                                 data-invoice-id="{{ invoice.pk }}"
                                 data-invoice-number="{{ invoice.invoice_number }}"
-                                data-balance="{{ invoice.balance|floatformat:2 }}">
-                            <i class="bi bi-cash-coin"></i> Pay R{{ invoice.balance|floatformat:2 }}
+                                data-balance="{{ invoice.balance|floatformat:2 }}"
+                                data-payment-method="cash">
+                            <i class="bi bi-cash-stack"></i> Cash
+                        </button>
+                        <button type="button" class="btn btn-info btn-sm quick-payment-btn"
+                                title="Card Payment"
+                                data-invoice-id="{{ invoice.pk }}"
+                                data-invoice-number="{{ invoice.invoice_number }}"
+                                data-balance="{{ invoice.balance|floatformat:2 }}"
+                                data-payment-method="card">
+                            <i class="bi bi-credit-card"></i> Card
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm quick-payment-btn"
+                                title="EFT Payment"
+                                data-invoice-id="{{ invoice.pk }}"
+                                data-invoice-number="{{ invoice.invoice_number }}"
+                                data-balance="{{ invoice.balance|floatformat:2 }}"
+                                data-payment-method="eft">
+                            <i class="bi bi-bank"></i> EFT
                         </button>
                         {% endif %}
+                        <a href="{% url 'accounting_forms:invoice_delete' invoice.invoice_number %}" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Delete</a>
                     </div>
                 </div>
                 {% endfor %}
@@ -479,19 +500,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ---- Real-time Search ----
-    const searchInput = document.getElementById('search-input');
-    const searchSpinner = document.getElementById('search-spinner');
-    let searchTimeout;
-
-    searchInput.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchSpinner.style.display = 'block';
-        searchTimeout = setTimeout(function() {
-            document.getElementById('filter-form').submit();
-        }, 500);
-    });
-
     // ---- Quick Payment ----
     document.querySelectorAll('.quick-payment-btn').forEach(function(button) {
         button.addEventListener('click', function(e) {
@@ -501,25 +509,109 @@ document.addEventListener('DOMContentLoaded', function() {
             const invoiceId = this.getAttribute('data-invoice-id');
             const invoiceNumber = this.getAttribute('data-invoice-number');
             const balance = this.getAttribute('data-balance');
+            const paymentMethod = this.getAttribute('data-payment-method');
+            const btn = this;
             
-            // Create a hidden form and submit it
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/accounting/invoices/' + invoiceId + '/quick-payment/';
+            // Disable button and show loading state
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i>';
             
-            // Add CSRF token
+            // Get CSRF token
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrfmiddlewaretoken';
-            csrfInput.value = csrfToken;
-            form.appendChild(csrfInput);
             
-            // Append to body and submit
-            document.body.appendChild(form);
-            form.submit();
+            // Send AJAX request
+            fetch('/accounting/invoices/' + invoiceId + '/quick-payment/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                },
+                body: 'payment_method=' + encodeURIComponent(paymentMethod)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the invoice row with new values
+                    const row = btn.closest('tr') || btn.closest('.mobile-card-item');
+                    
+                    if (row) {
+                        // Update paid amount
+                        const paidCell = row.querySelector('.paid-amount');
+                        if (paidCell) {
+                            paidCell.textContent = 'R ' + data.invoice.paid_amount.toFixed(2);
+                        }
+                        
+                        // Update balance
+                        const balanceCell = row.querySelector('.balance-amount');
+                        if (balanceCell) {
+                            balanceCell.textContent = 'R ' + data.invoice.balance.toFixed(2);
+                        }
+                        
+                        // Update status badge
+                        const statusCell = row.querySelector('.status-badge');
+                        if (statusCell) {
+                            statusCell.className = 'badge status-badge';
+                            if (data.invoice.status === 'paid') {
+                                statusCell.classList.add('bg-success');
+                                statusCell.textContent = 'Paid';
+                            } else if (data.invoice.status === 'partially_paid') {
+                                statusCell.classList.add('bg-info');
+                                statusCell.textContent = 'Partially Paid';
+                            } else {
+                                statusCell.classList.add('bg-warning');
+                                statusCell.textContent = 'Unpaid';
+                            }
+                        }
+                        
+                        // Hide payment buttons if fully paid
+                        if (data.invoice.balance <= 0) {
+                            const paymentBtns = row.querySelectorAll('.quick-payment-btn');
+                            paymentBtns.forEach(btn => btn.style.display = 'none');
+                        }
+                    }
+                    
+                    // Show success message
+                    showToast('success', data.message);
+                } else {
+                    showToast('error', data.message);
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('error', 'An error occurred while processing the payment.');
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            });
         });
     });
+    
+    // Toast notification function
+    function showToast(type, message) {
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification toast-' + type;
+        toast.textContent = message;
+        toast.style.cssText = 'position: fixed; top: 20px; right: 20px; padding: 15px 20px; border-radius: 5px; z-index: 9999; max-width: 400px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+        
+        if (type === 'success') {
+            toast.style.backgroundColor = '#28a745';
+            toast.style.color = 'white';
+        } else {
+            toast.style.backgroundColor = '#dc3545';
+            toast.style.color = 'white';
+        }
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.5s';
+            setTimeout(() => toast.remove(), 500);
+        }, 3000);
+    }
 
     // Remove confirm() dialog from bulk delete button
     const bulkDeleteBtn = document.getElementById('bulk-delete-btn');

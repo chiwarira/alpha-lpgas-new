@@ -103,6 +103,10 @@
                                    class="btn btn-outline-secondary" title="PDF">
                                     <i class="bi bi-file-pdf"></i>
                                 </a>
+                                <a href="{% url 'accounting_forms:quote_delete' quote.pk %}" 
+                                   class="btn btn-outline-danger" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </a>
                             </div>
                         </td>
                     </tr>
@@ -149,6 +153,7 @@
                 <div class="card-item-actions">
                     <a href="{% url 'accounting_forms:quote_detail' quote.pk %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-eye"></i> View</a>
                     <a href="{% url 'accounting_forms:quote_pdf' quote.pk %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-pdf"></i> PDF</a>
+                    <a href="{% url 'accounting_forms:quote_delete' quote.pk %}" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Delete</a>
                 </div>
             </div>
             {% endfor %}

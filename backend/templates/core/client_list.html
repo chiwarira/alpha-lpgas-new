@@ -173,7 +173,7 @@
                                 {% endif %}
                             </div>
                         </div>
-                        <div class="card-item-details">
+                        <div class="card-item-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                             <div>
                                 <div class="detail-label">Phone</div>
                                 <div class="detail-value">{% if client.phone %}<a href="tel:{{ client.phone }}">{{ client.phone }}</a>{% else %}-{% endif %}</div>
@@ -190,7 +190,7 @@
                                 <div class="detail-label">Address</div>
                                 <div class="detail-value">{{ client.address|default:"-"|truncatewords:5 }}</div>
                             </div>
-                            <div>
+                            <div style="grid-column: 1 / -1;">
                                 <div class="detail-label">Created</div>
                                 <div class="detail-value">{{ client.created_at|date:"d M Y" }}</div>
                             </div>

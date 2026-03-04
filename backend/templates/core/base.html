@@ -314,6 +314,15 @@
         });
     </script>
     
+    <!-- Auto-focus Select2 search boxes when dropdown opens -->
+    <script>
+        $(document).on('select2:open', () => {
+            setTimeout(() => {
+                document.querySelector('.select2-search__field').focus();
+            }, 100);
+        });
+    </script>
+    
     {% block extra_js %}{% endblock %}
     
     <!-- Custom Scripts - Body End / Footer -->

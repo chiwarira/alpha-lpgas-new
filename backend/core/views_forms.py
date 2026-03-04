@@ -362,8 +362,24 @@ def client_bulk_delete(request):
 @login_required
 def product_list(request):
     """List all products"""
-    products = Product.objects.all().order_by('name')
-    return render(request, 'core/product_list.html', {'products': products})
+    search_query = request.GET.get('search', '')
+    
+    products = Product.objects.all()
+    
+    if search_query:
+        from django.db.models import Q
+        products = products.filter(
+            Q(name__icontains=search_query) |
+            Q(description__icontains=search_query) |
+            Q(sku__icontains=search_query)
+        )
+    
+    products = products.order_by('name')
+    
+    return render(request, 'core/product_list.html', {
+        'products': products,
+        'search_query': search_query
+    })
 
 
 @login_required
@@ -522,6 +538,22 @@ def quote_detail(request, pk):
     return render(request, 'core/quote_detail.html', {'quote': quote})
 
 
+@login_required
+def quote_delete(request, pk):
+    """Delete a quote"""
+    quote = get_object_or_404(Quote, pk=pk)
+    
+    if request.method == 'POST':
+        quote_id = quote.pk
+        quote.delete()
+        messages.success(request, f'Quote #{quote_id} deleted successfully!')
+        return redirect('accounting_forms:quote_list')
+    
+    return render(request, 'core/quote_confirm_delete.html', {
+        'quote': quote
+    })
+
+
 # Invoice Views
 @login_required
 def invoice_list(request):
@@ -589,13 +621,9 @@ def invoice_list(request):
     # Get counts for status tabs (before pagination, after search/date filters)
     status_counts = {
         'all': invoices.count(),
-        'draft': invoices.filter(status='draft').count(),
-        'sent': invoices.filter(status='sent').count(),
         'unpaid': invoices.filter(status='unpaid').count(),
-        'paid': invoices.filter(status='paid').count(),
         'partially_paid': invoices.filter(status='partially_paid').count(),
-        'overdue': invoices.filter(status='overdue').count(),
-        'cancelled': invoices.filter(status='cancelled').count(),
+        'paid': invoices.filter(status='paid').count(),
     }
     
     invoices = invoices.order_by(sort_by)
@@ -660,11 +688,6 @@ def invoice_bulk_action(request):
                 'Yes' if inv.whatsapp_sent else 'No',
             ])
         return response
-    
-    elif action == 'mark_sent':
-        updated = invoices.filter(status='draft').update(status='sent')
-        messages.success(request, f'Marked {updated} invoice(s) as sent.')
-        return redirect('accounting_forms:invoice_list')
     
     elif action == 'mark_whatsapp_sent':
         now = timezone.now()
@@ -873,6 +896,22 @@ def invoice_detail(request, invoice_number):
 
 
 @login_required
+def invoice_delete(request, invoice_number):
+    """Delete an invoice"""
+    invoice = get_object_or_404(Invoice, invoice_number=invoice_number)
+    
+    if request.method == 'POST':
+        invoice_num = invoice.invoice_number
+        invoice.delete()
+        messages.success(request, f'Invoice "{invoice_num}" deleted successfully!')
+        return redirect('accounting_forms:invoice_list')
+    
+    return render(request, 'core/invoice_confirm_delete.html', {
+        'invoice': invoice
+    })
+
+
+@login_required
 @require_http_methods(["POST"])
 def invoice_mark_whatsapp_sent(request, invoice_number):
     """Mark invoice as sent via WhatsApp"""
@@ -917,6 +956,14 @@ def quick_payment(request, pk):
     """One-click full balance payment from the invoice list."""
     invoice = get_object_or_404(Invoice, pk=pk)
     balance = invoice.total_amount - invoice.paid_amount
+    
+    # Get payment method from POST data, default to 'eft' for backwards compatibility
+    payment_method = request.POST.get('payment_method', 'eft')
+    
+    # Validate payment method
+    valid_methods = ['cash', 'card', 'eft']
+    if payment_method not in valid_methods:
+        payment_method = 'eft'
 
     if balance > 0:
         from datetime import date
@@ -924,14 +971,36 @@ def quick_payment(request, pk):
             invoice=invoice,
             amount=balance,
             payment_date=date.today(),
-            payment_method='eft',
+            payment_method=payment_method,
             reference_number=f'Quick payment for {invoice.invoice_number}',
-            notes='Payment applied from invoice list',
+            notes=f'Payment applied from invoice list via {payment_method.upper()}',
             created_by=request.user,
         )
         payment.save()
-        messages.success(request, f'Payment of R{balance:,.2f} applied to {invoice.invoice_number}.')
+        
+        # Refresh invoice from database to get updated values
+        invoice.refresh_from_db()
+        
+        # Check if AJAX request
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'message': f'Payment of R{balance:,.2f} ({payment_method.upper()}) applied to {invoice.invoice_number}.',
+                'invoice': {
+                    'paid_amount': float(invoice.paid_amount),
+                    'balance': float(invoice.balance),
+                    'status': invoice.status,
+                    'status_display': invoice.get_status_display()
+                }
+            })
+        
+        messages.success(request, f'Payment of R{balance:,.2f} ({payment_method.upper()}) applied to {invoice.invoice_number}.')
     else:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False,
+                'message': f'{invoice.invoice_number} has no balance due.'
+            })
         messages.info(request, f'{invoice.invoice_number} has no balance due.')
 
     referer = request.META.get('HTTP_REFERER')
@@ -957,11 +1026,8 @@ def client_unpaid_invoices(request, client_id):
     try:
         client = get_object_or_404(Client, pk=client_id)
         
-        # Get unpaid, partially paid, and overdue invoices
-        unpaid_invoices = Invoice.objects.filter(
-            client=client,
-            status__in=['unpaid', 'partially_paid', 'overdue']
-        ).order_by('issue_date')
+        # Get unpaid and partially paid invoices
+        unpaid_invoices = client.invoices.filter(status__in=['unpaid', 'partially_paid'])
         
         # Format invoice data
         invoices_data = []
@@ -1024,9 +1090,9 @@ def add_payment(request):
                         balance = invoice.total_amount - invoice.paid_amount
                         allocation_amount = min(remaining_amount, balance)
                         
-                        # Update invoice paid amount
+                        # Update invoice paid amount and recalculate status
                         invoice.paid_amount += allocation_amount
-                        invoice.save()
+                        invoice.calculate_totals()
                         
                         remaining_amount -= allocation_amount
                     
@@ -1039,7 +1105,7 @@ def add_payment(request):
                     # Auto-allocate to oldest unpaid invoices
                     unpaid_invoices = Invoice.objects.filter(
                         client=client,
-                        status__in=['unpaid', 'partially_paid', 'overdue']
+                        status__in=['unpaid', 'partially_paid']
                     ).order_by('issue_date')
                     
                     remaining_amount = amount
@@ -1052,9 +1118,9 @@ def add_payment(request):
                         balance = invoice.total_amount - invoice.paid_amount
                         allocation_amount = min(remaining_amount, balance)
                         
-                        # Update invoice paid amount
+                        # Update invoice paid amount and recalculate status
                         invoice.paid_amount += allocation_amount
-                        invoice.save()
+                        invoice.calculate_totals()
                         
                         allocated_invoices.append(invoice.invoice_number)
                         remaining_amount -= allocation_amount
@@ -1713,9 +1779,22 @@ def credit_note_list(request):
 @login_required
 def delivery_zone_list(request):
     """List all delivery zones"""
-    zones = DeliveryZone.objects.all().order_by('name')
+    search_query = request.GET.get('search', '')
+    
+    zones = DeliveryZone.objects.all()
+    
+    if search_query:
+        from django.db.models import Q
+        zones = zones.filter(
+            Q(name__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+    
+    zones = zones.order_by('name')
+    
     return render(request, 'core/delivery_zone_list.html', {
         'zones': zones,
+        'search_query': search_query
     })
 
 
@@ -1787,7 +1866,7 @@ def payment_list(request):
         payments = payments.filter(
             Q(invoice__invoice_number__icontains=search_query) |
             Q(invoice__client__name__icontains=search_query) |
-            Q(reference__icontains=search_query)
+            Q(reference_number__icontains=search_query)
         )
     
     total_amount = payments.aggregate(total=Sum('amount'))['total'] or 0

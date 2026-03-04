@@ -10,10 +10,10 @@ from ..views_forms import (
     product_list, product_create, product_edit,
     
     # Quotes
-    quote_list, quote_create, quote_edit, quote_detail,
+    quote_list, quote_create, quote_edit, quote_detail, quote_delete,
     
     # Invoices
-    invoice_list, invoice_create, invoice_edit, invoice_detail, invoice_mark_whatsapp_sent, invoice_bulk_action,
+    invoice_list, invoice_create, invoice_edit, invoice_detail, invoice_delete, invoice_mark_whatsapp_sent, invoice_bulk_action,
     
     # Payments
     payment_create, payment_list, payment_delete, invoice_balance_api, quick_payment, add_payment, client_unpaid_invoices,
@@ -74,6 +74,7 @@ urlpatterns = [
     path('quotes/create/', quote_create, name='quote_create'),
     path('quotes/<int:pk>/', quote_detail, name='quote_detail'),
     path('quotes/<int:pk>/edit/', quote_edit, name='quote_edit'),
+    path('quotes/<int:pk>/delete/', quote_delete, name='quote_delete'),
     path('quotes/<int:pk>/pdf/', download_quote_pdf, name='quote_pdf'),
     
     # Invoices
@@ -82,6 +83,7 @@ urlpatterns = [
     path('invoices/create/', invoice_create, name='invoice_create'),
     path('invoices/<str:invoice_number>/', invoice_detail, name='invoice_detail'),
     path('invoices/<str:invoice_number>/edit/', invoice_edit, name='invoice_edit'),
+    path('invoices/<str:invoice_number>/delete/', invoice_delete, name='invoice_delete'),
     path('invoices/<str:invoice_number>/pdf/', download_invoice_pdf, name='invoice_pdf'),
     path('invoices/<str:invoice_number>/mark-whatsapp-sent/', invoice_mark_whatsapp_sent, name='invoice_mark_whatsapp_sent'),
     

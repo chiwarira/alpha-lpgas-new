@@ -2,8 +2,19 @@
 from decimal import Decimal
 from PIL import Image, ImageDraw, ImageFont
 import io
+import os
 from django.core.files.base import ContentFile
+from django.conf import settings
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.units import mm
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
+from reportlab.graphics.shapes import Drawing, Circle
+from reportlab.graphics import renderPDF
 from .models_loyalty import LoyaltyCard, LoyaltyTransaction
+from .models import CompanySettings
 
 
 def get_cylinder_size_from_invoice(invoice):
@@ -24,12 +35,21 @@ def get_cylinder_size_from_invoice(invoice):
 
 
 def process_loyalty_stamp(invoice):
-    """Process loyalty stamp for an invoice"""
+    """Process loyalty stamp for an invoice - stamps all 9kg bottles in the invoice"""
     from .models import Invoice
     
-    # Get cylinder size from invoice
-    cylinder_size = get_cylinder_size_from_invoice(invoice)
-    if not cylinder_size:
+    # Only process 9kg cylinders for loyalty stamps
+    cylinder_size = '9kg'
+    
+    # Count how many 9kg bottles are in this invoice
+    total_9kg_quantity = 0
+    for item in invoice.items.all():
+        if item.product and item.product.name:
+            name_lower = item.product.name.lower()
+            if '9kg' in name_lower or '9 kg' in name_lower:
+                total_9kg_quantity += int(item.quantity)
+    
+    if total_9kg_quantity == 0:
         return None
     
     # Get or create loyalty card for this client and cylinder size
@@ -49,9 +69,10 @@ def process_loyalty_stamp(invoice):
     if existing_transaction:
         return loyalty_card  # Already processed
     
-    # Add stamp
+    # Add stamps for all 9kg bottles
     stamps_before = loyalty_card.stamps
-    loyalty_card.add_stamp()
+    for _ in range(total_9kg_quantity):
+        loyalty_card.add_stamp()
     stamps_after = loyalty_card.stamps
     
     # Create transaction record
@@ -61,15 +82,167 @@ def process_loyalty_stamp(invoice):
         transaction_type='stamp',
         stamps_before=stamps_before,
         stamps_after=stamps_after,
-        notes=f'Stamp added for invoice {invoice.invoice_number}',
+        notes=f'{total_9kg_quantity} stamp(s) added for invoice {invoice.invoice_number} ({total_9kg_quantity} x 9kg bottles)',
         created_by=invoice.created_by
     )
     
     return loyalty_card
 
 
+def generate_loyalty_card_pdf(loyalty_card):
+    """Generate loyalty card as PDF with invoice-style header and footer"""
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=15*mm, bottomMargin=15*mm, leftMargin=15*mm, rightMargin=15*mm)
+    
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    # Get company settings
+    company = CompanySettings.objects.first()
+    company_name = company.company_name if company else "Alpha LPGas"
+    company_reg = company.registration_number if company else "2023/822513/07"
+    company_vat = company.vat_number if company else "9415233222"
+    company_phone = company.phone if company else "074 454 5665"
+    company_email = company.email if company else "info@alphalpgas.co.za"
+    
+    # Header with logo and company details (same as invoice)
+    logo_path = os.path.join(settings.BASE_DIR, 'static', 'alpha-lpgas-logo.png')
+    
+    header_data = []
+    if os.path.exists(logo_path):
+        try:
+            logo = RLImage(logo_path, width=90*mm, height=17.5*mm)
+            company_details_style = ParagraphStyle(
+                'CompanyDetails',
+                parent=styles['Normal'],
+                fontSize=9,
+                textColor=colors.HexColor('#333333'),
+                leading=14,
+            )
+            small_text_style = ParagraphStyle(
+                'SmallText',
+                parent=styles['Normal'],
+                fontSize=8,
+                textColor=colors.HexColor('#333333'),
+            )
+            # Left: Logo and company info, Right: Loyalty card info
+            header_data = [[
+                [logo, 
+                 Paragraph(f"{company_name}<br/>Reg No: {company_reg}<br/>VAT No: {company_vat}<br/>Tel: {company_phone}<br/>Email: {company_email}", company_details_style)],
+                [Paragraph(f"<b>Loyalty Card</b><br/>{loyalty_card.cylinder_size}<br/><br/><b>Client:</b><br/>{loyalty_card.client.name}<br/><br/><b>Stamps:</b><br/>{loyalty_card.stamps}/9", small_text_style)]
+            ]]
+        except:
+            pass
+    
+    if header_data:
+        header_table = Table(header_data, colWidths=[110*mm, 70*mm])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+        ]))
+        elements.append(header_table)
+    
+    elements.append(Spacer(1, 10*mm))
+    
+    # Title
+    title_style = ParagraphStyle(
+        'Title',
+        parent=styles['Normal'],
+        fontSize=24,
+        fontName='Helvetica-Bold',
+        alignment=TA_CENTER,
+        spaceAfter=10,
+        textColor=colors.HexColor('#0033CC'),
+    )
+    elements.append(Paragraph("LOYALTY CARD", title_style))
+    elements.append(Spacer(1, 5*mm))
+    
+    # Subtitle
+    subtitle_style = ParagraphStyle(
+        'Subtitle',
+        parent=styles['Normal'],
+        fontSize=14,
+        alignment=TA_CENTER,
+        spaceAfter=10,
+        textColor=colors.HexColor('#666666'),
+    )
+    elements.append(Paragraph(f"Collect 9 stamps and get your reward!", subtitle_style))
+    elements.append(Spacer(1, 10*mm))
+    
+    # Create stamp grid (3x3)
+    stamp_data = []
+    stamps_filled = loyalty_card.stamps
+    
+    for row in range(3):
+        row_data = []
+        for col in range(3):
+            stamp_num = row * 3 + col + 1
+            if stamp_num <= stamps_filled:
+                # Filled stamp - show checkmark
+                row_data.append(Paragraph(f"<para align='center'><font size='40' color='#0033CC'>✓</font><br/><font size='10'>Stamp {stamp_num}</font></para>", styles['Normal']))
+            else:
+                # Empty stamp - show number
+                row_data.append(Paragraph(f"<para align='center'><font size='40' color='#CCCCCC'>○</font><br/><font size='10'>Stamp {stamp_num}</font></para>", styles['Normal']))
+        stamp_data.append(row_data)
+    
+    stamp_table = Table(stamp_data, colWidths=[60*mm, 60*mm, 60*mm], rowHeights=[40*mm, 40*mm, 40*mm])
+    stamp_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F9F9F9')),
+    ]))
+    
+    elements.append(stamp_table)
+    elements.append(Spacer(1, 10*mm))
+    
+    # Reward info
+    reward_type = loyalty_card.get_reward_type()
+    if stamps_filled >= 9:
+        if reward_type == 'free':
+            reward_text = f"🎉 Congratulations! You've earned a FREE {loyalty_card.cylinder_size} cylinder!"
+        else:
+            reward_text = f"🎉 Congratulations! You've earned 50% OFF your next {loyalty_card.cylinder_size} cylinder!"
+        reward_color = '#00CC00'
+    else:
+        remaining = 9 - stamps_filled
+        reward_text = f"Collect {remaining} more stamp(s) to earn your reward!"
+        reward_color = '#0033CC'
+    
+    reward_style = ParagraphStyle(
+        'Reward',
+        parent=styles['Normal'],
+        fontSize=14,
+        fontName='Helvetica-Bold',
+        alignment=TA_CENTER,
+        textColor=colors.HexColor(reward_color),
+    )
+    elements.append(Paragraph(reward_text, reward_style))
+    elements.append(Spacer(1, 15*mm))
+    
+    # Footer message (same as invoice)
+    footer_style = ParagraphStyle(
+        'Footer',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.HexColor('#CC0066'),
+        alignment=TA_CENTER,
+        fontName='Helvetica-Oblique'
+    )
+    elements.append(Paragraph("Always striving for customer satisfaction!", footer_style))
+    
+    # Build PDF
+    doc.build(elements)
+    
+    # Get the value of the BytesIO buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+    
+    return pdf
+
+
 def generate_loyalty_card_image(loyalty_card, logo_path='c:/Users/Chiwarira/CascadeProjects/alpha-lpgas-new/backend/static/alpha-lpgas-logo.png'):
-    """Generate loyalty card image with stamped circles"""
+    """Generate loyalty card image with stamped circles (DEPRECATED - use generate_loyalty_card_pdf instead)"""
     # Load the base loyalty card template
     base_image_path = 'c:/Users/Chiwarira/CascadeProjects/alpha-lpgas-new/Back.png'
     

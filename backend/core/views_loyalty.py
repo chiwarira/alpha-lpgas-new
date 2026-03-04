@@ -6,7 +6,7 @@ from django.http import JsonResponse, HttpResponse
 from django.db.models import Q
 from .models import Invoice, CompanySettings
 from .models_loyalty import LoyaltyCard
-from .utils_loyalty import generate_loyalty_card_image, send_loyalty_card_whatsapp, get_cylinder_size_from_invoice
+from .utils_loyalty import generate_loyalty_card_image, generate_loyalty_card_pdf, send_loyalty_card_whatsapp, get_cylinder_size_from_invoice
 import base64
 
 
@@ -128,15 +128,14 @@ def send_loyalty_card_whatsapp_view(request, pk):
 
 @login_required
 def download_loyalty_card(request, pk):
-    """Download loyalty card image"""
+    """Download loyalty card as PDF"""
     loyalty_card = get_object_or_404(LoyaltyCard, pk=pk)
     
-    # Generate the loyalty card image (returns BytesIO)
-    image_buffer = generate_loyalty_card_image(loyalty_card)
-    image_data = image_buffer.read()
+    # Generate the loyalty card PDF
+    pdf_data = generate_loyalty_card_pdf(loyalty_card)
     
-    # Return as downloadable PNG
-    response = HttpResponse(image_data, content_type='image/png')
-    response['Content-Disposition'] = f'attachment; filename="loyalty_card_{loyalty_card.client.name}_{loyalty_card.cylinder_size}.png"'
+    # Return as downloadable PDF
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="loyalty_card_{loyalty_card.client.name}_{loyalty_card.cylinder_size}.pdf"'
     
     return response

@@ -1012,7 +1012,7 @@ select.note-field {
                 <a href="{% url 'accounting_forms:invoice_create' %}" class="btn btn-sm btn-primary">
                     <i class="bi bi-plus-circle"></i> New Invoice
                 </a>
-                <a href="{% url 'accounting_forms:payment_create' %}?invoice={{ invoice.pk }}" class="btn btn-sm btn-success">
+                <a href="{% url 'accounting_forms:payment_create_for_invoice' invoice.pk %}" class="btn btn-sm btn-success">
                     <i class="bi bi-cash-coin"></i> Add Payment
                 </a>
                 <a href="{% url 'accounting_forms:credit_note_create_for_invoice' invoice.pk %}" class="btn btn-sm btn-warning">

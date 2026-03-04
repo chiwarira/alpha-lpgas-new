@@ -449,12 +449,8 @@ class Invoice(models.Model):
     """Model for managing invoices"""
     STATUS_CHOICES = [
         ('unpaid', 'Unpaid'),
-        ('draft', 'Draft'),
-        ('sent', 'Sent'),
-        ('paid', 'Paid'),
         ('partially_paid', 'Partially Paid'),
-        ('overdue', 'Overdue'),
-        ('cancelled', 'Cancelled'),
+        ('paid', 'Paid'),
     ]
     
     PAYMENT_TERMS_CHOICES = [
@@ -552,18 +548,14 @@ class Invoice(models.Model):
         self.total_amount = items_total - self.discount_amount
         self.balance = self.total_amount - self.paid_amount
         
-        # Update status based on payment and due date
-        # Don't change status if it's draft or cancelled
-        if self.status not in ['draft', 'cancelled']:
-            if self.paid_amount >= self.total_amount:
-                self.status = 'paid'
-            elif self.paid_amount > 0:
-                self.status = 'partially_paid'
-            elif self.due_date and self.due_date < date.today():
-                self.status = 'overdue'
-            else:
-                # No payment made and not overdue
-                self.status = 'unpaid'
+        # Auto-update status based on payment
+        if self.paid_amount >= self.total_amount:
+            self.status = 'paid'
+        elif self.paid_amount > 0:
+            self.status = 'partially_paid'
+        else:
+            # No payment made
+            self.status = 'unpaid'
         
         self.save()
 

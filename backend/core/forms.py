@@ -407,19 +407,21 @@ class PaymentForm(forms.ModelForm):
         invoice_id = kwargs.pop('invoice_id', None)
         super().__init__(*args, **kwargs)
         
-        # If invoice_id is provided, filter to show only unpaid invoices for that client
+        # Store invoice instance for template access
+        self.invoice_instance = None
+        
+        # If invoice_id is provided, hide the invoice field and prepopulate
         if invoice_id:
             try:
                 from .models import Invoice
                 invoice = Invoice.objects.get(pk=invoice_id)
-                # Show only unpaid/partially paid invoices for this client
-                self.fields['invoice'].queryset = Invoice.objects.filter(
-                    client=invoice.client
-                ).exclude(
-                    status__in=['paid', 'cancelled']
-                ).order_by('-created_at')
-                # Set initial value to the current invoice
+                self.invoice_instance = invoice
+                
+                # Make invoice field hidden and set it to the specific invoice
+                self.fields['invoice'].widget = forms.HiddenInput()
+                self.fields['invoice'].queryset = Invoice.objects.filter(pk=invoice_id)
                 self.initial['invoice'] = invoice
+                
                 # Pre-populate amount with remaining balance
                 self.initial['amount'] = invoice.total_amount - invoice.paid_amount
             except Invoice.DoesNotExist:
@@ -470,11 +472,14 @@ class MultiPaymentForm(forms.ModelForm):
         # Optimize: Only load clients that have unpaid invoices
         unpaid_invoices = Invoice.objects.filter(
             client=OuterRef('pk'),
-            status__in=['unpaid', 'partially_paid', 'overdue']
+            status__in=['unpaid', 'partially_paid']
         )
         self.fields['client'].queryset = Client.objects.filter(
             Exists(unpaid_invoices)
         ).order_by('name')
+        
+        # Customize client dropdown to show name, phone, and address
+        self.fields['client'].label_from_instance = lambda obj: f"{obj.name} - {obj.phone or 'No phone'} - {obj.address or 'No address'}"
         
         # Initialize invoice queryset as empty
         self.fields['selected_invoices'].queryset = Invoice.objects.none()

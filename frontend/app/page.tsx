@@ -557,9 +557,7 @@ export default function Home() {
             <div>
               <h3 className="text-xl font-bold mb-4 text-blue-400">Trading Hours</h3>
               <div className="space-y-1 text-gray-300">
-                <p><span className="font-semibold">Mon – Fri:</span> 8am – 8pm</p>
-                <p><span className="font-semibold">Sat:</span> 8am – 7pm</p>
-                <p><span className="font-semibold">Sun:</span> 8am – 5pm</p>
+                <p><span className="font-semibold">Mon – Sun:</span> 8am – 7pm</p>
               </div>
             </div>
           </div>
