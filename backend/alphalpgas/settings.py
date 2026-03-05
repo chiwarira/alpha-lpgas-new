@@ -166,8 +166,15 @@ else:
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS Settings
-CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3002,http://127.0.0.1:3003,https://www.alphalpgas.co.za,https://alphalpgas.co.za,https://alpha-lpgas-frontend-dev.up.railway.app').split(',')
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3002,http://127.0.0.1:3003,https://www.alphalpgas.co.za,https://alphalpgas.co.za').split(',')
 CORS_ALLOW_CREDENTIALS = True
+
+# In Railway production, allow all Railway app origins
+if RAILWAY_ENVIRONMENT:
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r"^https://.*\.up\.railway\.app$",
+        r"^https://.*\.railway\.app$",
+    ]
 
 # REST Framework
 REST_FRAMEWORK = {
