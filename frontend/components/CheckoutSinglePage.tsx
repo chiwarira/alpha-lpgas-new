@@ -253,6 +253,44 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
 
       if (response.ok) {
         const order = await response.json();
+        
+        // GA4: Track purchase event
+        if (typeof window !== 'undefined') {
+          (window as any).dataLayer = (window as any).dataLayer || [];
+          const items = cart.map(item => {
+            const cartItems = [{
+              item_id: item.product.id.toString(),
+              item_name: item.product.name,
+              price: parseFloat(item.product.unit_price),
+              quantity: item.quantity
+            }];
+            
+            if (item.includeCylinder && item.cylinderProduct) {
+              cartItems.push({
+                item_id: item.cylinderProduct.id.toString(),
+                item_name: item.cylinderProduct.name,
+                price: parseFloat(item.cylinderProduct.unit_price),
+                quantity: item.quantity
+              });
+            }
+            
+            return cartItems;
+          }).flat();
+          
+          const purchaseEvent = {
+            event: 'purchase',
+            ecommerce: {
+              transaction_id: order.order_number || order.id,
+              value: parseFloat(order.total),
+              currency: 'ZAR',
+              tax: parseFloat(order.tax || 0),
+              shipping: parseFloat(order.delivery_fee || 0),
+              items: items
+            }
+          };
+          (window as any).dataLayer.push(purchaseEvent);
+        }
+        
         localStorage.removeItem('cart');
         onOrderComplete(order);
         setLoading(false);
@@ -368,6 +406,44 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
             })
             .then(order => {
               console.log('Payment processed successfully');
+              
+              // GA4: Track purchase event
+              if (typeof window !== 'undefined') {
+                (window as any).dataLayer = (window as any).dataLayer || [];
+                const items = cart.map(item => {
+                  const cartItems = [{
+                    item_id: item.product.id.toString(),
+                    item_name: item.product.name,
+                    price: parseFloat(item.product.unit_price),
+                    quantity: item.quantity
+                  }];
+                  
+                  if (item.includeCylinder && item.cylinderProduct) {
+                    cartItems.push({
+                      item_id: item.cylinderProduct.id.toString(),
+                      item_name: item.cylinderProduct.name,
+                      price: parseFloat(item.cylinderProduct.unit_price),
+                      quantity: item.quantity
+                    });
+                  }
+                  
+                  return cartItems;
+                }).flat();
+                
+                const purchaseEvent = {
+                  event: 'purchase',
+                  ecommerce: {
+                    transaction_id: order.order_number || order.id,
+                    value: parseFloat(order.total),
+                    currency: 'ZAR',
+                    tax: parseFloat(order.tax || 0),
+                    shipping: parseFloat(order.delivery_fee || 0),
+                    items: items
+                  }
+                };
+                (window as any).dataLayer.push(purchaseEvent);
+              }
+              
               localStorage.removeItem('cart');
               setLoading(false);
               onOrderComplete(order);

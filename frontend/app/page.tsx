@@ -185,6 +185,39 @@ export default function Home() {
     const includeCylinder = cylinderSelections[product.id] || false;
     const cylinderProduct = includeCylinder ? findMatchingCylinder(product) : undefined;
     
+    // GA4: Track add_to_cart event
+    if (typeof window !== 'undefined') {
+      (window as any).dataLayer = (window as any).dataLayer || [];
+      const items = [{
+        item_id: product.sku,
+        item_name: product.name,
+        price: parseFloat(product.unit_price),
+        quantity: 1
+      }];
+      
+      let totalValue = parseFloat(product.unit_price);
+      
+      if (includeCylinder && cylinderProduct) {
+        items.push({
+          item_id: cylinderProduct.sku,
+          item_name: cylinderProduct.name,
+          price: parseFloat(cylinderProduct.unit_price),
+          quantity: 1
+        });
+        totalValue += parseFloat(cylinderProduct.unit_price);
+      }
+      
+      const addToCartEvent = {
+        event: 'add_to_cart',
+        ecommerce: {
+          currency: 'ZAR',
+          value: totalValue,
+          items: items
+        }
+      };
+      (window as any).dataLayer.push(addToCartEvent);
+    }
+    
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.product.id === product.id);
       if (existingItem) {
@@ -370,20 +403,24 @@ export default function Home() {
                 <p className="text-gray-600">No products available at the moment.</p>
               </div>
             ) : (
-              products.map((product) => (
+              products.map((product) => {
+                const productSlug = product.name.toLowerCase().replace(/\s+/g, '-');
+                return (
                 <div key={product.id} className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
-                  <div className="bg-blue-600 p-8 text-center">
-                    {product.main_image ? (
-                      <img 
-                        src={product.main_image.startsWith('http') ? product.main_image : `${apiUrl}/media/${product.main_image}`} 
-                        alt={product.name}
-                        className="w-full h-48 object-contain mb-4"
-                      />
-                    ) : (
-                      <div className="text-8xl mb-4">{getProductIcon(product)}</div>
-                    )}
-                    <h3 className="text-2xl font-bold text-white">{product.name}</h3>
-                  </div>
+                  <Link href={`/products/${productSlug}`}>
+                    <div className="bg-blue-600 p-8 text-center cursor-pointer">
+                      {product.main_image ? (
+                        <img 
+                          src={product.main_image.startsWith('http') ? product.main_image : `${apiUrl}/media/${product.main_image}`} 
+                          alt={product.name}
+                          className="w-full h-48 object-contain mb-4"
+                        />
+                      ) : (
+                        <div className="text-8xl mb-4">{getProductIcon(product)}</div>
+                      )}
+                      <h3 className="text-2xl font-bold text-white">{product.name}</h3>
+                    </div>
+                  </Link>
                   <div className="p-6">
                     {/* Cylinder Checkbox */}
                     {findMatchingCylinder(product) && (
@@ -427,7 +464,8 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -648,6 +686,40 @@ export default function Home() {
                     <div className="space-y-3">
                       <button
                         onClick={() => {
+                          // GA4: Track begin_checkout event
+                          if (typeof window !== 'undefined') {
+                            (window as any).dataLayer = (window as any).dataLayer || [];
+                            const items = cart.map(item => {
+                              const cartItems = [{
+                                item_id: item.product.sku,
+                                item_name: item.product.name,
+                                price: parseFloat(item.product.unit_price),
+                                quantity: item.quantity
+                              }];
+                              
+                              if (item.includeCylinder && item.cylinderProduct) {
+                                cartItems.push({
+                                  item_id: item.cylinderProduct.sku,
+                                  item_name: item.cylinderProduct.name,
+                                  price: parseFloat(item.cylinderProduct.unit_price),
+                                  quantity: item.quantity
+                                });
+                              }
+                              
+                              return cartItems;
+                            }).flat();
+                            
+                            const beginCheckoutEvent = {
+                              event: 'begin_checkout',
+                              ecommerce: {
+                                currency: 'ZAR',
+                                value: getCartTotal(),
+                                items: items
+                              }
+                            };
+                            (window as any).dataLayer.push(beginCheckoutEvent);
+                          }
+                          
                           setShowCart(false);
                           setShowCheckout(true);
                         }}
