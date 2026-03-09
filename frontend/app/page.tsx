@@ -276,6 +276,39 @@ export default function Home() {
         message += `\n+ ${cylinderProduct.name} - R${parseFloat(cylinderProduct.unit_price).toFixed(2)}`;
         message += `\n\nTotal: R${(parseFloat(product.unit_price) + parseFloat(cylinderProduct.unit_price)).toFixed(2)}`;
       }
+      
+      // GA4: Track WhatsApp order event
+      if (typeof window !== 'undefined') {
+        (window as any).dataLayer = (window as any).dataLayer || [];
+        const items = [{
+          item_id: product.sku,
+          item_name: product.name,
+          price: parseFloat(product.unit_price),
+          quantity: 1
+        }];
+        
+        let totalValue = parseFloat(product.unit_price);
+        
+        if (includeCylinder && cylinderProduct) {
+          items.push({
+            item_id: cylinderProduct.sku,
+            item_name: cylinderProduct.name,
+            price: parseFloat(cylinderProduct.unit_price),
+            quantity: 1
+          });
+          totalValue += parseFloat(cylinderProduct.unit_price);
+        }
+        
+        const whatsappOrderEvent = {
+          event: 'whatsapp_order',
+          ecommerce: {
+            currency: 'ZAR',
+            value: totalValue,
+            items: items
+          }
+        };
+        (window as any).dataLayer.push(whatsappOrderEvent);
+      }
     } else {
       // Cart order
       message = `Hi! I'd like to order:\n\n`;
@@ -286,6 +319,40 @@ export default function Home() {
         }
       });
       message += `\nTotal: R${getCartTotal().toFixed(2)}`;
+      
+      // GA4: Track WhatsApp order event for cart
+      if (typeof window !== 'undefined') {
+        (window as any).dataLayer = (window as any).dataLayer || [];
+        const items = cart.map(item => {
+          const cartItems = [{
+            item_id: item.product.sku,
+            item_name: item.product.name,
+            price: parseFloat(item.product.unit_price),
+            quantity: item.quantity
+          }];
+          
+          if (item.includeCylinder && item.cylinderProduct) {
+            cartItems.push({
+              item_id: item.cylinderProduct.sku,
+              item_name: item.cylinderProduct.name,
+              price: parseFloat(item.cylinderProduct.unit_price),
+              quantity: item.quantity
+            });
+          }
+          
+          return cartItems;
+        }).flat();
+        
+        const whatsappOrderEvent = {
+          event: 'whatsapp_order',
+          ecommerce: {
+            currency: 'ZAR',
+            value: getCartTotal(),
+            items: items
+          }
+        };
+        (window as any).dataLayer.push(whatsappOrderEvent);
+      }
     }
     
     const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { ChevronDown, ChevronUp, Truck } from 'lucide-react';
 import Checkout from '../../../components/CheckoutSinglePage';
 
@@ -37,6 +37,7 @@ interface CartItem {
 
 export default function ProductDetail() {
   const params = useParams();
+  const router = useRouter();
   const slug = params.slug as string;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   
@@ -48,6 +49,7 @@ export default function ProductDetail() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState<any>(null);
   const viewItemTrackedRef = useState({ current: false })[0];
 
   useEffect(() => {
@@ -178,6 +180,26 @@ export default function ProductDetail() {
     
     const phone = '27744545665';
     const message = `Hi! I'd like to order:\n\n${quantity}x ${product.name} - R${(parseFloat(product.unit_price) * quantity).toFixed(2)}`;
+    
+    // GA4: Track WhatsApp order event
+    if (typeof window !== 'undefined') {
+      (window as any).dataLayer = (window as any).dataLayer || [];
+      const whatsappOrderEvent = {
+        event: 'whatsapp_order',
+        ecommerce: {
+          currency: 'ZAR',
+          value: parseFloat(product.unit_price) * quantity,
+          items: [{
+            item_id: product.sku,
+            item_name: product.name,
+            price: parseFloat(product.unit_price),
+            quantity: quantity
+          }]
+        }
+      };
+      (window as any).dataLayer.push(whatsappOrderEvent);
+    }
+    
     const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -642,12 +664,68 @@ export default function ProductDetail() {
           cart={cart}
           onClose={() => setShowCheckout(false)}
           onOrderComplete={(order) => {
+            setShowCheckout(false);
             setCart([]);
             localStorage.removeItem('cart');
-            setShowCheckout(false);
+            setOrderSuccess(order);
           }}
           getCartTotal={getCartTotal}
         />
+      )}
+
+      {/* Order Success Modal */}
+      {orderSuccess && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={() => setOrderSuccess(null)}>
+          <div className="bg-white rounded-xl max-w-md w-full p-8 text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="text-6xl mb-4">🎉</div>
+            <h2 className="text-3xl font-bold text-green-600 mb-4">Order Placed Successfully!</h2>
+            <p className="text-gray-600 mb-6">
+              Your order has been received and is being processed.
+            </p>
+            
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <p className="text-sm text-gray-600 mb-2">Order Number</p>
+              <p className="text-2xl font-bold text-blue-600">{orderSuccess.order_number}</p>
+            </div>
+
+            <div className="space-y-2 text-left mb-6">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Status:</span>
+                <span className="font-semibold capitalize">{orderSuccess.status}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Payment:</span>
+                <span className="font-semibold capitalize">{orderSuccess.payment_method}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Total:</span>
+                <span className="font-bold text-rose-600">R{parseFloat(orderSuccess.total).toFixed(2)}</span>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-6">
+              We'll contact you shortly to confirm your delivery details.
+            </p>
+
+            <div className="space-y-3">
+              <a
+                href={`/track/${orderSuccess.order_number}`}
+                className="block w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition"
+              >
+                Track Your Order
+              </a>
+              <button
+                onClick={() => {
+                  setOrderSuccess(null);
+                  router.push('/');
+                }}
+                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-lg font-semibold transition"
+              >
+                Continue Shopping
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

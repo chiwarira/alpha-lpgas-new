@@ -6,6 +6,7 @@ interface Product {
   id: number;
   name: string;
   unit_price: string;
+  sku: string;
 }
 
 interface CartItem {
@@ -259,7 +260,7 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
           (window as any).dataLayer = (window as any).dataLayer || [];
           const items = cart.map(item => {
             const cartItems = [{
-              item_id: item.product.id.toString(),
+              item_id: item.product.sku,
               item_name: item.product.name,
               price: parseFloat(item.product.unit_price),
               quantity: item.quantity
@@ -267,7 +268,7 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
             
             if (item.includeCylinder && item.cylinderProduct) {
               cartItems.push({
-                item_id: item.cylinderProduct.id.toString(),
+                item_id: item.cylinderProduct.sku,
                 item_name: item.cylinderProduct.name,
                 price: parseFloat(item.cylinderProduct.unit_price),
                 quantity: item.quantity
@@ -412,7 +413,7 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
                 (window as any).dataLayer = (window as any).dataLayer || [];
                 const items = cart.map(item => {
                   const cartItems = [{
-                    item_id: item.product.id.toString(),
+                    item_id: item.product.sku,
                     item_name: item.product.name,
                     price: parseFloat(item.product.unit_price),
                     quantity: item.quantity
@@ -420,7 +421,7 @@ export default function Checkout({ cart, onClose, onOrderComplete, getCartTotal 
                   
                   if (item.includeCylinder && item.cylinderProduct) {
                     cartItems.push({
-                      item_id: item.cylinderProduct.id.toString(),
+                      item_id: item.cylinderProduct.sku,
                       item_name: item.cylinderProduct.name,
                       price: parseFloat(item.cylinderProduct.unit_price),
                       quantity: item.quantity
