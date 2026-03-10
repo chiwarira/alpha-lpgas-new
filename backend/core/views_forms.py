@@ -792,6 +792,7 @@ def invoice_edit(request, invoice_number):
     """Edit an existing invoice"""
     invoice = get_object_or_404(Invoice, invoice_number=invoice_number)
     old_delivery_zone = invoice.delivery_zone
+    old_client = invoice.client  # Track old client for loyalty stamp reassignment
     
     if request.method == 'POST':
         form = InvoiceForm(request.POST, instance=invoice)
@@ -848,6 +849,21 @@ def invoice_edit(request, invoice_number):
                     )
             
             invoice.calculate_totals()
+            
+            # Reprocess loyalty stamps for edited invoice
+            from .utils_loyalty import reprocess_loyalty_stamp
+            try:
+                loyalty_card = reprocess_loyalty_stamp(invoice, old_client=old_client)
+                if loyalty_card:
+                    if old_client != invoice.client:
+                        messages.info(request, f'Loyalty stamps transferred from {old_client.name} to {invoice.client.name}')
+                    else:
+                        messages.info(request, f'Loyalty card updated: {loyalty_card.stamps}/9 stamps')
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f'Error reprocessing loyalty stamp for invoice {invoice.invoice_number}: {str(e)}')
+                messages.warning(request, 'Invoice updated successfully, but loyalty stamp could not be reprocessed.')
             
             messages.success(request, f'Invoice {invoice.invoice_number} updated successfully!')
             return redirect('accounting_forms:invoice_detail', invoice_number=invoice.invoice_number)
@@ -909,6 +925,19 @@ def invoice_delete(request, invoice_number):
     
     if request.method == 'POST':
         invoice_num = invoice.invoice_number
+        client_name = invoice.client.name
+        
+        # Remove loyalty stamps before deleting invoice
+        from .utils_loyalty import remove_loyalty_stamp
+        try:
+            loyalty_card = remove_loyalty_stamp(invoice)
+            if loyalty_card:
+                messages.info(request, f'Loyalty stamps removed from {client_name}\'s card')
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'Error removing loyalty stamp for invoice {invoice_num}: {str(e)}')
+        
         invoice.delete()
         messages.success(request, f'Invoice "{invoice_num}" deleted successfully!')
         return redirect('accounting_forms:invoice_list')

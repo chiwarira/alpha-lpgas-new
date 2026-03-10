@@ -14,7 +14,7 @@ class LoyaltyCard(models.Model):
     ]
     
     client = models.ForeignKey('Client', on_delete=models.CASCADE, related_name='loyalty_cards')
-    cylinder_size = models.CharField(max_length=10, choices=CYLINDER_SIZE_CHOICES)
+    cylinder_size = models.CharField(max_length=10, choices=CYLINDER_SIZE_CHOICES, null=True, blank=True, help_text="Smallest cylinder size purchased (determines reward type)")
     stamps = models.IntegerField(default=0, help_text="Number of stamps (purchases) on this card")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -22,10 +22,11 @@ class LoyaltyCard(models.Model):
     
     class Meta:
         ordering = ['-created_at']
-        unique_together = ['client', 'cylinder_size', 'is_active']
+        unique_together = ['client', 'is_active']  # Only one active card per client
     
     def __str__(self):
-        return f"{self.client.name} - {self.cylinder_size} ({self.stamps}/9 stamps)"
+        size_display = f" - {self.cylinder_size}" if self.cylinder_size else ""
+        return f"{self.client.name}{size_display} ({self.stamps}/9 stamps)"
     
     def add_stamp(self):
         """Add a stamp to the card"""
@@ -56,6 +57,7 @@ class LoyaltyTransaction(models.Model):
         ('stamp', 'Stamp Added'),
         ('reward_claimed', 'Reward Claimed'),
         ('card_reset', 'Card Reset'),
+        ('reversal', 'Stamp Reversal'),
     ]
     
     loyalty_card = models.ForeignKey(LoyaltyCard, on_delete=models.CASCADE, related_name='transactions')

@@ -37,7 +37,9 @@ def get_cylinder_size_from_invoice(invoice):
 
 
 def process_loyalty_stamp(invoice):
-    """Process loyalty stamp for an invoice - stamps all cylinder sizes and uses smallest size for reward"""
+    """Process loyalty stamp for an invoice - one card per client, tracks smallest cylinder for reward
+    Only applies to Gas Exchange and Gas Refill products.
+    """
     from .models import Invoice
     
     # Count cylinders by size
@@ -49,10 +51,15 @@ def process_loyalty_stamp(invoice):
         '48kg': 0
     }
     
-    # Count all cylinder sizes in this invoice
+    # Count all cylinder sizes in this invoice (only Gas Exchange and Gas Refill)
     for item in invoice.items.all():
         if item.product and item.product.name:
             name_lower = item.product.name.lower()
+            
+            # Only process Gas Exchange and Gas Refill products
+            if 'gas exchange' not in name_lower and 'gas refill' not in name_lower:
+                continue
+            
             if '5kg' in name_lower or '5 kg' in name_lower:
                 cylinder_counts['5kg'] += int(item.quantity)
             elif '9kg' in name_lower or '9 kg' in name_lower:
@@ -80,13 +87,23 @@ def process_loyalty_stamp(invoice):
     if smallest_size is None or total_cylinders == 0:
         return None
     
-    # Get or create loyalty card for the smallest cylinder size
+    # Get or create loyalty card for the client (one card per client)
     loyalty_card, created = LoyaltyCard.objects.get_or_create(
         client=invoice.client,
-        cylinder_size=smallest_size,
         is_active=True,
-        defaults={'stamps': 0}
+        defaults={'stamps': 0, 'cylinder_size': smallest_size}
     )
+    
+    # Update cylinder_size to smallest if this invoice has a smaller size
+    if loyalty_card.cylinder_size:
+        current_size_index = size_order.index(loyalty_card.cylinder_size)
+        new_size_index = size_order.index(smallest_size)
+        if new_size_index < current_size_index:
+            loyalty_card.cylinder_size = smallest_size
+            loyalty_card.save()
+    else:
+        loyalty_card.cylinder_size = smallest_size
+        loyalty_card.save()
     
     # Check if this invoice already has a loyalty transaction
     existing_transaction = LoyaltyTransaction.objects.filter(
@@ -109,7 +126,7 @@ def process_loyalty_stamp(invoice):
         if cylinder_counts[size] > 0:
             cylinder_details.append(f"{cylinder_counts[size]} x {size}")
     
-    notes = f'{total_cylinders} stamp(s) added for invoice {invoice.invoice_number} ({", ".join(cylinder_details)}). Reward will be for {smallest_size} cylinder.'
+    notes = f'{total_cylinders} stamp(s) added for invoice {invoice.invoice_number} ({", ".join(cylinder_details)}). Reward will be for {loyalty_card.cylinder_size} cylinder.'
     
     # Create transaction record
     LoyaltyTransaction.objects.create(
@@ -254,7 +271,20 @@ def generate_loyalty_card_pdf(loyalty_card):
         textColor=colors.HexColor(reward_color),
     )
     elements.append(Paragraph(reward_text, reward_style))
-    elements.append(Spacer(1, 15*mm))
+    elements.append(Spacer(1, 10*mm))
+    
+    # Disclaimer about 19kg and 48kg bottles
+    disclaimer_style = ParagraphStyle(
+        'Disclaimer',
+        parent=styles['Normal'],
+        fontSize=9,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#666666'),
+        leading=12,
+    )
+    disclaimer_text = "* 19kg and 48kg bottles are eligible for a 50% discount on the 10th purchase instead of a free gas exchange."
+    elements.append(Paragraph(disclaimer_text, disclaimer_style))
+    elements.append(Spacer(1, 8*mm))
     
     # Footer message (same as invoice)
     footer_style = ParagraphStyle(
@@ -348,6 +378,128 @@ def generate_loyalty_card_image(loyalty_card, logo_path='c:/Users/Chiwarira/Casc
     img_byte_arr.seek(0)
     
     return img_byte_arr
+
+
+def reprocess_loyalty_stamp(invoice, old_client=None):
+    """Reprocess loyalty stamp when invoice is edited or reassigned
+    
+    Args:
+        invoice: The invoice being edited
+        old_client: The previous client if invoice was reassigned (None if same client)
+    """
+    from .models import Invoice
+    
+    # If invoice was reassigned to a different client, remove stamps from old client
+    if old_client and old_client != invoice.client:
+        remove_loyalty_stamp(invoice, old_client)
+    
+    # Remove existing transaction for this invoice (if any) for current client
+    existing_transaction = LoyaltyTransaction.objects.filter(
+        invoice=invoice,
+        transaction_type='stamp'
+    ).first()
+    
+    if existing_transaction:
+        # Reverse the existing stamps
+        loyalty_card = existing_transaction.loyalty_card
+        stamps_to_remove = existing_transaction.stamps_after - existing_transaction.stamps_before
+        
+        # Remove stamps
+        loyalty_card.stamps = max(0, loyalty_card.stamps - stamps_to_remove)
+        loyalty_card.save()
+        
+        # Delete the old transaction
+        existing_transaction.delete()
+        
+        # Recalculate cylinder_size based on all remaining transactions
+        _recalculate_card_cylinder_size(loyalty_card)
+    
+    # Now process the invoice with updated items
+    return process_loyalty_stamp(invoice)
+
+
+def _recalculate_card_cylinder_size(loyalty_card):
+    """Recalculate the smallest cylinder size based on all transactions for this card
+    Only considers Gas Exchange and Gas Refill products.
+    """
+    size_order = ['5kg', '9kg', '14kg', '19kg', '48kg']
+    smallest_size = None
+    
+    # Get all stamp transactions for this card
+    transactions = LoyaltyTransaction.objects.filter(
+        loyalty_card=loyalty_card,
+        transaction_type='stamp'
+    ).exclude(invoice__isnull=True)
+    
+    # Find smallest cylinder size across all transactions
+    for transaction in transactions:
+        if transaction.invoice:
+            for item in transaction.invoice.items.all():
+                if item.product and item.product.name:
+                    name_lower = item.product.name.lower()
+                    
+                    # Only consider Gas Exchange and Gas Refill products
+                    if 'gas exchange' not in name_lower and 'gas refill' not in name_lower:
+                        continue
+                    
+                    for size in size_order:
+                        if size.replace('kg', '') in name_lower or size in name_lower:
+                            if smallest_size is None:
+                                smallest_size = size
+                            elif size_order.index(size) < size_order.index(smallest_size):
+                                smallest_size = size
+                            break
+    
+    # Update card's cylinder size (set to None if no qualifying products remain)
+    loyalty_card.cylinder_size = smallest_size
+    loyalty_card.save()
+
+
+def remove_loyalty_stamp(invoice, client=None):
+    """Remove loyalty stamps when invoice is deleted or reassigned
+    
+    Args:
+        invoice: The invoice being deleted or reassigned
+        client: Specific client to remove stamps from (defaults to invoice.client)
+    """
+    if client is None:
+        client = invoice.client
+    
+    # Find the loyalty transaction for this invoice
+    transaction = LoyaltyTransaction.objects.filter(
+        invoice=invoice,
+        transaction_type='stamp',
+        loyalty_card__client=client
+    ).first()
+    
+    if transaction:
+        loyalty_card = transaction.loyalty_card
+        stamps_to_remove = transaction.stamps_after - transaction.stamps_before
+        
+        # Remove stamps from the loyalty card
+        loyalty_card.stamps = max(0, loyalty_card.stamps - stamps_to_remove)
+        loyalty_card.save()
+        
+        # Create a reversal transaction record (don't reference invoice to avoid cascade delete)
+        LoyaltyTransaction.objects.create(
+            loyalty_card=loyalty_card,
+            invoice=None,  # Don't reference invoice to prevent cascade deletion
+            transaction_type='reversal',
+            stamps_before=transaction.stamps_after,
+            stamps_after=loyalty_card.stamps,
+            notes=f'Removed {stamps_to_remove} stamp(s) - Invoice {invoice.invoice_number} deleted or reassigned',
+            created_by=transaction.created_by
+        )
+        
+        # Delete the original stamp transaction
+        transaction.delete()
+        
+        # Recalculate cylinder_size based on remaining transactions
+        _recalculate_card_cylinder_size(loyalty_card)
+        
+        return loyalty_card
+    
+    return None
 
 
 def send_loyalty_card_whatsapp(loyalty_card, phone_number=None):
