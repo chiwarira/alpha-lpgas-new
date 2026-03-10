@@ -27,6 +27,8 @@ def get_cylinder_size_from_invoice(invoice):
                 return '5kg'
             elif '9kg' in name_lower or '9 kg' in name_lower:
                 return '9kg'
+            elif '14kg' in name_lower or '14 kg' in name_lower:
+                return '14kg'
             elif '19kg' in name_lower or '19 kg' in name_lower:
                 return '19kg'
             elif '48kg' in name_lower or '48 kg' in name_lower:
@@ -35,27 +37,53 @@ def get_cylinder_size_from_invoice(invoice):
 
 
 def process_loyalty_stamp(invoice):
-    """Process loyalty stamp for an invoice - stamps all 9kg bottles in the invoice"""
+    """Process loyalty stamp for an invoice - stamps all cylinder sizes and uses smallest size for reward"""
     from .models import Invoice
     
-    # Only process 9kg cylinders for loyalty stamps
-    cylinder_size = '9kg'
+    # Count cylinders by size
+    cylinder_counts = {
+        '5kg': 0,
+        '9kg': 0,
+        '14kg': 0,
+        '19kg': 0,
+        '48kg': 0
+    }
     
-    # Count how many 9kg bottles are in this invoice
-    total_9kg_quantity = 0
+    # Count all cylinder sizes in this invoice
     for item in invoice.items.all():
         if item.product and item.product.name:
             name_lower = item.product.name.lower()
-            if '9kg' in name_lower or '9 kg' in name_lower:
-                total_9kg_quantity += int(item.quantity)
+            if '5kg' in name_lower or '5 kg' in name_lower:
+                cylinder_counts['5kg'] += int(item.quantity)
+            elif '9kg' in name_lower or '9 kg' in name_lower:
+                cylinder_counts['9kg'] += int(item.quantity)
+            elif '14kg' in name_lower or '14 kg' in name_lower:
+                cylinder_counts['14kg'] += int(item.quantity)
+            elif '19kg' in name_lower or '19 kg' in name_lower:
+                cylinder_counts['19kg'] += int(item.quantity)
+            elif '48kg' in name_lower or '48 kg' in name_lower:
+                cylinder_counts['48kg'] += int(item.quantity)
     
-    if total_9kg_quantity == 0:
+    # Find the smallest cylinder size purchased in this invoice
+    # Order: 5kg < 9kg < 14kg < 19kg < 48kg
+    smallest_size = None
+    total_cylinders = 0
+    size_order = ['5kg', '9kg', '14kg', '19kg', '48kg']
+    
+    for size in size_order:
+        if cylinder_counts[size] > 0:
+            if smallest_size is None:
+                smallest_size = size
+            total_cylinders += cylinder_counts[size]
+    
+    # If no cylinders found, return None
+    if smallest_size is None or total_cylinders == 0:
         return None
     
-    # Get or create loyalty card for this client and cylinder size
+    # Get or create loyalty card for the smallest cylinder size
     loyalty_card, created = LoyaltyCard.objects.get_or_create(
         client=invoice.client,
-        cylinder_size=cylinder_size,
+        cylinder_size=smallest_size,
         is_active=True,
         defaults={'stamps': 0}
     )
@@ -69,11 +97,19 @@ def process_loyalty_stamp(invoice):
     if existing_transaction:
         return loyalty_card  # Already processed
     
-    # Add stamps for all 9kg bottles
+    # Add stamps for all cylinders (regardless of size)
     stamps_before = loyalty_card.stamps
-    for _ in range(total_9kg_quantity):
+    for _ in range(total_cylinders):
         loyalty_card.add_stamp()
     stamps_after = loyalty_card.stamps
+    
+    # Build notes describing what was purchased
+    cylinder_details = []
+    for size in size_order:
+        if cylinder_counts[size] > 0:
+            cylinder_details.append(f"{cylinder_counts[size]} x {size}")
+    
+    notes = f'{total_cylinders} stamp(s) added for invoice {invoice.invoice_number} ({", ".join(cylinder_details)}). Reward will be for {smallest_size} cylinder.'
     
     # Create transaction record
     LoyaltyTransaction.objects.create(
@@ -82,7 +118,7 @@ def process_loyalty_stamp(invoice):
         transaction_type='stamp',
         stamps_before=stamps_before,
         stamps_after=stamps_after,
-        notes=f'{total_9kg_quantity} stamp(s) added for invoice {invoice.invoice_number} ({total_9kg_quantity} x 9kg bottles)',
+        notes=notes,
         created_by=invoice.created_by
     )
     

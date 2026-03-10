@@ -8,6 +8,7 @@ class LoyaltyCard(models.Model):
     CYLINDER_SIZE_CHOICES = [
         ('5kg', '5kg Cylinder'),
         ('9kg', '9kg Cylinder'),
+        ('14kg', '14kg Cylinder'),
         ('19kg', '19kg Cylinder'),
         ('48kg', '48kg Cylinder'),
     ]
@@ -38,7 +39,7 @@ class LoyaltyCard(models.Model):
     
     def get_reward_type(self):
         """Get the type of reward based on cylinder size"""
-        if self.cylinder_size in ['5kg', '9kg']:
+        if self.cylinder_size in ['5kg', '9kg', '14kg']:
             return 'free'  # Free cylinder on 10th purchase
         else:  # 19kg, 48kg
             return '50_percent'  # 50% off on 10th purchase
