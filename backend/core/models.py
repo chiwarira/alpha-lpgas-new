@@ -496,21 +496,21 @@ class Invoice(models.Model):
         """Override save to auto-generate invoice number, set due_date based on payment terms, and calculate balance"""
         if not self.invoice_number:
             # Generate invoice number: INV-XXXXXX (sequential, starting from 004241)
-            # Get the last invoice number across all invoices
-            last_invoice = Invoice.objects.all().order_by('-invoice_number').first()
+            # Get all invoices with INV- prefix and find the highest numeric value
+            all_invoices = Invoice.objects.filter(invoice_number__startswith='INV-').values_list('invoice_number', flat=True)
             
-            if last_invoice and last_invoice.invoice_number.startswith('INV-'):
-                # Extract the numeric part from INV-XXXXXX format
+            max_num = 4240  # Start from 4240 so first invoice is 4241
+            for inv_num in all_invoices:
                 try:
-                    last_num = int(last_invoice.invoice_number.replace('INV-', ''))
-                    new_num = last_num + 1
-                except (ValueError, IndexError):
-                    # If extraction fails, start from 004241
-                    new_num = 4241
-            else:
-                # No invoices yet or old format, start from 004241
-                new_num = 4241
+                    # Extract numeric part from INV-XXXXXX
+                    num = int(inv_num.replace('INV-', ''))
+                    if num > max_num:
+                        max_num = num
+                except (ValueError, AttributeError):
+                    # Skip invalid invoice numbers
+                    continue
             
+            new_num = max_num + 1
             self.invoice_number = f"INV-{new_num:06d}"
         
         # Auto-set due_date based on payment_terms if not set
