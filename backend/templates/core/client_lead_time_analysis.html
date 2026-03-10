@@ -1,0 +1,213 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Lead Time Analysis - {{ client.name }} - Alpha LPGas{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="bi bi-clock-history"></i> Lead Time Analysis</h1>
+        <h3 class="text-muted">{{ client.name }}</h3>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'accounting_forms:daily_sales_report' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Sales Report
+        </a>
+        <a href="{% url 'accounting_forms:client_detail' client.id %}" class="btn btn-primary">
+            <i class="bi bi-person"></i> Client Details
+        </a>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+{% if stats %}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-receipt"></i> Total Orders</h5>
+                <h2 class="mb-0">{{ stats.total_orders }}</h2>
+                <small>lifetime orders</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-graph-up"></i> Avg Days Between</h5>
+                <h2 class="mb-0">{{ stats.avg_days }}</h2>
+                <small>days on average</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-arrow-down-up"></i> Range</h5>
+                <h2 class="mb-0">{{ stats.min_days }} - {{ stats.max_days }}</h2>
+                <small>min to max days</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-calendar-check"></i> Last Order</h5>
+                <h2 class="mb-0">{{ stats.days_since_last_order }}</h2>
+                <small>days ago ({{ stats.last_order_date|date:"Y-m-d" }})</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Order Timeline Chart -->
+{% if invoice_data %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0"><i class="bi bi-graph-up"></i> Order Timeline</h4>
+    </div>
+    <div class="card-body">
+        <canvas id="timelineChart" height="80"></canvas>
+    </div>
+</div>
+
+<!-- Detailed Order History -->
+<div class="card mb-4">
+    <div class="card-header bg-secondary text-white">
+        <h4 class="mb-0"><i class="bi bi-list-ul"></i> Order History</h4>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Order Date</th>
+                        <th class="text-end">Days Since Last</th>
+                        <th class="text-end">Amount</th>
+                        <th>Status</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in invoice_data %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'accounting_forms:invoice_detail' item.invoice.invoice_number %}">
+                                <code>{{ item.invoice.invoice_number }}</code>
+                            </a>
+                        </td>
+                        <td>{{ item.issue_date|date:"Y-m-d" }}</td>
+                        <td class="text-end">
+                            {% if item.days_since_last %}
+                                <span class="badge {% if item.days_since_last < stats.avg_days %}bg-success{% elif item.days_since_last > stats.avg_days %}bg-warning{% else %}bg-secondary{% endif %}">
+                                    {{ item.days_since_last }} days
+                                </span>
+                            {% else %}
+                                <span class="text-muted">First order</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end"><strong>R {{ item.invoice.total_amount|floatformat:2 }}</strong></td>
+                        <td>
+                            {% if item.invoice.status == 'paid' %}
+                                <span class="badge bg-success">Paid</span>
+                            {% elif item.invoice.status == 'partially_paid' %}
+                                <span class="badge bg-info">Partial</span>
+                            {% elif item.invoice.status == 'overdue' %}
+                                <span class="badge bg-danger">Overdue</span>
+                            {% else %}
+                                <span class="badge bg-warning">{{ item.invoice.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'accounting_forms:invoice_detail' item.invoice.invoice_number %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> This client has no order history yet.
+</div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+{% if invoice_data %}
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('timelineChart');
+    if (ctx) {
+        const orderData = [
+            {% for item in invoice_data %}
+            {
+                date: '{{ item.issue_date|date:"Y-m-d" }}',
+                days: {{ item.days_since_last|default:"null" }},
+                invoice: '{{ item.invoice.invoice_number }}',
+                amount: {{ item.invoice.total_amount }}
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: orderData.map(d => d.date),
+                datasets: [{
+                    label: 'Days Since Last Order',
+                    data: orderData.map(d => d.days),
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.1,
+                    spanGaps: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true
+                    },
+                    title: {
+                        display: true,
+                        text: 'Days Between Orders Over Time'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const dataPoint = orderData[context.dataIndex];
+                                return 'Invoice: ' + dataPoint.invoice + '\nAmount: R' + dataPoint.amount.toFixed(2);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Days'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Order Date'
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

@@ -1391,6 +1391,72 @@ def daily_sales_report(request):
     # Year choices for yearly dropdown (current year back to 5 years ago)
     year_choices = list(range(today.year, today.year - 6, -1))
     
+    # Day of week analysis (for weekly, monthly, yearly, custom ranges)
+    day_of_week_data = []
+    if num_days > 1:
+        # Group payments by day of week
+        from django.db.models.functions import ExtractWeekDay
+        dow_summary = payments.annotate(
+            dow=ExtractWeekDay('payment_date')
+        ).values('dow').annotate(
+            total=Sum('amount'),
+            count=Count('id')
+        ).order_by('dow')
+        
+        # Map day numbers to names (1=Sunday, 2=Monday, etc.)
+        day_names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        day_of_week_data = [
+            {
+                'day': day_names[item['dow'] - 1],
+                'total': item['total'],
+                'count': item['count']
+            }
+            for item in dow_summary
+        ]
+    
+    # Lead time analysis - calculate days between orders for each client
+    from django.db.models import Min, Max
+    lead_time_data = []
+    
+    # Get all clients who have invoices in the date range
+    clients_with_invoices = Invoice.objects.filter(
+        issue_date__gte=start_date,
+        issue_date__lte=end_date
+    ).values_list('client_id', flat=True).distinct()
+    
+    for client_id in clients_with_invoices:
+        client = Client.objects.get(id=client_id)
+        client_invoices = Invoice.objects.filter(
+            client_id=client_id
+        ).order_by('issue_date')
+        
+        if client_invoices.count() >= 2:
+            # Calculate intervals between consecutive invoices
+            invoice_dates = list(client_invoices.values_list('issue_date', flat=True))
+            intervals = []
+            for i in range(1, len(invoice_dates)):
+                days_between = (invoice_dates[i] - invoice_dates[i-1]).days
+                intervals.append(days_between)
+            
+            if intervals:
+                avg_interval = sum(intervals) / len(intervals)
+                min_interval = min(intervals)
+                max_interval = max(intervals)
+                
+                lead_time_data.append({
+                    'client': client,
+                    'client_id': client_id,
+                    'total_orders': client_invoices.count(),
+                    'avg_days_between': round(avg_interval, 1),
+                    'min_days_between': min_interval,
+                    'max_days_between': max_interval,
+                    'last_order_date': invoice_dates[-1],
+                    'first_order_date': invoice_dates[0],
+                })
+    
+    # Sort by average days between orders
+    lead_time_data.sort(key=lambda x: x['avg_days_between'])
+    
     context = {
         'range_type': range_type,
         'range_label': range_label,
@@ -1411,6 +1477,8 @@ def daily_sales_report(request):
         'product_total_quantity': product_total_quantity,
         'product_total_sales': product_total_sales,
         'product_total_vat': product_total_vat,
+        'day_of_week_data': day_of_week_data,
+        'lead_time_data': lead_time_data,
     }
     
     return render(request, 'core/daily_sales_report.html', context)

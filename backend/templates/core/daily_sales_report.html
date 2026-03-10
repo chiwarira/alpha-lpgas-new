@@ -261,6 +261,38 @@
     </div>
 </div>
 
+<!-- Day of Week Analysis -->
+{% if day_of_week_data and num_days > 1 %}
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h4 class="mb-0"><i class="bi bi-bar-chart"></i> Sales by Day of Week</h4>
+    </div>
+    <div class="card-body">
+        <canvas id="dayOfWeekChart" height="80"></canvas>
+        <div class="table-responsive mt-3">
+            <table class="table table-sm">
+                <thead class="table-light">
+                    <tr>
+                        <th>Day</th>
+                        <th class="text-end">Transactions</th>
+                        <th class="text-end">Total Sales</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in day_of_week_data %}
+                    <tr>
+                        <td>{{ item.day }}</td>
+                        <td class="text-end">{{ item.count }}</td>
+                        <td class="text-end"><strong>R {{ item.total|floatformat:2 }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Sales by Product -->
 <div class="card mb-4">
     <div class="card-header bg-success text-white">
@@ -431,6 +463,58 @@
 </div>
 {% endif %}
 
+<!-- Lead Time Analysis -->
+{% if lead_time_data %}
+<div class="card mb-4">
+    <div class="card-header bg-warning text-dark">
+        <h4 class="mb-0"><i class="bi bi-clock-history"></i> Lead Time Analysis</h4>
+        <small>Average days between orders for each client</small>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Client</th>
+                        <th class="text-end">Total Orders</th>
+                        <th class="text-end">Avg Days Between</th>
+                        <th class="text-end">Min Days</th>
+                        <th class="text-end">Max Days</th>
+                        <th>First Order</th>
+                        <th>Last Order</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in lead_time_data %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'accounting_forms:client_detail' item.client_id %}">
+                                {{ item.client.name }}
+                            </a>
+                        </td>
+                        <td class="text-end">{{ item.total_orders }}</td>
+                        <td class="text-end">
+                            <strong>{{ item.avg_days_between }}</strong> days
+                        </td>
+                        <td class="text-end">{{ item.min_days_between }}</td>
+                        <td class="text-end">{{ item.max_days_between }}</td>
+                        <td>{{ item.first_order_date|date:"Y-m-d" }}</td>
+                        <td>{{ item.last_order_date|date:"Y-m-d" }}</td>
+                        <td class="text-center">
+                            <a href="{% url 'accounting_forms:client_lead_time' item.client_id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-graph-up"></i> Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <style>
 @media print {
     .print-hide, .btn, form, #rangeTab {
@@ -443,6 +527,7 @@
 }
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 function switchRange(rangeType) {
     // Hide all forms
@@ -454,5 +539,56 @@ function switchRange(rangeType) {
     document.querySelectorAll('#rangeTab .nav-link').forEach(btn => btn.classList.remove('active'));
     event.currentTarget.classList.add('active');
 }
+
+// Day of Week Chart
+{% if day_of_week_data %}
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('dayOfWeekChart');
+    if (ctx) {
+        const dowData = [
+            {% for item in day_of_week_data %}
+            { day: '{{ item.day }}', total: {{ item.total }}, count: {{ item.count }} }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dowData.map(d => d.day),
+                datasets: [{
+                    label: 'Sales (R)',
+                    data: dowData.map(d => d.total),
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Revenue by Day of Week'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'R ' + value.toFixed(2);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+{% endif %}
 </script>
 {% endblock %}

@@ -45,6 +45,7 @@ from ..views_loyalty import (
     loyalty_card_list, loyalty_card_detail,
     send_loyalty_card_whatsapp_view, download_loyalty_card
 )
+from ..views_client_leadtime import client_lead_time_analysis
 
 app_name = 'accounting_forms'
 
@@ -63,6 +64,7 @@ urlpatterns = [
     path('clients/<int:pk>/delete/', client_delete, name='client_delete'),
     path('clients/<int:pk>/statement/', client_statement, name='client_statement'),
     path('clients/<int:pk>/statement/<str:start_date>/<str:end_date>/', client_statement_preview, name='client_statement_preview'),
+    path('clients/<int:client_id>/lead-time/', client_lead_time_analysis, name='client_lead_time'),
     
     # Products
     path('products/', product_list, name='product_list'),
