@@ -752,9 +752,16 @@ def invoice_create(request):
             
             # Process loyalty stamp for every invoice created
             from .utils_loyalty import process_loyalty_stamp
-            loyalty_card = process_loyalty_stamp(invoice)
-            if loyalty_card:
-                messages.info(request, f'Loyalty card updated: {loyalty_card.stamps}/9 stamps')
+            try:
+                loyalty_card = process_loyalty_stamp(invoice)
+                if loyalty_card:
+                    messages.info(request, f'Loyalty card updated: {loyalty_card.stamps}/9 stamps')
+            except Exception as e:
+                # Log the error but don't fail the invoice creation
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f'Error processing loyalty stamp for invoice {invoice.invoice_number}: {str(e)}')
+                messages.warning(request, 'Invoice created successfully, but loyalty stamp could not be processed.')
             
             messages.success(request, f'Invoice {invoice.invoice_number} for {invoice.client.name} created successfully!')
             return redirect('accounting_forms:invoice_detail', invoice_number=invoice.invoice_number)
