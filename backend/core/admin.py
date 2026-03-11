@@ -5,7 +5,8 @@ from .models import (
     DeliveryZone, PromoCode, Driver, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial,
     CustomScript, Supplier, ExpenseCategory, Expense, JournalEntry, TaxPeriod,
     CylinderSize, GasStock, StockMovement, StockPurchase, StockPurchaseItem,
-    LoyaltyCard, LoyaltyTransaction
+    LoyaltyCard, LoyaltyTransaction,
+    AccountType, VATReturn, CIPCAnnualReturn, SARSTaxReturn, FinancialStatement, TaxConfiguration
 )
 from .admin_loyalty import LoyaltyCardAdmin, LoyaltyTransactionAdmin
 
@@ -698,3 +699,383 @@ class StockMovementAdmin(admin.ModelAdmin):
         if not change:
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
+
+
+# ============================================================================
+# TAX REPORTING & FINANCIAL STATEMENTS ADMIN
+# ============================================================================
+
+@admin.register(AccountType)
+class AccountTypeAdmin(admin.ModelAdmin):
+    list_display = ['code', 'name', 'category', 'subcategory', 'is_active', 'is_vat_applicable']
+    list_filter = ['category', 'subcategory', 'is_active', 'is_vat_applicable', 'is_system_account']
+    search_fields = ['code', 'name', 'description']
+    list_editable = ['is_active']
+    
+    fieldsets = (
+        ('Account Details', {
+            'fields': ('code', 'name', 'category', 'subcategory', 'description', 'parent')
+        }),
+        ('Settings', {
+            'fields': ('is_active', 'is_system_account', 'allow_manual_entries')
+        }),
+        ('VAT Configuration', {
+            'fields': ('is_vat_applicable', 'default_vat_rate'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.is_system_account:
+            return ['code', 'category', 'subcategory', 'is_system_account']
+        return ['is_system_account']
+
+
+@admin.register(VATReturn)
+class VATReturnAdmin(admin.ModelAdmin):
+    list_display = ['return_number', 'filing_period', 'period_start', 'period_end', 
+                    'box12_vat_payable', 'status', 'submission_date']
+    list_filter = ['status', 'period_start', 'submission_date']
+    search_fields = ['return_number', 'filing_period']
+    readonly_fields = ['return_number', 'created_at', 'updated_at']
+    date_hierarchy = 'period_end'
+    
+    fieldsets = (
+        ('Period Information', {
+            'fields': ('return_number', 'period_start', 'period_end', 'filing_period')
+        }),
+        ('Output Tax (Sales)', {
+            'fields': ('box1_output_tax', 'box2_output_tax_other', 'box3_total_output_tax'),
+            'description': 'VAT collected on sales and services'
+        }),
+        ('Input Tax (Purchases)', {
+            'fields': ('box4_capital_goods', 'box5_other_input_tax', 'box6_total_input_tax'),
+            'description': 'VAT paid on purchases and expenses'
+        }),
+        ('Net VAT & Adjustments', {
+            'fields': ('box7_net_vat', 'box8_bad_debts', 'box9_imported_services', 
+                      'box10_total_deductible', 'box11_refund_claimed', 'box12_vat_payable'),
+            'description': 'Net VAT calculation and adjustments'
+        }),
+        ('Summary Totals', {
+            'fields': ('total_sales_incl_vat', 'total_purchases_incl_vat'),
+            'classes': ('collapse',)
+        }),
+        ('Filing Status', {
+            'fields': ('status', 'submission_date', 'payment_date', 'payment_reference', 'notes')
+        }),
+        ('Audit', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['calculate_vat', 'mark_submitted', 'mark_paid']
+    
+    def calculate_vat(self, request, queryset):
+        count = 0
+        for vat_return in queryset.filter(status='draft'):
+            vat_return.calculate_vat()
+            count += 1
+        self.message_user(request, f'{count} VAT returns calculated.')
+    calculate_vat.short_description = 'Calculate VAT from transactions'
+    
+    def mark_submitted(self, request, queryset):
+        from django.utils import timezone
+        count = queryset.filter(status='calculated').update(
+            status='submitted',
+            submission_date=timezone.now().date()
+        )
+        self.message_user(request, f'{count} VAT returns marked as submitted.')
+    mark_submitted.short_description = 'Mark as submitted to SARS'
+    
+    def mark_paid(self, request, queryset):
+        from django.utils import timezone
+        count = queryset.filter(status='submitted').update(
+            status='paid',
+            payment_date=timezone.now().date()
+        )
+        self.message_user(request, f'{count} VAT returns marked as paid.')
+    mark_paid.short_description = 'Mark as paid'
+    
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(CIPCAnnualReturn)
+class CIPCAnnualReturnAdmin(admin.ModelAdmin):
+    list_display = ['return_number', 'filing_year', 'company_name', 'financial_year_end', 
+                    'total_revenue', 'status', 'submission_date']
+    list_filter = ['status', 'filing_year', 'is_audited']
+    search_fields = ['return_number', 'company_name', 'company_registration_number']
+    readonly_fields = ['return_number', 'created_at', 'updated_at']
+    date_hierarchy = 'financial_year_end'
+    
+    fieldsets = (
+        ('Return Details', {
+            'fields': ('return_number', 'financial_year_end', 'filing_year')
+        }),
+        ('Company Information', {
+            'fields': ('company_registration_number', 'company_name', 
+                      'registered_address', 'postal_address')
+        }),
+        ('Financial Summary', {
+            'fields': ('total_assets', 'total_liabilities', 'total_equity', 
+                      'total_revenue', 'profit_loss'),
+            'description': 'Financial position at year end'
+        }),
+        ('Share Capital', {
+            'fields': ('authorized_shares', 'issued_shares', 'share_par_value'),
+            'classes': ('collapse',)
+        }),
+        ('Directors & Officers', {
+            'fields': ('number_of_directors', 'directors_details'),
+            'classes': ('collapse',)
+        }),
+        ('Auditor/Accountant', {
+            'fields': ('auditor_name', 'auditor_registration', 'is_audited'),
+            'classes': ('collapse',)
+        }),
+        ('Filing Status', {
+            'fields': ('status', 'submission_date', 'approval_date', 'cipc_reference')
+        }),
+        ('Attachments', {
+            'fields': ('financial_statements_file', 'supporting_documents'),
+            'classes': ('collapse',)
+        }),
+        ('Notes & Audit', {
+            'fields': ('notes', 'created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['mark_submitted', 'mark_approved']
+    
+    def mark_submitted(self, request, queryset):
+        from django.utils import timezone
+        count = queryset.filter(status='ready').update(
+            status='submitted',
+            submission_date=timezone.now().date()
+        )
+        self.message_user(request, f'{count} CIPC returns marked as submitted.')
+    mark_submitted.short_description = 'Mark as submitted to CIPC'
+    
+    def mark_approved(self, request, queryset):
+        from django.utils import timezone
+        count = queryset.filter(status='submitted').update(
+            status='approved',
+            approval_date=timezone.now().date()
+        )
+        self.message_user(request, f'{count} CIPC returns marked as approved.')
+    mark_approved.short_description = 'Mark as approved'
+    
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(SARSTaxReturn)
+class SARSTaxReturnAdmin(admin.ModelAdmin):
+    list_display = ['return_number', 'assessment_year', 'tax_year_start', 'tax_year_end',
+                    'taxable_income', 'tax_payable', 'status']
+    list_filter = ['status', 'assessment_year']
+    search_fields = ['return_number', 'tax_reference_number', 'company_registration']
+    readonly_fields = ['return_number', 'created_at', 'updated_at']
+    date_hierarchy = 'tax_year_end'
+    
+    fieldsets = (
+        ('Return Details', {
+            'fields': ('return_number', 'tax_year_start', 'tax_year_end', 'assessment_year')
+        }),
+        ('Company Details', {
+            'fields': ('tax_reference_number', 'company_registration')
+        }),
+        ('Income', {
+            'fields': ('gross_income', 'exempt_income', 'total_income'),
+            'description': 'Total income for the tax year'
+        }),
+        ('Deductions', {
+            'fields': ('cost_of_sales', 'operating_expenses', 'depreciation', 
+                      'interest_expense', 'other_deductions', 'total_deductions'),
+            'description': 'Allowable deductions'
+        }),
+        ('Taxable Income', {
+            'fields': ('taxable_income', 'assessed_loss_brought_forward', 
+                      'taxable_income_after_loss'),
+            'description': 'Taxable income calculation'
+        }),
+        ('Tax Calculation', {
+            'fields': ('tax_rate', 'normal_tax'),
+            'description': 'Tax calculation at corporate rate'
+        }),
+        ('Credits & Payments', {
+            'fields': ('provisional_tax_paid', 'employees_tax_paid', 
+                      'foreign_tax_credits', 'total_credits'),
+            'description': 'Tax credits and payments made'
+        }),
+        ('Final Amount', {
+            'fields': ('tax_payable',),
+            'description': 'Final tax payable or refundable'
+        }),
+        ('Filing Status', {
+            'fields': ('status', 'submission_date', 'assessment_date', 
+                      'payment_date', 'payment_reference')
+        }),
+        ('Supporting Documents', {
+            'fields': ('financial_statements_file', 'tax_computation_file'),
+            'classes': ('collapse',)
+        }),
+        ('Notes & Audit', {
+            'fields': ('notes', 'created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['calculate_tax', 'mark_submitted', 'mark_assessed', 'mark_paid']
+    
+    def calculate_tax(self, request, queryset):
+        count = 0
+        for tax_return in queryset.filter(status='draft'):
+            tax_return.calculate_tax()
+            count += 1
+        self.message_user(request, f'{count} tax returns calculated.')
+    calculate_tax.short_description = 'Calculate tax from financial data'
+    
+    def mark_submitted(self, request, queryset):
+        from django.utils import timezone
+        count = queryset.filter(status='calculated').update(
+            status='submitted',
+            submission_date=timezone.now().date()
+        )
+        self.message_user(request, f'{count} tax returns marked as submitted.')
+    mark_submitted.short_description = 'Mark as submitted to SARS'
+    
+    def mark_assessed(self, request, queryset):
+        from django.utils import timezone
+        count = queryset.filter(status='submitted').update(
+            status='assessed',
+            assessment_date=timezone.now().date()
+        )
+        self.message_user(request, f'{count} tax returns marked as assessed.')
+    mark_assessed.short_description = 'Mark as assessed'
+    
+    def mark_paid(self, request, queryset):
+        from django.utils import timezone
+        count = queryset.filter(status='assessed').update(
+            status='paid',
+            payment_date=timezone.now().date()
+        )
+        self.message_user(request, f'{count} tax returns marked as paid.')
+    mark_paid.short_description = 'Mark as paid'
+    
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(FinancialStatement)
+class FinancialStatementAdmin(admin.ModelAdmin):
+    list_display = ['statement_number', 'statement_type', 'period_end', 'status', 'created_at']
+    list_filter = ['statement_type', 'status', 'period_end']
+    search_fields = ['statement_number']
+    readonly_fields = ['statement_number', 'created_at', 'updated_at', 'approved_at', 'approved_by']
+    date_hierarchy = 'period_end'
+    
+    fieldsets = (
+        ('Statement Details', {
+            'fields': ('statement_number', 'statement_type', 'period_start', 'period_end')
+        }),
+        ('Comparative Period', {
+            'fields': ('comparative_period_start', 'comparative_period_end'),
+            'classes': ('collapse',)
+        }),
+        ('Statement Data', {
+            'fields': ('statement_data', 'comparative_data'),
+            'description': 'JSON data structure for the statement'
+        }),
+        ('Generated Files', {
+            'fields': ('pdf_file', 'excel_file'),
+            'classes': ('collapse',)
+        }),
+        ('Status & Approval', {
+            'fields': ('status', 'notes', 'approved_by', 'approved_at')
+        }),
+        ('Audit', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['generate_balance_sheet', 'generate_income_statement', 'mark_approved']
+    
+    def generate_balance_sheet(self, request, queryset):
+        count = 0
+        for statement in queryset.filter(statement_type='balance_sheet', status='draft'):
+            statement.generate_balance_sheet()
+            count += 1
+        self.message_user(request, f'{count} balance sheets generated.')
+    generate_balance_sheet.short_description = 'Generate Balance Sheet'
+    
+    def generate_income_statement(self, request, queryset):
+        count = 0
+        for statement in queryset.filter(statement_type='income_statement', status='draft'):
+            statement.generate_income_statement()
+            count += 1
+        self.message_user(request, f'{count} income statements generated.')
+    generate_income_statement.short_description = 'Generate Income Statement'
+    
+    def mark_approved(self, request, queryset):
+        from django.utils import timezone
+        for statement in queryset.filter(status__in=['generated', 'reviewed']):
+            statement.status = 'approved'
+            statement.approved_by = request.user
+            statement.approved_at = timezone.now()
+            statement.save()
+        self.message_user(request, f'{queryset.count()} statements approved.')
+    mark_approved.short_description = 'Approve statements'
+    
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(TaxConfiguration)
+class TaxConfigurationAdmin(admin.ModelAdmin):
+    list_display = ['sars_tax_reference', 'vat_vendor_number', 'corporate_tax_rate', 
+                    'standard_vat_rate', 'is_active']
+    
+    fieldsets = (
+        ('VAT Configuration', {
+            'fields': ('vat_vendor_number', 'vat_registration_date', 
+                      'vat_filing_frequency', 'standard_vat_rate')
+        }),
+        ('SARS Configuration', {
+            'fields': ('sars_tax_reference', 'company_registration_number',
+                      'financial_year_end_month', 'financial_year_end_day',
+                      'corporate_tax_rate', 'small_business_corporation')
+        }),
+        ('CIPC Configuration', {
+            'fields': ('cipc_company_name', 'cipc_registration_number')
+        }),
+        ('Accountant/Auditor', {
+            'fields': ('accountant_name', 'accountant_practice_number',
+                      'accountant_email', 'accountant_phone'),
+            'classes': ('collapse',)
+        }),
+        ('Status', {
+            'fields': ('is_active',)
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        # Only allow one configuration
+        return not TaxConfiguration.objects.exists()
+    
+    def has_delete_permission(self, request, obj=None):
+        # Don't allow deletion
+        return False
