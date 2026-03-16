@@ -347,6 +347,5 @@ For support, email info@alphalpgas.co.za or call 074 454 5665.
 
 ## 🙏 Acknowledgments
 
-- Inspired by leading gas delivery platforms: gas24.co.za, gas2home.co.za, epggas.co.za
 - Built with modern best practices and security in mind
 - Designed for scalability and future mobile app integration
