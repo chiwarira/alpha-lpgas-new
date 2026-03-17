@@ -1,0 +1,40 @@
+{% extends "core/base.html" %}
+{% load wagtailcore_tags wagtailimages_tags %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <article>
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold mb-4">{{ page.title }}</h1>
+            <div class="flex items-center text-gray-600 mb-4">
+                <time datetime="{{ page.date|date:'Y-m-d' }}">{{ page.date }}</time>
+            </div>
+            {% if page.intro %}
+            <p class="text-xl text-gray-700 italic">{{ page.intro }}</p>
+            {% endif %}
+        </header>
+        
+        <div class="prose max-w-none">
+            {% for block in page.body %}
+                {% if block.block_type == 'heading' %}
+                    <h2 class="text-3xl font-bold mt-8 mb-4">{{ block.value }}</h2>
+                {% elif block.block_type == 'paragraph' %}
+                    <div class="mb-4">{{ block.value|richtext }}</div>
+                {% elif block.block_type == 'image' %}
+                    <figure class="my-8">
+                        {% image block.value width-800 class="rounded-lg shadow-md" %}
+                    </figure>
+                {% elif block.block_type == 'code' %}
+                    <pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto my-4"><code>{{ block.value }}</code></pre>
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        <div class="mt-12 pt-6 border-t border-gray-200">
+            <a href="{{ page.get_parent.url }}" class="text-blue-600 hover:text-blue-800 font-medium">
+                ← Back to blog
+            </a>
+        </div>
+    </article>
+</div>
+{% endblock %}
