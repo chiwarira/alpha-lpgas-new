@@ -1414,6 +1414,128 @@ def daily_sales_report(request):
             for item in dow_summary
         ]
     
+    # Detailed breakdowns based on range type
+    daily_breakdown = []
+    weekly_breakdown = []
+    monthly_breakdown = []
+    
+    # Weekly breakdown by day (for weekly view)
+    if range_type == 'weekly':
+        current_date = start_date
+        while current_date <= end_date:
+            day_payments = payments.filter(payment_date=current_date)
+            day_total = day_payments.aggregate(total=Sum('amount'))['total'] or 0
+            day_count = day_payments.count()
+            daily_breakdown.append({
+                'date': current_date,
+                'day_name': current_date.strftime('%A'),
+                'total': day_total,
+                'count': day_count
+            })
+            current_date += timedelta(days=1)
+    
+    # Monthly breakdown by day and week (for monthly view)
+    elif range_type == 'monthly':
+        # Daily breakdown
+        current_date = start_date
+        while current_date <= end_date:
+            day_payments = payments.filter(payment_date=current_date)
+            day_total = day_payments.aggregate(total=Sum('amount'))['total'] or 0
+            day_count = day_payments.count()
+            daily_breakdown.append({
+                'date': current_date,
+                'day_name': current_date.strftime('%a'),
+                'total': day_total,
+                'count': day_count
+            })
+            current_date += timedelta(days=1)
+        
+        # Weekly breakdown
+        week_start = start_date - timedelta(days=start_date.weekday())  # Start from Monday
+        week_num = 1
+        while week_start <= end_date:
+            week_end = min(week_start + timedelta(days=6), end_date)
+            # Only include weeks that overlap with the month
+            if week_end >= start_date:
+                actual_start = max(week_start, start_date)
+                actual_end = min(week_end, end_date)
+                week_payments = payments.filter(
+                    payment_date__gte=actual_start,
+                    payment_date__lte=actual_end
+                )
+                week_total = week_payments.aggregate(total=Sum('amount'))['total'] or 0
+                week_count = week_payments.count()
+                weekly_breakdown.append({
+                    'week_num': week_num,
+                    'start_date': actual_start,
+                    'end_date': actual_end,
+                    'total': week_total,
+                    'count': week_count
+                })
+                week_num += 1
+            week_start += timedelta(days=7)
+    
+    # Yearly breakdown by day, week, and month (for yearly view)
+    elif range_type == 'yearly':
+        # Daily breakdown (aggregated by day of year)
+        from django.db.models.functions import TruncDate
+        daily_summary = payments.annotate(
+            date=TruncDate('payment_date')
+        ).values('date').annotate(
+            total=Sum('amount'),
+            count=Count('id')
+        ).order_by('date')
+        
+        daily_breakdown = [
+            {
+                'date': item['date'],
+                'day_name': item['date'].strftime('%a'),
+                'total': item['total'],
+                'count': item['count']
+            }
+            for item in daily_summary
+        ]
+        
+        # Weekly breakdown
+        week_start = start_date
+        week_num = 1
+        while week_start <= end_date:
+            week_end = min(week_start + timedelta(days=6), end_date)
+            week_payments = payments.filter(
+                payment_date__gte=week_start,
+                payment_date__lte=week_end
+            )
+            week_total = week_payments.aggregate(total=Sum('amount'))['total'] or 0
+            week_count = week_payments.count()
+            if week_total > 0 or week_count > 0:  # Only include weeks with data
+                weekly_breakdown.append({
+                    'week_num': week_num,
+                    'start_date': week_start,
+                    'end_date': week_end,
+                    'total': week_total,
+                    'count': week_count
+                })
+            week_start += timedelta(days=7)
+            week_num += 1
+        
+        # Monthly breakdown
+        for month_num in range(1, 13):
+            month_start = date(start_date.year, month_num, 1)
+            last_day = calendar.monthrange(start_date.year, month_num)[1]
+            month_end = date(start_date.year, month_num, last_day)
+            month_payments = payments.filter(
+                payment_date__gte=month_start,
+                payment_date__lte=month_end
+            )
+            month_total = month_payments.aggregate(total=Sum('amount'))['total'] or 0
+            month_count = month_payments.count()
+            monthly_breakdown.append({
+                'month_num': month_num,
+                'month_name': month_start.strftime('%B'),
+                'total': month_total,
+                'count': month_count
+            })
+    
     # Lead time analysis - calculate days between orders for each client
     from django.db.models import Min, Max
     lead_time_data = []
@@ -1478,6 +1600,9 @@ def daily_sales_report(request):
         'product_total_sales': product_total_sales,
         'product_total_vat': product_total_vat,
         'day_of_week_data': day_of_week_data,
+        'daily_breakdown': daily_breakdown,
+        'weekly_breakdown': weekly_breakdown,
+        'monthly_breakdown': monthly_breakdown,
         'lead_time_data': lead_time_data,
     }
     

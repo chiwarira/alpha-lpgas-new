@@ -261,8 +261,223 @@
     </div>
 </div>
 
-<!-- Day of Week Analysis -->
-{% if day_of_week_data and num_days > 1 %}
+<!-- Weekly Breakdown by Day -->
+{% if range_type == 'weekly' and daily_breakdown %}
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h4 class="mb-0"><i class="bi bi-calendar-week"></i> Daily Breakdown</h4>
+    </div>
+    <div class="card-body">
+        <canvas id="weeklyDailyChart" height="80"></canvas>
+        <div class="table-responsive mt-3">
+            <table class="table table-sm table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Day</th>
+                        <th class="text-end">Transactions</th>
+                        <th class="text-end">Total Sales</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in daily_breakdown %}
+                    <tr>
+                        <td>{{ item.date|date:"M d" }}</td>
+                        <td>{{ item.day_name }}</td>
+                        <td class="text-end">{{ item.count }}</td>
+                        <td class="text-end"><strong>R {{ item.total|floatformat:2 }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Monthly Breakdown by Day and Week -->
+{% if range_type == 'monthly' %}
+    {% if daily_breakdown %}
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h4 class="mb-0"><i class="bi bi-calendar-day"></i> Daily Breakdown</h4>
+        </div>
+        <div class="card-body">
+            <canvas id="monthlyDailyChart" height="100"></canvas>
+            <div class="table-responsive mt-3" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Date</th>
+                            <th>Day</th>
+                            <th class="text-end">Transactions</th>
+                            <th class="text-end">Total Sales</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in daily_breakdown %}
+                        <tr>
+                            <td>{{ item.date|date:"M d" }}</td>
+                            <td>{{ item.day_name }}</td>
+                            <td class="text-end">{{ item.count }}</td>
+                            <td class="text-end"><strong>R {{ item.total|floatformat:2 }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if weekly_breakdown %}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="bi bi-calendar-week"></i> Weekly Breakdown</h4>
+        </div>
+        <div class="card-body">
+            <canvas id="monthlyWeeklyChart" height="80"></canvas>
+            <div class="table-responsive mt-3">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Week</th>
+                            <th>Period</th>
+                            <th class="text-end">Transactions</th>
+                            <th class="text-end">Total Sales</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in weekly_breakdown %}
+                        <tr>
+                            <td>Week {{ item.week_num }}</td>
+                            <td>{{ item.start_date|date:"M d" }} - {{ item.end_date|date:"M d" }}</td>
+                            <td class="text-end">{{ item.count }}</td>
+                            <td class="text-end"><strong>R {{ item.total|floatformat:2 }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endif %}
+
+<!-- Yearly Breakdown by Day, Week, and Month -->
+{% if range_type == 'yearly' %}
+    {% if monthly_breakdown %}
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0"><i class="bi bi-calendar-month"></i> Monthly Breakdown</h4>
+        </div>
+        <div class="card-body">
+            <canvas id="yearlyMonthlyChart" height="80"></canvas>
+            <div class="table-responsive mt-3">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Month</th>
+                            <th class="text-end">Transactions</th>
+                            <th class="text-end">Total Sales</th>
+                            <th class="text-end">% of Year</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in monthly_breakdown %}
+                        <tr>
+                            <td>{{ item.month_name }}</td>
+                            <td class="text-end">{{ item.count }}</td>
+                            <td class="text-end"><strong>R {{ item.total|floatformat:2 }}</strong></td>
+                            <td class="text-end">
+                                {% if total_sales > 0 %}
+                                    {% widthratio item.total total_sales 100 %}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if weekly_breakdown %}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#yearlyWeeklyCollapse" aria-expanded="false" aria-controls="yearlyWeeklyCollapse">
+            <h4 class="mb-0">
+                <i class="bi bi-calendar-week"></i> Weekly Breakdown
+                <i class="bi bi-chevron-down float-end"></i>
+            </h4>
+        </div>
+        <div id="yearlyWeeklyCollapse" class="collapse card-body">
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Week</th>
+                            <th>Period</th>
+                            <th class="text-end">Transactions</th>
+                            <th class="text-end">Total Sales</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in weekly_breakdown %}
+                        <tr>
+                            <td>Week {{ item.week_num }}</td>
+                            <td>{{ item.start_date|date:"M d" }} - {{ item.end_date|date:"M d" }}</td>
+                            <td class="text-end">{{ item.count }}</td>
+                            <td class="text-end"><strong>R {{ item.total|floatformat:2 }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if daily_breakdown %}
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#yearlyDailyCollapse" aria-expanded="false" aria-controls="yearlyDailyCollapse">
+            <h4 class="mb-0">
+                <i class="bi bi-calendar-day"></i> Daily Breakdown
+                <i class="bi bi-chevron-down float-end"></i>
+            </h4>
+        </div>
+        <div id="yearlyDailyCollapse" class="collapse card-body">
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Date</th>
+                            <th>Day</th>
+                            <th class="text-end">Transactions</th>
+                            <th class="text-end">Total Sales</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in daily_breakdown %}
+                        <tr>
+                            <td>{{ item.date|date:"M d" }}</td>
+                            <td>{{ item.day_name }}</td>
+                            <td class="text-end">{{ item.count }}</td>
+                            <td class="text-end"><strong>R {{ item.total|floatformat:2 }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endif %}
+
+<!-- Day of Week Analysis (for custom ranges) -->
+{% if day_of_week_data and num_days > 1 and range_type == 'custom' %}
 <div class="card mb-4">
     <div class="card-header bg-info text-white">
         <h4 class="mb-0"><i class="bi bi-bar-chart"></i> Sales by Day of Week</h4>
@@ -295,10 +510,13 @@
 
 <!-- Sales by Product -->
 <div class="card mb-4">
-    <div class="card-header bg-success text-white">
-        <h4 class="mb-0"><i class="bi bi-box-seam"></i> Sales by Product</h4>
+    <div class="card-header bg-success text-white" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#salesByProductCollapse" aria-expanded="false" aria-controls="salesByProductCollapse">
+        <h4 class="mb-0">
+            <i class="bi bi-box-seam"></i> Sales by Product
+            <i class="bi bi-chevron-down float-end"></i>
+        </h4>
     </div>
-    <div class="card-body">
+    <div id="salesByProductCollapse" class="collapse card-body">
         {% if product_summary %}
         <div class="table-responsive">
             <table class="table table-hover">
@@ -347,10 +565,13 @@
 
 <!-- Detailed Transactions -->
 <div class="card mb-4">
-    <div class="card-header bg-secondary text-white">
-        <h4 class="mb-0"><i class="bi bi-list-ul"></i> Transaction Details</h4>
+    <div class="card-header bg-secondary text-white" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#transactionDetailsCollapse" aria-expanded="false" aria-controls="transactionDetailsCollapse">
+        <h4 class="mb-0">
+            <i class="bi bi-list-ul"></i> Transaction Details
+            <i class="bi bi-chevron-down float-end"></i>
+        </h4>
     </div>
-    <div class="card-body">
+    <div id="transactionDetailsCollapse" class="collapse card-body">
         {% if payments %}
         <div class="table-responsive">
             <table class="table table-hover">
@@ -417,10 +638,13 @@
 <!-- Invoices Created Today -->
 {% if invoices_created %}
 <div class="card mb-4">
-    <div class="card-header bg-success text-white">
-        <h4 class="mb-0"><i class="bi bi-file-earmark-plus"></i> Invoices Created</h4>
+    <div class="card-header bg-success text-white" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#invoicesCreatedCollapse" aria-expanded="false" aria-controls="invoicesCreatedCollapse">
+        <h4 class="mb-0">
+            <i class="bi bi-file-earmark-plus"></i> Invoices Created
+            <i class="bi bi-chevron-down float-end"></i>
+        </h4>
     </div>
-    <div class="card-body">
+    <div id="invoicesCreatedCollapse" class="collapse card-body">
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead class="table-light">
@@ -463,57 +687,6 @@
 </div>
 {% endif %}
 
-<!-- Lead Time Analysis -->
-{% if lead_time_data %}
-<div class="card mb-4">
-    <div class="card-header bg-warning text-dark">
-        <h4 class="mb-0"><i class="bi bi-clock-history"></i> Lead Time Analysis</h4>
-        <small>Average days between orders for each client</small>
-    </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead class="table-light">
-                    <tr>
-                        <th>Client</th>
-                        <th class="text-end">Total Orders</th>
-                        <th class="text-end">Avg Days Between</th>
-                        <th class="text-end">Min Days</th>
-                        <th class="text-end">Max Days</th>
-                        <th>First Order</th>
-                        <th>Last Order</th>
-                        <th class="text-center">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in lead_time_data %}
-                    <tr>
-                        <td>
-                            <a href="{% url 'accounting_forms:client_detail' item.client_id %}">
-                                {{ item.client.name }}
-                            </a>
-                        </td>
-                        <td class="text-end">{{ item.total_orders }}</td>
-                        <td class="text-end">
-                            <strong>{{ item.avg_days_between }}</strong> days
-                        </td>
-                        <td class="text-end">{{ item.min_days_between }}</td>
-                        <td class="text-end">{{ item.max_days_between }}</td>
-                        <td>{{ item.first_order_date|date:"Y-m-d" }}</td>
-                        <td>{{ item.last_order_date|date:"Y-m-d" }}</td>
-                        <td class="text-center">
-                            <a href="{% url 'accounting_forms:client_lead_time' item.client_id %}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-graph-up"></i> Details
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-{% endif %}
 
 <style>
 @media print {
@@ -540,18 +713,180 @@ function switchRange(rangeType) {
     event.currentTarget.classList.add('active');
 }
 
-// Day of Week Chart
-{% if day_of_week_data %}
 document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('dayOfWeekChart');
-    if (ctx) {
+    // Weekly Daily Breakdown Chart
+    {% if range_type == 'weekly' and daily_breakdown %}
+    const weeklyDailyCtx = document.getElementById('weeklyDailyChart');
+    if (weeklyDailyCtx) {
+        const weeklyData = [
+            {% for item in daily_breakdown %}
+            { date: '{{ item.date|date:"M d" }}', day: '{{ item.day_name }}', total: {{ item.total }}, count: {{ item.count }} }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        new Chart(weeklyDailyCtx, {
+            type: 'bar',
+            data: {
+                labels: weeklyData.map(d => d.day + ' (' + d.date + ')'),
+                datasets: [{
+                    label: 'Sales (R)',
+                    data: weeklyData.map(d => d.total),
+                    backgroundColor: 'rgba(23, 162, 184, 0.6)',
+                    borderColor: 'rgba(23, 162, 184, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Daily Sales Breakdown' }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: function(value) { return 'R ' + value.toFixed(2); } }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+    
+    // Monthly Daily Breakdown Chart
+    {% if range_type == 'monthly' and daily_breakdown %}
+    const monthlyDailyCtx = document.getElementById('monthlyDailyChart');
+    if (monthlyDailyCtx) {
+        const monthlyDailyData = [
+            {% for item in daily_breakdown %}
+            { date: '{{ item.date|date:"d" }}', total: {{ item.total }} }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        new Chart(monthlyDailyCtx, {
+            type: 'line',
+            data: {
+                labels: monthlyDailyData.map(d => d.date),
+                datasets: [{
+                    label: 'Sales (R)',
+                    data: monthlyDailyData.map(d => d.total),
+                    backgroundColor: 'rgba(23, 162, 184, 0.2)',
+                    borderColor: 'rgba(23, 162, 184, 1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Daily Sales Trend' }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: function(value) { return 'R ' + value.toFixed(2); } }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+    
+    // Monthly Weekly Breakdown Chart
+    {% if range_type == 'monthly' and weekly_breakdown %}
+    const monthlyWeeklyCtx = document.getElementById('monthlyWeeklyChart');
+    if (monthlyWeeklyCtx) {
+        const monthlyWeeklyData = [
+            {% for item in weekly_breakdown %}
+            { week: 'Week {{ item.week_num }}', total: {{ item.total }} }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        new Chart(monthlyWeeklyCtx, {
+            type: 'bar',
+            data: {
+                labels: monthlyWeeklyData.map(d => d.week),
+                datasets: [{
+                    label: 'Sales (R)',
+                    data: monthlyWeeklyData.map(d => d.total),
+                    backgroundColor: 'rgba(0, 123, 255, 0.6)',
+                    borderColor: 'rgba(0, 123, 255, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Weekly Sales Breakdown' }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: function(value) { return 'R ' + value.toFixed(2); } }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+    
+    // Yearly Monthly Breakdown Chart
+    {% if range_type == 'yearly' and monthly_breakdown %}
+    const yearlyMonthlyCtx = document.getElementById('yearlyMonthlyChart');
+    if (yearlyMonthlyCtx) {
+        const yearlyMonthlyData = [
+            {% for item in monthly_breakdown %}
+            { month: '{{ item.month_name }}', total: {{ item.total }} }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        new Chart(yearlyMonthlyCtx, {
+            type: 'bar',
+            data: {
+                labels: yearlyMonthlyData.map(d => d.month),
+                datasets: [{
+                    label: 'Sales (R)',
+                    data: yearlyMonthlyData.map(d => d.total),
+                    backgroundColor: 'rgba(40, 167, 69, 0.6)',
+                    borderColor: 'rgba(40, 167, 69, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Monthly Sales Breakdown' }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: function(value) { return 'R ' + value.toFixed(2); } }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+    
+    // Day of Week Chart (for custom ranges)
+    {% if day_of_week_data and range_type == 'custom' %}
+    const dowCtx = document.getElementById('dayOfWeekChart');
+    if (dowCtx) {
         const dowData = [
             {% for item in day_of_week_data %}
             { day: '{{ item.day }}', total: {{ item.total }}, count: {{ item.count }} }{% if not forloop.last %},{% endif %}
             {% endfor %}
         ];
         
-        new Chart(ctx, {
+        new Chart(dowCtx, {
             type: 'bar',
             data: {
                 labels: dowData.map(d => d.day),
@@ -567,28 +902,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 responsive: true,
                 maintainAspectRatio: true,
                 plugins: {
-                    legend: {
-                        display: false
-                    },
-                    title: {
-                        display: true,
-                        text: 'Revenue by Day of Week'
-                    }
+                    legend: { display: false },
+                    title: { display: true, text: 'Revenue by Day of Week' }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return 'R ' + value.toFixed(2);
-                            }
-                        }
+                        ticks: { callback: function(value) { return 'R ' + value.toFixed(2); } }
                     }
                 }
             }
         });
     }
+    {% endif %}
 });
-{% endif %}
 </script>
 {% endblock %}
