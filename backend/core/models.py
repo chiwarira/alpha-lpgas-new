@@ -12,6 +12,12 @@ from .models_testimonial import Testimonial
 # Import accounting models
 from .models_accounting import Supplier, ExpenseCategory, Expense, JournalEntry, TaxPeriod
 
+# Import tax reporting models
+from .models_tax_reporting import (
+    AccountType, VATReturn, CIPCAnnualReturn, SARSTaxReturn, 
+    FinancialStatement, TaxConfiguration
+)
+
 # Import stock management models
 from .models_stock import CylinderSize, GasStock, StockMovement, StockPurchase, StockPurchaseItem
 

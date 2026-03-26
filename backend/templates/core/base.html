@@ -215,6 +215,7 @@
                             <li><a class="dropdown-item" href="{% url 'accounting_forms:quote_list' %}"><i class="bi bi-file-earmark-text"></i> Quotes</a></li>
                             <li><a class="dropdown-item" href="{% url 'accounting_forms:invoice_list' %}"><i class="bi bi-receipt"></i> Invoices</a></li>
                             <li><a class="dropdown-item" href="{% url 'accounting_forms:payment_list' %}"><i class="bi bi-credit-card"></i> Payments</a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:eft_reconciliation_upload' %}"><i class="bi bi-bank"></i> EFT Reconciliation</a></li>
                             <li><a class="dropdown-item" href="{% url 'accounting_forms:credit_note_list' %}"><i class="bi bi-file-earmark-minus"></i> Credit Notes</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'accounting_forms:loyalty_card_list' %}"><i class="bi bi-award"></i> Loyalty Cards</a></li>
@@ -260,7 +261,19 @@
                             <i class="bi bi-journal-text"></i> Accounting
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="accountingDropdown">
+                            <li><h6 class="dropdown-header">General Ledger</h6></li>
+                            <li><a class="dropdown-item" href="/admin/core/accounttype/"><i class="bi bi-list-columns"></i> Chart of Accounts</a></li>
                             <li><a class="dropdown-item" href="{% url 'accounting_forms:journal_entry_list' %}"><i class="bi bi-journal-text"></i> Journal Entries</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">Tax & Compliance</h6></li>
+                            <li><a class="dropdown-item" href="/admin/core/vatreturn/"><i class="bi bi-receipt"></i> VAT Returns (VAT201)</a></li>
+                            <li><a class="dropdown-item" href="/admin/core/sarstaxreturn/"><i class="bi bi-file-earmark-text"></i> SARS Tax Returns (ITR14)</a></li>
+                            <li><a class="dropdown-item" href="/admin/core/cipcannualreturn/"><i class="bi bi-building"></i> CIPC Annual Returns</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">Financial Statements</h6></li>
+                            <li><a class="dropdown-item" href="/admin/core/financialstatement/"><i class="bi bi-file-bar-graph"></i> Financial Statements</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/admin/core/taxconfiguration/"><i class="bi bi-gear-fill"></i> Tax Configuration</a></li>
                         </ul>
                     </li>
                 </ul>

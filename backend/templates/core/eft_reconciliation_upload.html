@@ -1,0 +1,85 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}EFT Payment Reconciliation - Upload{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1><i class="bi bi-bank"></i> EFT Payment Reconciliation</h1>
+            <p class="text-muted">Upload a CSV bank statement to automatically match EFT payments with unpaid invoices</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-upload"></i> Upload Bank Statement</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="csv_file" class="form-label">Bank Statement CSV File</label>
+                            <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+                            <div class="form-text">
+                                Upload a CSV file exported from your bank. The system will automatically match payments with unpaid invoices.
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <h6><i class="bi bi-info-circle"></i> Supported Format: Nedbank Bank Statement CSV</h6>
+                            <ul class="mb-0">
+                                <li><strong>Column 1:</strong> Date (e.g. 01Feb2026)</li>
+                                <li><strong>Column 2:</strong> Description/Reference (client name, address, or invoice number)</li>
+                                <li><strong>Column 3:</strong> Amount</li>
+                                <li><strong>Column 4:</strong> Running Balance</li>
+                            </ul>
+                            <p class="mt-2 mb-0"><small>The first 4 header rows are automatically skipped. Only positive amounts (credits) are processed. YOCO, expenses, and carry-forward entries are filtered out.</small></p>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-upload"></i> Upload & Process
+                            </button>
+                            <a href="{% url 'accounting_forms:payment_list' %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-question-circle"></i> How It Works</h5>
+                </div>
+                <div class="card-body">
+                    <ol>
+                        <li class="mb-2">Upload your bank statement CSV file</li>
+                        <li class="mb-2">The system analyzes each transaction and finds matching unpaid invoices based on:
+                            <ul>
+                                <li>Invoice number in description</li>
+                                <li>Client name similarity</li>
+                                <li>Address match</li>
+                                <li>Amount match</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">Review suggested matches and accept or reject them</li>
+                        <li class="mb-2">Accepted matches automatically create EFT payment records and mark invoices as paid</li>
+                    </ol>
+                    
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <small><i class="bi bi-exclamation-triangle"></i> <strong>Note:</strong> Only transactions dated on or after the invoice issue date will be matched.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
