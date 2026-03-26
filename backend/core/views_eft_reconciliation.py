@@ -140,32 +140,42 @@ def _score_description_match(invoice, description):
                 score += int(name_similarity * 25)
                 reasons.append(f"Client name similarity: {int(name_similarity * 100)}%")
     
-    # 3. Check client address match
+    # 3. Check client address match - require BOTH number AND street name (3+ letters)
     client_address = invoice.client.address
     if client_address:
-        # Extract key address components (numbers and street names)
+        # Extract address components
         addr_parts = [p for p in re.split(r'[\s,./\-]+', client_address.lower()) if len(p) >= 2]
-        desc_parts = [p for p in re.split(r'[\s,./\-]+', description_lower) if len(p) >= 2]
         
-        # Count how many address parts appear in description
-        matched_parts = sum(1 for p in addr_parts if p in description_lower)
+        # Find street number (numeric parts)
+        addr_numbers = [p for p in addr_parts if p.isdigit()]
+        # Find street name parts (3+ letter words)
+        addr_words = [p for p in addr_parts if not p.isdigit() and len(p) >= 3]
         
-        if addr_parts and matched_parts >= 2:
-            # At least 2 address components match (e.g. street number + street name)
-            score += 35
-            reasons.append(f"Address '{client_address}' matches description")
-        elif addr_parts and matched_parts == 1 and any(p.isdigit() for p in addr_parts if p in description_lower):
-            # A street number matches - weaker signal but still useful with name
-            score += 15
-            reasons.append(f"Partial address match: '{client_address}'")
-        elif partial_contains(description, client_address):
-            score += 25
-            reasons.append(f"Address '{client_address}' matches description")
-        else:
-            addr_similarity = similarity_ratio(client_address, description)
-            if addr_similarity > 0.45:
-                score += int(addr_similarity * 20)
-                reasons.append(f"Address similarity: {int(addr_similarity * 100)}%")
+        # Check if description contains address components
+        has_number_match = any(num in description_lower for num in addr_numbers)
+        
+        # Check for street name match (at least 3 letters)
+        street_name_matches = []
+        for word in addr_words:
+            if word in description_lower:
+                street_name_matches.append(word)
+            elif len(word) >= 3:
+                # Check if at least 3 consecutive letters from street name appear in description
+                for i in range(len(word) - 2):
+                    if word[i:i+3] in description_lower:
+                        street_name_matches.append(word[:i+3])
+                        break
+        
+        has_street_match = len(street_name_matches) > 0
+        
+        # Only score if BOTH number and street name match
+        if has_number_match and has_street_match:
+            score += 40
+            reasons.append(f"Address match: number + street name '{client_address}'")
+        elif has_street_match and not addr_numbers:
+            # No number in address, but street name matches
+            score += 30
+            reasons.append(f"Street name match: '{client_address}'")
     
     # 4. Check city match
     client_city = invoice.client.city
@@ -181,15 +191,11 @@ def find_matching_invoices(description, amount, payment_date):
     """
     Find potential invoice matches.
     
-    Primary matching criteria (at least one must match):
-      1. Client name found in description
-      2. Client address found in description
-      3. Invoice number found in description
+    BOTH criteria must be met for a match:
+      1. Description match (name, address, or invoice number)
+      2. Exact amount match (payment amount = invoice balance)
     
-    Secondary filter (used to boost/rank, not to match alone):
-      - Exact amount match between payment and invoice balance
-    
-    Invoices with NO primary match are never returned.
+    No matches are returned unless BOTH conditions are satisfied.
     """
     amount_decimal = Decimal(str(amount))
     
@@ -202,32 +208,29 @@ def find_matching_invoices(description, amount, payment_date):
     matches = []
     
     for invoice in unpaid_invoices:
-        desc_score, desc_reasons = _score_description_match(invoice, description)
-        
-        # Primary criteria: must have at least one description match
-        if desc_score <= 0:
-            continue
-        
-        # Secondary: check if amount also matches
+        # First check: exact amount match (mandatory)
         amount_match = abs(amount_decimal - invoice.balance) < Decimal('0.01')
+        if not amount_match:
+            continue  # Skip if amount doesn't match exactly
         
-        if amount_match:
-            # Boost score for exact amount match
-            total_score = desc_score + 20
-            desc_reasons.append(f"Exact amount match: R{invoice.balance}")
-        else:
-            total_score = desc_score
-            desc_reasons.append(f"Amount mismatch: invoice R{invoice.balance}, payment R{amount_decimal}")
+        # Second check: description match (mandatory)
+        desc_score, desc_reasons = _score_description_match(invoice, description)
+        if desc_score <= 0:
+            continue  # Skip if no description evidence
+        
+        # Both conditions met - add as a match
+        total_score = desc_score + 20  # Boost for exact amount
+        desc_reasons.append(f"Exact amount match: R{invoice.balance}")
         
         matches.append({
             'invoice': invoice,
             'match_score': total_score,
             'match_reasons': desc_reasons,
-            'amount_match': amount_match,
+            'amount_match': True,
         })
     
-    # Sort: amount-matched first, then by score
-    matches.sort(key=lambda x: (-int(x['amount_match']), -x['match_score']))
+    # Sort by description score (highest first)
+    matches.sort(key=lambda x: -x['match_score'])
     
     return matches[:5]
 
