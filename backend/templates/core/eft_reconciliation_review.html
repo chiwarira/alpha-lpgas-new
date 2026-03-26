@@ -1,0 +1,175 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}EFT Payment Reconciliation - Review Matches{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1><i class="bi bi-check2-square"></i> Review EFT Payment Matches</h1>
+            <p class="text-muted">Review and accept or reject the suggested invoice matches for each bank transaction</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'accounting_forms:eft_reconciliation_upload' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Re-upload
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-bg-primary">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ total_count }}</h3>
+                    <small>Total EFT Transactions</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-bg-success">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ matched_count }}</h3>
+                    <small>With Invoice Matches</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-bg-warning">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ unmatched_count }}</h3>
+                    <small>No Match Found</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        {% if matched_count > 0 %}
+        <h4 class="mb-3"><i class="bi bi-check-circle text-success"></i> Matched Transactions</h4>
+        {% endif %}
+        
+        {% for transaction in transactions %}
+        {% if transaction.has_matches %}
+        <div class="card mb-3">
+            <div class="card-header bg-success bg-opacity-10 border-success">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h6 class="mb-0">
+                            <span class="badge bg-dark">{{ transaction.date|date:"d M Y" }}</span>
+                            <strong class="ms-2">R{{ transaction.amount|floatformat:2 }}</strong>
+                            <span class="text-muted ms-2">{{ transaction.description }}</span>
+                        </h6>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <span class="badge bg-success">{{ transaction.matches|length }} Match{{ transaction.matches|length|pluralize:"es" }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <div class="mb-3">
+                    {% for match in transaction.matches %}
+                    <div class="form-check border rounded p-3 mb-2 {% if forloop.first %}border-success border-2{% endif %}">
+                        <input class="form-check-input" type="radio" 
+                               name="invoice_{{ transaction.row_num }}" 
+                               id="invoice_{{ transaction.row_num }}_{{ match.invoice.id }}" 
+                               value="{{ match.invoice.id }}"
+                               {% if forloop.first %}checked{% endif %}>
+                        <label class="form-check-label w-100" for="invoice_{{ transaction.row_num }}_{{ match.invoice.id }}">
+                            <div class="row">
+                                <div class="col-md-9">
+                                    <strong>{{ match.invoice.invoice_number }}</strong> - {{ match.invoice.client.name }}
+                                    {% if match.invoice.client.address %}
+                                    <small class="text-muted d-block">{{ match.invoice.client.address }}</small>
+                                    {% endif %}
+                                    <small class="text-muted">
+                                        Issued: {{ match.invoice.issue_date|date:"d M Y" }} | 
+                                        Balance: R{{ match.invoice.balance|floatformat:2 }}
+                                    </small>
+                                    <div class="mt-1">
+                                        {% for reason in match.match_reasons %}
+                                        <span class="badge bg-info bg-opacity-10 text-info me-1"><i class="bi bi-check-circle-fill"></i> {{ reason }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    {% if forloop.first %}
+                                        <span class="badge bg-success">Best Match</span>
+                                    {% endif %}
+                                    {% if not match.amount_match %}
+                                        <span class="badge bg-warning text-dark">Amount Mismatch</span>
+                                    {% endif %}
+                                    <div class="text-muted small mt-1">Score: {{ match.match_score }}</div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="action_{{ transaction.row_num }}" 
+                           id="accept_{{ transaction.row_num }}" value="accept" checked>
+                    <label class="btn btn-outline-success" for="accept_{{ transaction.row_num }}">
+                        <i class="bi bi-check-circle"></i> Accept
+                    </label>
+                    
+                    <input type="radio" class="btn-check" name="action_{{ transaction.row_num }}" 
+                           id="reject_{{ transaction.row_num }}" value="reject">
+                    <label class="btn btn-outline-danger" for="reject_{{ transaction.row_num }}">
+                        <i class="bi bi-x-circle"></i> Reject
+                    </label>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        {% if unmatched_count > 0 %}
+        <h4 class="mt-4 mb-3"><i class="bi bi-question-circle text-warning"></i> Unmatched Transactions ({{ unmatched_count }})</h4>
+        <div class="card mb-3">
+            <div class="table-responsive">
+                <table class="table table-sm table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        {% if not transaction.has_matches %}
+                        <tr>
+                            <td>{{ transaction.date|date:"d M Y" }}</td>
+                            <td>{{ transaction.description }}</td>
+                            <td class="text-end">R{{ transaction.amount|floatformat:2 }}</td>
+                            <input type="hidden" name="action_{{ transaction.row_num }}" value="reject">
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card mt-4">
+            <div class="card-body">
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{% url 'accounting_forms:eft_reconciliation_upload' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Upload
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-check-circle"></i> Process Accepted Matches
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

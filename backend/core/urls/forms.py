@@ -40,6 +40,10 @@ from ..views_forms import (
     journal_entry_list, journal_entry_detail,
 )
 
+from ..views_eft_reconciliation import (
+    eft_reconciliation_upload, eft_reconciliation_review,
+)
+
 from ..pdf_generator import download_invoice_pdf, download_quote_pdf
 from ..views_loyalty import (
     loyalty_card_list, loyalty_card_detail,
@@ -145,4 +149,8 @@ urlpatterns = [
     # Journal Entries
     path('journal-entries/', journal_entry_list, name='journal_entry_list'),
     path('journal-entries/<int:pk>/', journal_entry_detail, name='journal_entry_detail'),
+    
+    # EFT Reconciliation
+    path('eft-reconciliation/', eft_reconciliation_upload, name='eft_reconciliation_upload'),
+    path('eft-reconciliation/review/', eft_reconciliation_review, name='eft_reconciliation_review'),
 ]
