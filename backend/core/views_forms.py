@@ -86,6 +86,44 @@ def client_create_ajax(request):
 
 
 @login_required
+@require_http_methods(["GET"])
+def client_last_invoice_ajax(request, client_id):
+    """Get client's last invoice data for auto-population"""
+    try:
+        client = get_object_or_404(Client, pk=client_id)
+        
+        # Get the most recent invoice for this client
+        last_invoice = Invoice.objects.filter(client=client).order_by('-created_at').first()
+        
+        if not last_invoice:
+            return JsonResponse({
+                'success': True,
+                'has_previous_invoice': False
+            })
+        
+        # Get invoice items (excluding delivery fees)
+        items = []
+        for item in last_invoice.items.exclude(product__name='Delivery Fee'):
+            items.append({
+                'product_id': item.product.id if item.product else None,
+                'product_name': item.product.name if item.product else item.description,
+                'quantity': str(item.quantity),
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'has_previous_invoice': True,
+            'data': {
+                'delivery_zone_id': last_invoice.delivery_zone.id if last_invoice.delivery_zone else None,
+                'payment_terms': last_invoice.payment_terms,
+                'items': items
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
 def client_create(request):
     """Create a new client"""
     if request.method == 'POST':

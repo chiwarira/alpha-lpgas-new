@@ -4,7 +4,7 @@ from ..views_forms import (
     accounting_dashboard, daily_sales_report,
     
     # Clients
-    client_list, client_create, client_create_ajax, client_edit, client_detail, client_delete, client_bulk_delete, client_statement, client_statement_preview,
+    client_list, client_create, client_create_ajax, client_last_invoice_ajax, client_edit, client_detail, client_delete, client_bulk_delete, client_statement, client_statement_preview,
     
     # Products
     product_list, product_create, product_edit,
@@ -62,6 +62,7 @@ urlpatterns = [
     path('clients/', client_list, name='client_list'),
     path('clients/create/', client_create, name='client_create'),
     path('clients/create-ajax/', client_create_ajax, name='client_create_ajax'),
+    path('clients/<int:client_id>/last-invoice/', client_last_invoice_ajax, name='client_last_invoice_ajax'),
     path('clients/bulk-delete/', client_bulk_delete, name='client_bulk_delete'),
     path('clients/<int:pk>/', client_detail, name='client_detail'),
     path('clients/<int:pk>/edit/', client_edit, name='client_edit'),
