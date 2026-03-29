@@ -24,6 +24,9 @@ from .models_stock import CylinderSize, GasStock, StockMovement, StockPurchase, 
 # Import loyalty program models
 from .models_loyalty import LoyaltyCard, LoyaltyTransaction
 
+# Import WhatsApp models
+from .models_whatsapp import WhatsAppConversation, WhatsAppMessage, WhatsAppOrderIntent, WhatsAppConfig
+
 
 class CustomScript(models.Model):
     """Model for managing custom scripts to be injected into the website (e.g., GTM, Analytics)"""
@@ -237,6 +240,167 @@ class Client(models.Model):
 
     def __str__(self):
         return self.name
+    
+    def get_analytics(self):
+        """Get comprehensive analytics for this client"""
+        from django.db.models import Sum, Count, Avg, Max
+        from datetime import datetime, timedelta
+        from collections import defaultdict
+        
+        # Get all invoices and orders
+        invoices = self.invoices.all()
+        orders = Order.objects.filter(customer_phone=self.phone)
+        
+        # Basic metrics
+        total_invoices = invoices.count()
+        total_orders = orders.count()
+        total_spent = invoices.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+        total_paid = invoices.aggregate(paid=Sum('paid_amount'))['paid'] or Decimal('0.00')
+        outstanding_balance = total_spent - total_paid
+        
+        # Average order value
+        avg_order_value = invoices.aggregate(avg=Avg('total_amount'))['avg'] or Decimal('0.00')
+        
+        # Last order date
+        last_invoice = invoices.order_by('-issue_date').first()
+        last_order_date = last_invoice.issue_date if last_invoice else None
+        
+        # Days since last order
+        days_since_last_order = None
+        if last_order_date:
+            days_since_last_order = (datetime.now().date() - last_order_date).days
+        
+        # Product preferences (from invoice items)
+        product_stats = defaultdict(lambda: {'quantity': 0, 'total_spent': Decimal('0.00'), 'count': 0})
+        for invoice in invoices:
+            for item in invoice.items.all():
+                product_stats[item.product.name]['quantity'] += float(item.quantity)
+                product_stats[item.product.name]['total_spent'] += item.total
+                product_stats[item.product.name]['count'] += 1
+        
+        # Sort products by quantity ordered
+        favorite_products = sorted(
+            [{'name': k, **v} for k, v in product_stats.items()],
+            key=lambda x: x['quantity'],
+            reverse=True
+        )[:5]  # Top 5 products
+        
+        # Monthly spending trend (last 12 months)
+        monthly_data = []
+        for i in range(11, -1, -1):
+            month_start = (datetime.now() - timedelta(days=30*i)).replace(day=1).date()
+            if i > 0:
+                month_end = (datetime.now() - timedelta(days=30*(i-1))).replace(day=1).date()
+            else:
+                month_end = datetime.now().date()
+            
+            month_total = invoices.filter(
+                issue_date__gte=month_start,
+                issue_date__lt=month_end
+            ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+            
+            month_count = invoices.filter(
+                issue_date__gte=month_start,
+                issue_date__lt=month_end
+            ).count()
+            
+            monthly_data.append({
+                'month': month_start.strftime('%b %Y'),
+                'total': float(month_total),
+                'count': month_count
+            })
+        
+        # Order frequency (orders per month)
+        if total_invoices > 0 and last_order_date:
+            days_active = (last_order_date - self.created_at.date()).days
+            if days_active > 0:
+                orders_per_month = (total_invoices / days_active) * 30
+            else:
+                orders_per_month = total_invoices
+        else:
+            orders_per_month = 0
+        
+        # Payment behavior
+        paid_invoices = invoices.filter(status='paid').count()
+        payment_rate = (paid_invoices / total_invoices * 100) if total_invoices > 0 else 0
+        
+        # Invoice dates timeline and lead times
+        invoice_dates = []
+        lead_times = []
+        previous_date = None
+        
+        for invoice in invoices.order_by('issue_date'):
+            invoice_data = {
+                'date': invoice.issue_date.isoformat(),
+                'invoice_number': invoice.invoice_number,
+                'total': float(invoice.total_amount),
+                'status': invoice.status,
+            }
+            
+            # Calculate lead time from previous order
+            if previous_date:
+                lead_time_days = (invoice.issue_date - previous_date).days
+                invoice_data['lead_time'] = lead_time_days
+                lead_times.append(lead_time_days)
+            else:
+                invoice_data['lead_time'] = None
+            
+            invoice_dates.append(invoice_data)
+            previous_date = invoice.issue_date
+        
+        # Calculate average lead time
+        avg_lead_time = sum(lead_times) / len(lead_times) if lead_times else 0
+        min_lead_time = min(lead_times) if lead_times else 0
+        max_lead_time = max(lead_times) if lead_times else 0
+        
+        return {
+            'total_invoices': total_invoices,
+            'total_orders': total_orders,
+            'total_spent': total_spent,
+            'total_paid': total_paid,
+            'outstanding_balance': outstanding_balance,
+            'avg_order_value': avg_order_value,
+            'last_order_date': last_order_date,
+            'days_since_last_order': days_since_last_order,
+            'favorite_products': favorite_products,
+            'monthly_data': monthly_data,
+            'orders_per_month': round(orders_per_month, 1),
+            'payment_rate': round(payment_rate, 1),
+            'customer_since': self.created_at.date(),
+            'invoice_dates': invoice_dates,
+            'avg_lead_time': round(avg_lead_time, 1),
+            'min_lead_time': min_lead_time,
+            'max_lead_time': max_lead_time,
+        }
+    
+    def get_summary_stats(self):
+        """Get quick summary statistics for display on client detail page"""
+        from django.db.models import Sum
+        from collections import Counter
+        
+        invoices = self.invoices.all()
+        total_spent = invoices.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+        total_invoices = invoices.count()
+        
+        # Most ordered product
+        product_counts = Counter()
+        for invoice in invoices:
+            for item in invoice.items.all():
+                product_counts[item.product.name] += float(item.quantity)
+        
+        most_ordered = product_counts.most_common(1)
+        most_ordered_product = most_ordered[0][0] if most_ordered else 'N/A'
+        
+        # Last order
+        last_invoice = invoices.order_by('-issue_date').first()
+        last_order_date = last_invoice.issue_date if last_invoice else None
+        
+        return {
+            'total_orders': total_invoices,
+            'total_spent': total_spent,
+            'most_ordered_product': most_ordered_product,
+            'last_order_date': last_order_date,
+        }
 
 
 class Category(models.Model):

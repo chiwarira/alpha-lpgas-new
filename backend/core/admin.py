@@ -6,9 +6,13 @@ from .models import (
     CustomScript, Supplier, ExpenseCategory, Expense, JournalEntry, TaxPeriod,
     CylinderSize, GasStock, StockMovement, StockPurchase, StockPurchaseItem,
     LoyaltyCard, LoyaltyTransaction,
-    AccountType, VATReturn, CIPCAnnualReturn, SARSTaxReturn, FinancialStatement, TaxConfiguration
+    AccountType, VATReturn, CIPCAnnualReturn, SARSTaxReturn, FinancialStatement, TaxConfiguration,
+    WhatsAppConversation, WhatsAppMessage, WhatsAppOrderIntent, WhatsAppConfig
 )
 from .admin_loyalty import LoyaltyCardAdmin, LoyaltyTransactionAdmin
+
+# Import WhatsApp admin to trigger registration
+from . import admin_whatsapp
 
 
 @admin.register(HeroBanner)

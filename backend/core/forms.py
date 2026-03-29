@@ -424,6 +424,9 @@ class PaymentForm(forms.ModelForm):
                 
                 # Pre-populate amount with remaining balance
                 self.initial['amount'] = invoice.total_amount - invoice.paid_amount
+                
+                # Pre-populate payment_date with invoice issue_date
+                self.initial['payment_date'] = invoice.issue_date
             except Invoice.DoesNotExist:
                 pass
         

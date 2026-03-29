@@ -31,6 +31,7 @@ urlpatterns = [
     path('api/auth/', include('core.urls.auth')),
     path('api/accounting/', include('core.urls.accounting')),
     path('api/cms/', api_router.urls),
+    path('api/whatsapp/', include('core.urls.whatsapp')),
     
     # Form-based views for accounting
     path('accounting/', include('core.urls.forms')),

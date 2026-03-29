@@ -168,11 +168,13 @@ def client_detail(request, pk):
     client = get_object_or_404(Client, pk=pk)
     quotes = client.quotes.all().order_by('-issue_date')[:5]
     invoices = client.invoices.all().order_by('-issue_date')[:5]
+    summary_stats = client.get_summary_stats()
     
     return render(request, 'core/client_detail.html', {
         'client': client,
         'quotes': quotes,
-        'invoices': invoices
+        'invoices': invoices,
+        'summary_stats': summary_stats
     })
 
 

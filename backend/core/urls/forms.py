@@ -44,6 +44,10 @@ from ..views_eft_reconciliation import (
     eft_reconciliation_upload, eft_reconciliation_review,
 )
 
+from ..views_analytics import (
+    client_analytics, client_analytics_api,
+)
+
 from ..pdf_generator import download_invoice_pdf, download_quote_pdf
 from ..views_loyalty import (
     loyalty_card_list, loyalty_card_detail,
@@ -70,6 +74,8 @@ urlpatterns = [
     path('clients/<int:pk>/statement/', client_statement, name='client_statement'),
     path('clients/<int:pk>/statement/<str:start_date>/<str:end_date>/', client_statement_preview, name='client_statement_preview'),
     path('clients/<int:client_id>/lead-time/', client_lead_time_analysis, name='client_lead_time'),
+    path('clients/<int:pk>/analytics/', client_analytics, name='client_analytics'),
+    path('api/clients/<int:pk>/analytics/', client_analytics_api, name='client_analytics_api'),
     
     # Products
     path('products/', product_list, name='product_list'),
