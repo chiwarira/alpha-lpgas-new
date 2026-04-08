@@ -269,7 +269,6 @@ class QuoteItemForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': '1',
                 'step': '1',
-                'min': '1',
                 'value': '1'
             }),
         }
@@ -344,7 +343,6 @@ class InvoiceItemForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': '1',
                 'step': '1',
-                'min': '1',
                 'value': '1'
             }),
         }
@@ -617,7 +615,6 @@ class CreditNoteItemForm(forms.ModelForm):
             'quantity': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'step': '0.01',
-                'min': '0.01',
                 'value': '1'
             }),
             'unit_price': forms.NumberInput(attrs={
