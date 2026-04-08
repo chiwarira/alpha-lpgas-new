@@ -1,5 +1,6 @@
 import json
 import re
+import logging
 from decimal import Decimal
 from datetime import datetime, date, timedelta
 from typing import Dict, List, Optional, Tuple
@@ -9,6 +10,8 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from django.apps import apps
+
+logger = logging.getLogger(__name__)
 
 
 class WhatsAppAIService:
@@ -235,6 +238,9 @@ Respond in JSON format:
             return ai_response
         
         except Exception as e:
+            # Log the actual error for debugging
+            logger.error(f"AI processing error: {str(e)}", exc_info=True)
+            
             # Fallback response on AI error
             return {
                 'intent': 'unclear',
