@@ -163,8 +163,15 @@ class WhatsAppAIService:
                          conversation) -> Dict:
         """Process message with AI to extract intent and data"""
         
-        # Get available products
-        products = self.Product.objects.filter(is_active=True, show_on_website=True)
+        # Get available products (exclude test products)
+        products = self.Product.objects.filter(
+            is_active=True, 
+            show_on_website=True
+        ).exclude(
+            name__icontains='test'
+        ).exclude(
+            sku__icontains='test'
+        )
         product_list = "\n".join([
             f"- {p.name} ({p.weight}): R{p.unit_price}"
             for p in products
@@ -426,35 +433,59 @@ Respond in JSON format:
         return client
     
     def _find_product(self, product_data: Dict):
-        """Find product by name or SKU"""
+        """Find product by name or SKU with improved matching logic"""
         name = product_data.get('name', '')
         
-        # Try exact match first
-        product = self.Product.objects.filter(
-            name__iexact=name,
+        # Base queryset - exclude test products
+        base_qs = self.Product.objects.filter(
             is_active=True
-        ).first()
+        ).exclude(
+            name__icontains='test'
+        ).exclude(
+            sku__icontains='test'
+        )
         
-        if product:
-            return product
-        
-        # Try partial match
-        product = self.Product.objects.filter(
-            name__icontains=name,
-            is_active=True
-        ).first()
-        
-        if product:
-            return product
-        
-        # Try matching by weight (e.g., "9kg")
+        # Try matching by weight FIRST (e.g., "9kg" -> "9KG Gas Exchange")
         weight_match = re.search(r'(\d+)\s*kg', name, re.IGNORECASE)
         if weight_match:
-            weight = weight_match.group(1) + 'kg'
-            product = self.Product.objects.filter(
-                weight__icontains=weight,
-                is_active=True
+            weight_value = weight_match.group(1)
+            
+            # Try exact weight match in name (e.g., "9KG")
+            product = base_qs.filter(
+                name__iregex=rf'\b{weight_value}\s*kg\b'
             ).first()
+            
+            if product:
+                return product
+            
+            # Try weight field match
+            product = base_qs.filter(
+                weight__icontains=f'{weight_value}kg'
+            ).first()
+            
+            if product:
+                return product
+        
+        # Try exact name match
+        product = base_qs.filter(
+            name__iexact=name
+        ).first()
+        
+        if product:
+            return product
+        
+        # Try partial name match
+        product = base_qs.filter(
+            name__icontains=name
+        ).first()
+        
+        if product:
+            return product
+        
+        # Try SKU match
+        product = base_qs.filter(
+            sku__icontains=name
+        ).first()
         
         return product
     
