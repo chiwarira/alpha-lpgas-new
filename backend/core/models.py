@@ -433,9 +433,9 @@ class Product(models.Model):
     short_description = models.CharField(max_length=500, blank=True)
     
     # Pricing
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))], help_text="Selling price")
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Selling price")
     compare_at_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Original price for showing discounts")
-    cost_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))], blank=True, null=True)
+    cost_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=15.00, help_text="Tax/VAT rate in percentage")
     
     # E-commerce Features
