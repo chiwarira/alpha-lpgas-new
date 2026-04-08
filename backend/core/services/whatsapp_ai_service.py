@@ -4,7 +4,7 @@ import logging
 from decimal import Decimal
 from datetime import datetime, date, timedelta
 from typing import Dict, List, Optional, Tuple
-import openai
+from openai import OpenAI
 from anthropic import Anthropic
 from django.conf import settings
 from django.db import transaction
@@ -38,8 +38,7 @@ class WhatsAppAIService:
     def _setup_ai_client(self):
         """Initialize AI client based on configuration"""
         if self.config.ai_provider == 'openai':
-            openai.api_key = self.config.ai_api_key
-            self.ai_client = openai
+            self.ai_client = OpenAI(api_key=self.config.ai_api_key)
         elif self.config.ai_provider == 'anthropic':
             self.ai_client = Anthropic(api_key=self.config.ai_api_key)
     
