@@ -67,6 +67,7 @@ def client_create_ajax(request):
             name=name,
             company_name=data.get('company_name', '').strip(),
             company_reg=data.get('company_reg', '').strip(),
+            tax_id=data.get('vat_number', '').strip(),
             phone=data.get('phone', '').strip(),
             email=data.get('email', '').strip(),
             address=data.get('address', '').strip(),

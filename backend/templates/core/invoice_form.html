@@ -176,6 +176,10 @@
                     <input type="text" id="new-client-company-reg" class="form-control" placeholder="Company registration number (optional)">
                 </div>
                 <div class="mb-3">
+                    <label class="form-label">VAT Number</label>
+                    <input type="text" id="new-client-vat-number" class="form-control" placeholder="VAT registration number (optional)">
+                </div>
+                <div class="mb-3">
                     <label class="form-label">Phone</label>
                     <input type="text" id="new-client-phone" class="form-control" placeholder="+27...">
                 </div>
@@ -553,6 +557,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const nameInput = document.getElementById('new-client-name');
             const companyNameInput = document.getElementById('new-client-company-name');
             const companyRegInput = document.getElementById('new-client-company-reg');
+            const vatNumberInput = document.getElementById('new-client-vat-number');
             const phoneInput = document.getElementById('new-client-phone');
             const emailInput = document.getElementById('new-client-email');
             const addressInput = document.getElementById('new-client-address');
@@ -562,6 +567,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const name = nameInput ? nameInput.value.trim() : '';
             const company_name = companyNameInput ? companyNameInput.value.trim() : '';
             const company_reg = companyRegInput ? companyRegInput.value.trim() : '';
+            const vat_number = vatNumberInput ? vatNumberInput.value.trim() : '';
             const phone = phoneInput ? phoneInput.value.trim() : '';
             const email = emailInput ? emailInput.value.trim() : '';
             const address = addressInput ? addressInput.value.trim() : '';
@@ -584,7 +590,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-CSRFToken': csrftoken,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ name, company_name, company_reg, phone, email, address, city })
+                body: JSON.stringify({ name, company_name, company_reg, vat_number, phone, email, address, city })
             })
             .then(response => response.json())
             .then(data => {
@@ -602,6 +608,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (nameInput) nameInput.value = '';
                     if (companyNameInput) companyNameInput.value = '';
                     if (companyRegInput) companyRegInput.value = '';
+                    if (vatNumberInput) vatNumberInput.value = '';
                     if (phoneInput) phoneInput.value = '';
                     if (emailInput) emailInput.value = '';
                     if (addressInput) addressInput.value = '';

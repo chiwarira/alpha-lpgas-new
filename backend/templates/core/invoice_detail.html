@@ -1108,24 +1108,46 @@ select.note-field {
                 <div class="client-info-value">{{ invoice.client.vat_number }}</div>
             </div>
             {% endif %}
+            {% if invoice.client.address %}
             <div class="client-info-row">
                 <div class="client-info-label">Address:</div>
-                <div class="client-info-value">{{ invoice.client.address|default:'' }}</div>
+                <div class="client-info-value">{{ invoice.client.address }}</div>
             </div>
+            {% endif %}
+            {% if invoice.client.city %}
+            <div class="client-info-row">
+                <div class="client-info-label">City:</div>
+                <div class="client-info-value">{{ invoice.client.city }}</div>
+            </div>
+            {% endif %}
+            {% if invoice.client.state %}
+            <div class="client-info-row">
+                <div class="client-info-label">State:</div>
+                <div class="client-info-value">{{ invoice.client.state }}</div>
+            </div>
+            {% endif %}
+            {% if invoice.client.postal_code %}
+            <div class="client-info-row">
+                <div class="client-info-label">Postal Code:</div>
+                <div class="client-info-value">{{ invoice.client.postal_code }}</div>
+            </div>
+            {% endif %}
+            {% if invoice.client.country %}
+            <div class="client-info-row">
+                <div class="client-info-label">Country:</div>
+                <div class="client-info-value">{{ invoice.client.country }}</div>
+            </div>
+            {% endif %}
             <div class="client-info-row">
                 <div class="client-info-label">Phone:</div>
                 <div class="client-info-value">{{ invoice.client.phone }}</div>
             </div>
+            {% if invoice.client.email %}
             <div class="client-info-row">
                 <div class="client-info-label">Email:</div>
-                <div class="client-info-value">
-                    {% if invoice.client.email %}
-                    {{ invoice.client.email }}
-                    {% else %}
-                    <span class="text-muted">No email provided</span>
-                    {% endif %}
-                </div>
+                <div class="client-info-value">{{ invoice.client.email }}</div>
             </div>
+            {% endif %}
         </div>
 
         <!-- Banking Details -->

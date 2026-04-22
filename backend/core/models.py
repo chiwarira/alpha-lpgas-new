@@ -241,6 +241,16 @@ class Client(models.Model):
     def __str__(self):
         return self.name
     
+    @property
+    def vat_number(self):
+        """Alias for tax_id field for better clarity"""
+        return self.tax_id
+    
+    @vat_number.setter
+    def vat_number(self, value):
+        """Allow setting vat_number which updates tax_id"""
+        self.tax_id = value
+    
     def get_analytics(self):
         """Get comprehensive analytics for this client"""
         from django.db.models import Sum, Count, Avg, Max
