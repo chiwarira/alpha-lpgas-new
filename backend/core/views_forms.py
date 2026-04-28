@@ -228,15 +228,39 @@ def client_statement_preview(request, pk, start_date, end_date):
     start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
     end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
     
-    # Calculate balance brought forward
-    balance_bf_invoices = Invoice.objects.filter(
+    # Calculate balance brought forward - sum all transactions before start_date
+    # Get invoices issued before start date
+    bf_invoices = Invoice.objects.filter(
         client=client,
         issue_date__lt=start_date
     )
     
+    # Get payments made before start date
+    bf_payments = Payment.objects.filter(
+        invoice__client=client,
+        payment_date__lt=start_date
+    )
+    
+    # Get credit notes issued before start date
+    bf_credit_notes = CreditNote.objects.filter(
+        client=client,
+        issue_date__lt=start_date
+    )
+    
+    # Calculate balance brought forward
     balance_bf = Decimal('0.00')
-    for inv in balance_bf_invoices:
-        balance_bf += inv.balance
+    
+    # Add invoice totals
+    for inv in bf_invoices:
+        balance_bf += inv.total_amount
+    
+    # Subtract payments
+    for pmt in bf_payments:
+        balance_bf -= pmt.amount
+    
+    # Subtract credit notes
+    for cn in bf_credit_notes:
+        balance_bf -= cn.total_amount
     
     # Get all transactions in the period
     invoices = Invoice.objects.filter(
