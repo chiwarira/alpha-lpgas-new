@@ -236,8 +236,9 @@ def client_statement_preview(request, pk, start_date, end_date):
     )
     
     # Get payments made before start date
+    from django.db.models import Q
     bf_payments = Payment.objects.filter(
-        invoice__client=client,
+        Q(invoice__client=client) | Q(client=client, invoice__isnull=True),
         payment_date__lt=start_date
     )
     
@@ -270,7 +271,7 @@ def client_statement_preview(request, pk, start_date, end_date):
     ).order_by('issue_date')
     
     payments = Payment.objects.filter(
-        invoice__client=client,
+        Q(invoice__client=client) | Q(client=client, invoice__isnull=True),
         payment_date__gte=start_date,
         payment_date__lte=end_date
     ).order_by('payment_date')
@@ -1407,7 +1408,7 @@ def daily_sales_report(request):
     payments = Payment.objects.filter(
         payment_date__gte=start_date,
         payment_date__lte=end_date
-    ).select_related('invoice', 'invoice__client')
+    ).select_related('invoice', 'invoice__client', 'client')
     
     # Calculate totals by payment method
     payment_summary = payments.values('payment_method').annotate(
@@ -2151,7 +2152,7 @@ def payment_list(request):
     search_query = request.GET.get('search', '')
     method_filter = request.GET.get('method', '')
     
-    payments = Payment.objects.select_related('invoice', 'invoice__client').all().order_by('-payment_date')
+    payments = Payment.objects.select_related('invoice', 'invoice__client', 'client').all().order_by('-payment_date')
     
     if method_filter:
         payments = payments.filter(payment_method=method_filter)
@@ -2160,6 +2161,7 @@ def payment_list(request):
         payments = payments.filter(
             Q(invoice__invoice_number__icontains=search_query) |
             Q(invoice__client__name__icontains=search_query) |
+            Q(client__name__icontains=search_query) |
             Q(reference_number__icontains=search_query)
         )
     
@@ -2185,11 +2187,13 @@ def payment_delete(request, pk):
     # Delete the payment
     payment.delete()
     
-    # Recalculate invoice paid_amount from remaining payments
-    invoice.paid_amount = sum(p.amount for p in invoice.payments.all())
-    invoice.calculate_totals()
-    
-    messages.success(request, f'Payment {payment_number} (R{payment_amount:,.2f}) deleted successfully. Invoice updated.')
+    # Recalculate invoice paid_amount from remaining payments (only if invoice exists)
+    if invoice:
+        invoice.paid_amount = sum(p.amount for p in invoice.payments.all())
+        invoice.calculate_totals()
+        messages.success(request, f'Payment {payment_number} (R{payment_amount:,.2f}) deleted successfully. Invoice updated.')
+    else:
+        messages.success(request, f'Payment {payment_number} (R{payment_amount:,.2f}) deleted successfully.')
     
     # Redirect to referring page or payment list
     referer = request.META.get('HTTP_REFERER')

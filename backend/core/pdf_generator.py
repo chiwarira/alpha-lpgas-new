@@ -571,8 +571,9 @@ def generate_client_statement_pdf(client, start_date, end_date):
     )
     
     # Get payments made before start date
+    from django.db.models import Q
     bf_payments = Payment.objects.filter(
-        invoice__client=client,
+        Q(invoice__client=client) | Q(client=client, invoice__isnull=True),
         payment_date__lt=start_date
     )
     
@@ -605,7 +606,7 @@ def generate_client_statement_pdf(client, start_date, end_date):
     )
     
     payments = Payment.objects.filter(
-        invoice__client=client,
+        Q(invoice__client=client) | Q(client=client, invoice__isnull=True),
         payment_date__gte=start_date,
         payment_date__lte=end_date
     )
