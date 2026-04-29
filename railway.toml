@@ -3,4 +3,5 @@ builder = "NIXPACKS"
 watchPatterns = ["backend/**"]
 
 [deploy]
-startCommand = "(cd backend && bash start.sh)"
+rootDirectory = "backend"
+startCommand = "bash start.sh"
