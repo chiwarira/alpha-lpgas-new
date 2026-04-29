@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-watchPatterns = ["backend/**"]
+watchPatterns = ["backend/**", "railway.toml"]
 
 [deploy]
 startCommand = "cd backend && bash start.sh"
