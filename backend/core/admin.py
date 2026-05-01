@@ -7,7 +7,8 @@ from .models import (
     CylinderSize, GasStock, StockMovement, StockPurchase, StockPurchaseItem,
     LoyaltyCard, LoyaltyTransaction,
     AccountType, VATReturn, CIPCAnnualReturn, SARSTaxReturn, FinancialStatement, TaxConfiguration,
-    WhatsAppConversation, WhatsAppMessage, WhatsAppOrderIntent, WhatsAppConfig
+    WhatsAppConversation, WhatsAppMessage, WhatsAppOrderIntent, WhatsAppConfig,
+    UserMenuPermission
 )
 from .admin_loyalty import LoyaltyCardAdmin, LoyaltyTransactionAdmin
 
@@ -1083,3 +1084,40 @@ class TaxConfigurationAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # Don't allow deletion
         return False
+
+
+@admin.register(UserMenuPermission)
+class UserMenuPermissionAdmin(admin.ModelAdmin):
+    list_display = ['user', 'can_see_sales', 'can_see_people', 'can_see_products', 'can_see_orders', 'can_see_accounting', 'can_see_admin']
+    list_filter = ['can_see_sales', 'can_see_people', 'can_see_products', 'can_see_orders', 'can_see_accounting']
+    search_fields = ['user__username', 'user__first_name', 'user__last_name']
+    
+    fieldsets = (
+        ('User', {
+            'fields': ('user',)
+        }),
+        ('Top-Level Menu Sections', {
+            'fields': ('can_see_sales', 'can_see_people', 'can_see_products', 'can_see_orders', 'can_see_accounting', 'can_see_admin'),
+            'description': 'Toggle entire menu sections on/off. If a section is hidden, all its sub-items are also hidden.'
+        }),
+        ('Sales Sub-Items', {
+            'fields': ('can_see_quotes', 'can_see_invoices', 'can_see_payments', 'can_see_eft_reconciliation', 'can_see_credit_notes', 'can_see_loyalty_cards', 'can_see_sales_report'),
+            'classes': ('collapse',),
+            'description': 'Fine-grained control over Sales menu items. Only applies if "Sales menu" is enabled above.'
+        }),
+        ('People Sub-Items', {
+            'fields': ('can_see_clients', 'can_see_suppliers', 'can_see_drivers', 'can_see_contact_submissions'),
+            'classes': ('collapse',),
+            'description': 'Fine-grained control over People menu items. Only applies if "People menu" is enabled above.'
+        }),
+        ('Orders Sub-Items', {
+            'fields': ('can_see_all_orders', 'can_see_delivery_zones'),
+            'classes': ('collapse',),
+            'description': 'Fine-grained control over Orders menu items. Only applies if "Orders menu" is enabled above.'
+        }),
+        ('Accounting Sub-Items', {
+            'fields': ('can_see_chart_of_accounts', 'can_see_journal_entries', 'can_see_vat_returns', 'can_see_sars_tax_returns', 'can_see_cipc_annual_returns', 'can_see_financial_statements', 'can_see_tax_configuration'),
+            'classes': ('collapse',),
+            'description': 'Fine-grained control over Accounting menu items. Only applies if "Accounting menu" is enabled above.'
+        }),
+    )

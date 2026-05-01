@@ -1,5 +1,5 @@
 """Context processors for making data available to all templates"""
-from .models import CompanySettings, CustomScript
+from .models import CompanySettings, CustomScript, UserMenuPermission
 
 
 def company_settings(request):
@@ -26,3 +26,17 @@ def custom_scripts(request):
             'custom_scripts_body_start': [],
             'custom_scripts_body_end': [],
         }
+
+
+def menu_permissions(request):
+    """Make user menu permissions available to all templates"""
+    if not hasattr(request, 'user') or not request.user.is_authenticated:
+        return {'menu_perms': None}
+    
+    try:
+        perms = UserMenuPermission.objects.get(user=request.user)
+    except UserMenuPermission.DoesNotExist:
+        # No permissions record means user sees everything (default: all True)
+        perms = None
+    
+    return {'menu_perms': perms}

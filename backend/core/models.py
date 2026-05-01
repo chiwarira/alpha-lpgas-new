@@ -28,6 +28,54 @@ from .models_loyalty import LoyaltyCard, LoyaltyTransaction
 from .models_whatsapp import WhatsAppConversation, WhatsAppMessage, WhatsAppOrderIntent, WhatsAppConfig
 
 
+class UserMenuPermission(models.Model):
+    """Controls which accounting menu sections/items a user can see"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='menu_permission')
+    
+    # Top-level menu sections
+    can_see_sales = models.BooleanField(default=True, verbose_name='Sales menu')
+    can_see_people = models.BooleanField(default=True, verbose_name='People menu')
+    can_see_products = models.BooleanField(default=True, verbose_name='Products menu')
+    can_see_orders = models.BooleanField(default=True, verbose_name='Orders menu')
+    can_see_accounting = models.BooleanField(default=True, verbose_name='Accounting menu')
+    can_see_admin = models.BooleanField(default=True, verbose_name='Admin link')
+    
+    # Sales sub-items
+    can_see_quotes = models.BooleanField(default=True, verbose_name='Quotes')
+    can_see_invoices = models.BooleanField(default=True, verbose_name='Invoices')
+    can_see_payments = models.BooleanField(default=True, verbose_name='Payments')
+    can_see_eft_reconciliation = models.BooleanField(default=True, verbose_name='EFT Reconciliation')
+    can_see_credit_notes = models.BooleanField(default=True, verbose_name='Credit Notes')
+    can_see_loyalty_cards = models.BooleanField(default=True, verbose_name='Loyalty Cards')
+    can_see_sales_report = models.BooleanField(default=True, verbose_name='Sales Report')
+    
+    # People sub-items
+    can_see_clients = models.BooleanField(default=True, verbose_name='Clients')
+    can_see_suppliers = models.BooleanField(default=True, verbose_name='Suppliers')
+    can_see_drivers = models.BooleanField(default=True, verbose_name='Drivers')
+    can_see_contact_submissions = models.BooleanField(default=True, verbose_name='Contact Submissions')
+    
+    # Orders sub-items
+    can_see_all_orders = models.BooleanField(default=True, verbose_name='All Orders')
+    can_see_delivery_zones = models.BooleanField(default=True, verbose_name='Delivery Zones')
+    
+    # Accounting sub-items
+    can_see_chart_of_accounts = models.BooleanField(default=True, verbose_name='Chart of Accounts')
+    can_see_journal_entries = models.BooleanField(default=True, verbose_name='Journal Entries')
+    can_see_vat_returns = models.BooleanField(default=True, verbose_name='VAT Returns')
+    can_see_sars_tax_returns = models.BooleanField(default=True, verbose_name='SARS Tax Returns')
+    can_see_cipc_annual_returns = models.BooleanField(default=True, verbose_name='CIPC Annual Returns')
+    can_see_financial_statements = models.BooleanField(default=True, verbose_name='Financial Statements')
+    can_see_tax_configuration = models.BooleanField(default=True, verbose_name='Tax Configuration')
+    
+    class Meta:
+        verbose_name = 'User Menu Permission'
+        verbose_name_plural = 'User Menu Permissions'
+    
+    def __str__(self):
+        return f"Menu permissions for {self.user.username}"
+
+
 class CustomScript(models.Model):
     """Model for managing custom scripts to be injected into the website (e.g., GTM, Analytics)"""
     

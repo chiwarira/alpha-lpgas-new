@@ -71,82 +71,94 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <!-- Sales & Billing -->
+                    {% if not menu_perms or menu_perms.can_see_sales %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="salesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-cash-stack"></i> Sales
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="salesDropdown">
-                            <li><a class="dropdown-item" href="{% url 'accounting_forms:quote_list' %}"><i class="bi bi-file-earmark-text"></i> Quotes</a></li>
-                            <li><a class="dropdown-item" href="{% url 'accounting_forms:invoice_list' %}"><i class="bi bi-receipt"></i> Invoices</a></li>
-                            <li><a class="dropdown-item" href="{% url 'accounting_forms:payment_list' %}"><i class="bi bi-credit-card"></i> Payments</a></li>
-                            <li><a class="dropdown-item" href="{% url 'accounting_forms:eft_reconciliation_upload' %}"><i class="bi bi-bank"></i> EFT Reconciliation</a></li>
-                            <li><a class="dropdown-item" href="{% url 'accounting_forms:credit_note_list' %}"><i class="bi bi-file-earmark-minus"></i> Credit Notes</a></li>
+                            {% if not menu_perms or menu_perms.can_see_quotes %}<li><a class="dropdown-item" href="{% url 'accounting_forms:quote_list' %}"><i class="bi bi-file-earmark-text"></i> Quotes</a></li>{% endif %}
+                            {% if not menu_perms or menu_perms.can_see_invoices %}<li><a class="dropdown-item" href="{% url 'accounting_forms:invoice_list' %}"><i class="bi bi-receipt"></i> Invoices</a></li>{% endif %}
+                            {% if not menu_perms or menu_perms.can_see_payments %}<li><a class="dropdown-item" href="{% url 'accounting_forms:payment_list' %}"><i class="bi bi-credit-card"></i> Payments</a></li>{% endif %}
+                            {% if not menu_perms or menu_perms.can_see_eft_reconciliation %}<li><a class="dropdown-item" href="{% url 'accounting_forms:eft_reconciliation_upload' %}"><i class="bi bi-bank"></i> EFT Reconciliation</a></li>{% endif %}
+                            {% if not menu_perms or menu_perms.can_see_credit_notes %}<li><a class="dropdown-item" href="{% url 'accounting_forms:credit_note_list' %}"><i class="bi bi-file-earmark-minus"></i> Credit Notes</a></li>{% endif %}
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'accounting_forms:loyalty_card_list' %}"><i class="bi bi-award"></i> Loyalty Cards</a></li>
-                            <li><a class="dropdown-item" href="{% url 'accounting_forms:daily_sales_report' %}"><i class="bi bi-graph-up"></i> Sales Report</a></li>
+                            {% if not menu_perms or menu_perms.can_see_loyalty_cards %}<li><a class="dropdown-item" href="{% url 'accounting_forms:loyalty_card_list' %}"><i class="bi bi-award"></i> Loyalty Cards</a></li>{% endif %}
+                            {% if not menu_perms or menu_perms.can_see_sales_report %}<li><a class="dropdown-item" href="{% url 'accounting_forms:daily_sales_report' %}"><i class="bi bi-graph-up"></i> Sales Report</a></li>{% endif %}
                         </ul>
                     </li>
+                    {% endif %}
                     
                     <!-- People & Contacts -->
+                    {% if not menu_perms or menu_perms.can_see_people %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="peopleDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-people"></i> People
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="peopleDropdown">
-                            <li><a class="dropdown-item" href="{% url 'accounting_forms:client_list' %}"><i class="bi bi-people"></i> Clients</a></li>
-                            <li><a class="dropdown-item" href="{% url 'accounting_forms:supplier_list' %}"><i class="bi bi-building"></i> Suppliers</a></li>
-                            <li><a class="dropdown-item" href="{% url 'accounting_forms:driver_list' %}"><i class="bi bi-truck"></i> Drivers</a></li>
+                            {% if not menu_perms or menu_perms.can_see_clients %}<li><a class="dropdown-item" href="{% url 'accounting_forms:client_list' %}"><i class="bi bi-people"></i> Clients</a></li>{% endif %}
+                            {% if not menu_perms or menu_perms.can_see_suppliers %}<li><a class="dropdown-item" href="{% url 'accounting_forms:supplier_list' %}"><i class="bi bi-building"></i> Suppliers</a></li>{% endif %}
+                            {% if not menu_perms or menu_perms.can_see_drivers %}<li><a class="dropdown-item" href="{% url 'accounting_forms:driver_list' %}"><i class="bi bi-truck"></i> Drivers</a></li>{% endif %}
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'accounting_forms:contact_submission_list' %}"><i class="bi bi-envelope"></i> Contact Submissions</a></li>
+                            {% if not menu_perms or menu_perms.can_see_contact_submissions %}<li><a class="dropdown-item" href="{% url 'accounting_forms:contact_submission_list' %}"><i class="bi bi-envelope"></i> Contact Submissions</a></li>{% endif %}
                         </ul>
                     </li>
+                    {% endif %}
                     
                     <!-- Products -->
+                    {% if not menu_perms or menu_perms.can_see_products %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'accounting_forms:product_list' %}">
                             <i class="bi bi-box"></i> Products
                         </a>
                     </li>
+                    {% endif %}
                     
                     <!-- Orders & Delivery -->
+                    {% if not menu_perms or menu_perms.can_see_orders %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="ordersDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-cart-check"></i> Orders
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="ordersDropdown">
-                            <li><a class="dropdown-item" href="{% url 'accounting_forms:order_list' %}"><i class="bi bi-cart-check"></i> All Orders</a></li>
-                            <li><a class="dropdown-item" href="{% url 'accounting_forms:delivery_zone_list' %}"><i class="bi bi-geo-alt"></i> Delivery Zones</a></li>
+                            {% if not menu_perms or menu_perms.can_see_all_orders %}<li><a class="dropdown-item" href="{% url 'accounting_forms:order_list' %}"><i class="bi bi-cart-check"></i> All Orders</a></li>{% endif %}
+                            {% if not menu_perms or menu_perms.can_see_delivery_zones %}<li><a class="dropdown-item" href="{% url 'accounting_forms:delivery_zone_list' %}"><i class="bi bi-geo-alt"></i> Delivery Zones</a></li>{% endif %}
                         </ul>
                     </li>
+                    {% endif %}
                     
                     <!-- Accounting -->
+                    {% if not menu_perms or menu_perms.can_see_accounting %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="accountingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-journal-text"></i> Accounting
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="accountingDropdown">
                             <li><h6 class="dropdown-header">General Ledger</h6></li>
-                            <li><a class="dropdown-item" href="/admin/core/accounttype/"><i class="bi bi-list-columns"></i> Chart of Accounts</a></li>
-                            <li><a class="dropdown-item" href="{% url 'accounting_forms:journal_entry_list' %}"><i class="bi bi-journal-text"></i> Journal Entries</a></li>
+                            {% if not menu_perms or menu_perms.can_see_chart_of_accounts %}<li><a class="dropdown-item" href="/admin/core/accounttype/"><i class="bi bi-list-columns"></i> Chart of Accounts</a></li>{% endif %}
+                            {% if not menu_perms or menu_perms.can_see_journal_entries %}<li><a class="dropdown-item" href="{% url 'accounting_forms:journal_entry_list' %}"><i class="bi bi-journal-text"></i> Journal Entries</a></li>{% endif %}
                             <li><hr class="dropdown-divider"></li>
                             <li><h6 class="dropdown-header">Tax & Compliance</h6></li>
-                            <li><a class="dropdown-item" href="/admin/core/vatreturn/"><i class="bi bi-receipt"></i> VAT Returns (VAT201)</a></li>
-                            <li><a class="dropdown-item" href="/admin/core/sarstaxreturn/"><i class="bi bi-file-earmark-text"></i> SARS Tax Returns (ITR14)</a></li>
-                            <li><a class="dropdown-item" href="/admin/core/cipcannualreturn/"><i class="bi bi-building"></i> CIPC Annual Returns</a></li>
+                            {% if not menu_perms or menu_perms.can_see_vat_returns %}<li><a class="dropdown-item" href="/admin/core/vatreturn/"><i class="bi bi-receipt"></i> VAT Returns (VAT201)</a></li>{% endif %}
+                            {% if not menu_perms or menu_perms.can_see_sars_tax_returns %}<li><a class="dropdown-item" href="/admin/core/sarstaxreturn/"><i class="bi bi-file-earmark-text"></i> SARS Tax Returns (ITR14)</a></li>{% endif %}
+                            {% if not menu_perms or menu_perms.can_see_cipc_annual_returns %}<li><a class="dropdown-item" href="/admin/core/cipcannualreturn/"><i class="bi bi-building"></i> CIPC Annual Returns</a></li>{% endif %}
                             <li><hr class="dropdown-divider"></li>
                             <li><h6 class="dropdown-header">Financial Statements</h6></li>
-                            <li><a class="dropdown-item" href="/admin/core/financialstatement/"><i class="bi bi-file-bar-graph"></i> Financial Statements</a></li>
+                            {% if not menu_perms or menu_perms.can_see_financial_statements %}<li><a class="dropdown-item" href="/admin/core/financialstatement/"><i class="bi bi-file-bar-graph"></i> Financial Statements</a></li>{% endif %}
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/admin/core/taxconfiguration/"><i class="bi bi-gear-fill"></i> Tax Configuration</a></li>
+                            {% if not menu_perms or menu_perms.can_see_tax_configuration %}<li><a class="dropdown-item" href="/admin/core/taxconfiguration/"><i class="bi bi-gear-fill"></i> Tax Configuration</a></li>{% endif %}
                         </ul>
                     </li>
+                    {% endif %}
                 </ul>
                 <ul class="navbar-nav">
+                    {% if not menu_perms or menu_perms.can_see_admin %}
                     <li class="nav-item">
                         <a class="nav-link" href="/admin/">
                             <i class="bi bi-gear"></i> Admin
                         </a>
                     </li>
+                    {% endif %}
                     <li class="nav-item">
                         <span class="nav-link">
                             <i class="bi bi-person-circle"></i> {{ user.username }}

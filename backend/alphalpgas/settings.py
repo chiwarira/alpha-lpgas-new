@@ -110,6 +110,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.company_settings',
                 'core.context_processors.custom_scripts',
+                'core.context_processors.menu_permissions',
             ],
         },
     },
