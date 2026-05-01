@@ -5,6 +5,7 @@ from wagtail.admin.panels import FieldPanel
 from wagtail.search import index
 from wagtail import blocks
 from wagtail.images.blocks import ImageChooserBlock
+from wagtail.images import get_image_model_string
 from wagtail.api import APIField
 
 
@@ -38,6 +39,13 @@ class BlogPage(Page):
         ('image', ImageChooserBlock()),
         ('code', blocks.TextBlock()),
     ], use_json_field=True, blank=True)
+    featured_image = models.ForeignKey(
+        'wagtailimages.Image',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='+',
+    )
     
     search_fields = Page.search_fields + [
         index.SearchField('intro'),
@@ -47,14 +55,17 @@ class BlogPage(Page):
     content_panels = Page.content_panels + [
         FieldPanel('date'),
         FieldPanel('intro'),
+        FieldPanel('featured_image'),
         FieldPanel('body'),
     ]
     
     api_fields = [
         APIField('date'),
         APIField('intro'),
+        APIField('featured_image'),
         APIField('body'),
     ]
     
     class Meta:
         verbose_name = "Blog Page"
+        db_table = 'cms_blogpost'
