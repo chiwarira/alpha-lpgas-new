@@ -3,4 +3,4 @@ builder = "NIXPACKS"
 watchPatterns = ["backend/**", "railway.toml"]
 
 [deploy]
-startCommand = "cd backend && bash start.sh"
+startCommand = "if [ -f start.sh ]; then bash start.sh; elif [ -f backend/start.sh ]; then cd backend && bash start.sh; fi"
