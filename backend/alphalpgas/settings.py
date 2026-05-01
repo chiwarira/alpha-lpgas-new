@@ -234,8 +234,18 @@ SIMPLE_JWT = {
 SITE_ID = 1
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
 ACCOUNT_EMAIL_VERIFICATION = 'optional'
+ACCOUNT_LOGIN_ON_GET = False
+LOGIN_REDIRECT_URL = '/accounting/'
+ACCOUNT_LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+# Authentication Backends
+AUTHENTICATION_BACKENDS = [
+    'core.backends.EmailOrUsernameBackend',
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
 
 # Social Auth
 SOCIALACCOUNT_PROVIDERS = {
