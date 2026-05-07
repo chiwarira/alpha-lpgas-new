@@ -1,3 +1,2 @@
 [build]
 builder = "NIXPACKS"
-watchPatterns = ["backend/**", "railway.toml"]
