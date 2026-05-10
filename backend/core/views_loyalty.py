@@ -84,7 +84,7 @@ def loyalty_card_detail(request, pk):
     loyalty_card = get_object_or_404(LoyaltyCard, pk=pk)
     
     # Get recent transactions for this card
-    transactions = loyalty_card.transactions.all()[:10]
+    transactions = loyalty_card.transactions.exclude(transaction_type='reversal')[:10]
     
     return render(request, 'core/loyalty_card_detail.html', {
         'loyalty_card': loyalty_card,

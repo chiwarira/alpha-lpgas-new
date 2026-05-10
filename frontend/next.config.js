@@ -17,7 +17,7 @@ const nextConfig = {
     ],
   },
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    NEXT_PUBLIC_API_URL: (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, ''),
     NEXT_PUBLIC_YOCO_PUBLIC_KEY: process.env.NEXT_PUBLIC_YOCO_PUBLIC_KEY,
     NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
   },
