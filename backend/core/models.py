@@ -10,7 +10,7 @@ from .models_contact import ContactSubmission
 from .models_testimonial import Testimonial
 
 # Import accounting models
-from .models_accounting import Supplier, ExpenseCategory, Expense, JournalEntry, TaxPeriod
+from .models_accounting import Supplier, ExpenseCategory, Expense, JournalEntry, TaxPeriod, SupplierGasRate
 
 # Import tax reporting models
 from .models_tax_reporting import (

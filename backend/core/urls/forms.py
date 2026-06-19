@@ -34,7 +34,7 @@ from ..views_forms import (
     delivery_zone_list, delivery_zone_create, delivery_zone_edit, delivery_zone_delete,
     
     # Suppliers
-    supplier_list, supplier_create, supplier_edit, supplier_detail,
+    supplier_list, supplier_create, supplier_edit, supplier_detail, supplier_gas_rates,
     
     # Journal Entries
     journal_entry_list, journal_entry_detail,
@@ -150,6 +150,7 @@ urlpatterns = [
     # Suppliers
     path('suppliers/', supplier_list, name='supplier_list'),
     path('suppliers/create/', supplier_create, name='supplier_create'),
+    path('suppliers/gas-rates/', supplier_gas_rates, name='supplier_gas_rates'),
     path('suppliers/<int:pk>/', supplier_detail, name='supplier_detail'),
     path('suppliers/<int:pk>/edit/', supplier_edit, name='supplier_edit'),
     

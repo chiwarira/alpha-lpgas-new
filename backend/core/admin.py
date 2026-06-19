@@ -3,7 +3,7 @@ from .models import (
     HeroBanner, CompanySettings, Client, Category, Product, ProductVariant,
     Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem,
     DeliveryZone, PromoCode, Driver, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial,
-    CustomScript, Supplier, ExpenseCategory, Expense, JournalEntry, TaxPeriod,
+    CustomScript, Supplier, ExpenseCategory, Expense, JournalEntry, TaxPeriod, SupplierGasRate,
     CylinderSize, GasStock, StockMovement, StockPurchase, StockPurchaseItem,
     LoyaltyCard, LoyaltyTransaction,
     AccountType, VATReturn, CIPCAnnualReturn, SARSTaxReturn, FinancialStatement, TaxConfiguration,
@@ -429,6 +429,15 @@ class CustomScriptAdmin(admin.ModelAdmin):
 # ============================================
 # ACCOUNTING / JOURNAL ENTRIES ADMIN
 # ============================================
+
+@admin.register(SupplierGasRate)
+class SupplierGasRateAdmin(admin.ModelAdmin):
+    list_display = ['supplier', 'rate_per_kg', 'effective_month', 'cost_5kg', 'cost_9kg', 'cost_19kg', 'cost_48kg']
+    list_filter = ['supplier', 'effective_month']
+    search_fields = ['supplier__name', 'notes']
+    date_hierarchy = 'effective_month'
+    autocomplete_fields = ['supplier']
+
 
 @admin.register(Supplier)
 class SupplierAdmin(admin.ModelAdmin):

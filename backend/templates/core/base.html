@@ -234,6 +234,7 @@
                         <ul class="dropdown-menu" aria-labelledby="peopleDropdown">
                             {% if not menu_perms or menu_perms.can_see_clients %}<li><a class="dropdown-item" href="{% url 'accounting_forms:client_list' %}"><i class="bi bi-people"></i> Clients</a></li>{% endif %}
                             {% if not menu_perms or menu_perms.can_see_suppliers %}<li><a class="dropdown-item" href="{% url 'accounting_forms:supplier_list' %}"><i class="bi bi-building"></i> Suppliers</a></li>{% endif %}
+                            {% if not menu_perms or menu_perms.can_see_suppliers %}<li><a class="dropdown-item" href="{% url 'accounting_forms:supplier_gas_rates' %}"><i class="bi bi-graph-up"></i> Gas Rates</a></li>{% endif %}
                             {% if not menu_perms or menu_perms.can_see_drivers %}<li><a class="dropdown-item" href="{% url 'accounting_forms:driver_list' %}"><i class="bi bi-truck"></i> Drivers</a></li>{% endif %}
                             <li><hr class="dropdown-divider"></li>
                             {% if not menu_perms or menu_perms.can_see_contact_submissions %}<li><a class="dropdown-item" href="{% url 'accounting_forms:contact_submission_list' %}"><i class="bi bi-envelope"></i> Contact Submissions</a></li>{% endif %}

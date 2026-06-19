@@ -227,6 +227,46 @@ class JournalEntry(models.Model):
         self.save()
 
 
+class SupplierGasRate(models.Model):
+    """Track supplier gas rates per kilogram over time"""
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='gas_rates')
+    rate_per_kg = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))], help_text="Rate per kilogram in Rands")
+    effective_month = models.DateField(help_text="First day of the month this rate applies to")
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='gas_rates_created')
+
+    class Meta:
+        ordering = ['-effective_month', 'supplier__name']
+        unique_together = ['supplier', 'effective_month']
+        verbose_name = 'Supplier Gas Rate'
+        verbose_name_plural = 'Supplier Gas Rates'
+
+    def __str__(self):
+        return f"{self.supplier.name} - R{self.rate_per_kg}/kg ({self.effective_month.strftime('%B %Y')})"
+
+    @property
+    def cost_5kg(self):
+        return self.rate_per_kg * 5
+
+    @property
+    def cost_9kg(self):
+        return self.rate_per_kg * 9
+
+    @property
+    def cost_14kg(self):
+        return self.rate_per_kg * 14
+
+    @property
+    def cost_19kg(self):
+        return self.rate_per_kg * 19
+
+    @property
+    def cost_48kg(self):
+        return self.rate_per_kg * 48
+
+
 class TaxPeriod(models.Model):
     """Tax periods for reporting (monthly, quarterly, annually)"""
     PERIOD_TYPE_CHOICES = [

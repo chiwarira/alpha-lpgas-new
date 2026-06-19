@@ -2286,6 +2286,105 @@ def supplier_detail(request, pk):
     })
 
 
+# Supplier Gas Rates
+@login_required
+def supplier_gas_rates(request):
+    """View and manage supplier gas rates per kg with line graph and cylinder cost breakdown"""
+    from .models_accounting import SupplierGasRate
+    from datetime import datetime, date
+    from decimal import Decimal
+    import json
+    
+    suppliers = Supplier.objects.filter(is_active=True)
+    
+    # Handle form submission to add a new rate
+    if request.method == 'POST':
+        supplier_id = request.POST.get('supplier')
+        rate_per_kg = request.POST.get('rate_per_kg')
+        month_str = request.POST.get('effective_month')
+        notes = request.POST.get('notes', '')
+        
+        try:
+            supplier = Supplier.objects.get(pk=supplier_id)
+            rate = Decimal(rate_per_kg)
+            effective_month = datetime.strptime(month_str, '%Y-%m').date().replace(day=1)
+            
+            # Create or update the rate
+            obj, created = SupplierGasRate.objects.update_or_create(
+                supplier=supplier,
+                effective_month=effective_month,
+                defaults={
+                    'rate_per_kg': rate,
+                    'notes': notes,
+                    'created_by': request.user,
+                }
+            )
+            
+            if created:
+                messages.success(request, f'Gas rate added for {supplier.name} - R{rate}/kg for {effective_month.strftime("%B %Y")}')
+            else:
+                messages.success(request, f'Gas rate updated for {supplier.name} - R{rate}/kg for {effective_month.strftime("%B %Y")}')
+        except (Supplier.DoesNotExist, ValueError, TypeError) as e:
+            messages.error(request, f'Error adding rate: {str(e)}')
+        
+        return redirect('accounting_forms:supplier_gas_rates')
+    
+    # Get all rates ordered by month for the graph
+    all_rates = SupplierGasRate.objects.select_related('supplier').order_by('effective_month', 'supplier__name')
+    
+    # Build chart data - group by supplier
+    chart_data = {}
+    for rate in all_rates:
+        supplier_name = rate.supplier.name
+        if supplier_name not in chart_data:
+            chart_data[supplier_name] = []
+        chart_data[supplier_name].append({
+            'month': rate.effective_month.strftime('%b %Y'),
+            'rate': float(rate.rate_per_kg),
+        })
+    
+    # Get unique months for x-axis labels
+    months = sorted(set(rate.effective_month for rate in all_rates))
+    month_labels = [m.strftime('%b %Y') for m in months]
+    
+    # Build datasets for Chart.js
+    colors = ['#0d6efd', '#198754', '#dc3545', '#ffc107', '#6f42c1', '#20c997', '#fd7e14', '#6610f2']
+    datasets = []
+    for idx, (supplier_name, rates) in enumerate(chart_data.items()):
+        rate_map = {r['month']: r['rate'] for r in rates}
+        data_points = [rate_map.get(label, None) for label in month_labels]
+        datasets.append({
+            'label': supplier_name,
+            'data': data_points,
+            'borderColor': colors[idx % len(colors)],
+            'backgroundColor': colors[idx % len(colors)] + '20',
+            'tension': 0.3,
+            'fill': False,
+            'spanGaps': True,
+        })
+    
+    # Get the latest rates for each supplier for the cylinder cost table
+    latest_rates = []
+    for supplier in suppliers:
+        latest_rate = supplier.gas_rates.first()  # Already ordered by -effective_month
+        if latest_rate:
+            latest_rates.append(latest_rate)
+    
+    # Cylinder sizes for the cost table
+    cylinder_sizes = [5, 9, 14, 19, 48]
+    
+    context = {
+        'suppliers': suppliers,
+        'all_rates': all_rates,
+        'latest_rates': latest_rates,
+        'cylinder_sizes': cylinder_sizes,
+        'chart_labels': json.dumps(month_labels),
+        'chart_datasets': json.dumps(datasets),
+    }
+    
+    return render(request, 'core/supplier_gas_rates.html', context)
+
+
 # Journal Entry Views
 @login_required
 def journal_entry_list(request):
