@@ -606,20 +606,37 @@
         if (hasStartDate && hasEndDate) {
             filename = "Statement - {{ client.name|escapejs }} - {{ request.GET.start_date|escapejs }} to {{ request.GET.end_date|escapejs }}";
         } else {
-            filename = "Statement - {{ client.name|escapejs }} - {{ statement_date|date:'Y-m-d'|escapejs }}";
+            const statementDate = "{{ statement_date|date:'Y-m-d'|escapejs }}";
+            if (statementDate) {
+                filename = "Statement - {{ client.name|escapejs }} - " + statementDate;
+            } else {
+                filename = "Statement - {{ client.name|escapejs }}";
+            }
         }
         
         // Set the document title to be used as the filename when saving
         const originalTitle = document.title;
         document.title = filename;
         
-        // Print the document
-        window.print();
+        // Also update the <title> tag directly for mobile browser compatibility
+        const titleElement = document.querySelector('title');
+        const originalTitleTag = titleElement ? titleElement.textContent : '';
+        if (titleElement) {
+            titleElement.textContent = filename;
+        }
         
-        // Restore the original title after printing
+        // Small delay to ensure title is applied before print dialog opens (mobile fix)
         setTimeout(function() {
-            document.title = originalTitle;
-        }, 1000);
+            window.print();
+            
+            // Restore the original title after printing
+            setTimeout(function() {
+                document.title = originalTitle;
+                if (titleElement) {
+                    titleElement.textContent = originalTitleTag;
+                }
+            }, 1000);
+        }, 100);
     }
     
     // Function to show toast notifications instead of alerts

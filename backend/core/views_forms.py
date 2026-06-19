@@ -1434,10 +1434,9 @@ def daily_sales_report(request):
         payments__payment_date__lte=end_date
     ).distinct()
     
-    # Get product sales breakdown for invoices paid in this range
+    # Get product sales breakdown for invoices created in this date range
     product_summary = InvoiceItem.objects.filter(
-        invoice__payments__payment_date__gte=start_date,
-        invoice__payments__payment_date__lte=end_date
+        invoice__in=invoices_created
     ).values(
         'product__name'
     ).annotate(

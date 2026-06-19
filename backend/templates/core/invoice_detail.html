@@ -712,11 +712,12 @@ select.note-field {
         border-collapse: collapse;
     }
     
-    /* Compact header for printing */
+    /* Compact header for printing - force desktop layout on all devices */
     .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: flex-start !important;
         margin-bottom: 0.5cm;
         page-break-inside: avoid;
     }
@@ -725,6 +726,8 @@ select.note-field {
         display: flex;
         flex-direction: column;
         align-items: flex-start;
+        flex: 1 !important;
+        max-width: 55% !important;
     }
     
     .logo {
@@ -739,17 +742,25 @@ select.note-field {
     }
     
     .invoice-details {
-        min-width: 4cm;
-        text-align: right;
+        min-width: 4cm !important;
+        width: auto !important;
+        text-align: right !important;
     }
     
     .invoice-info-row {
+        justify-content: flex-end !important;
         margin-bottom: 0.1cm;
         font-size: 8pt;
     }
     
+    .invoice-info-label,
     .invoice-info-value {
+        width: 120px !important;
         font-size: 8pt;
+    }
+    
+    .invoice-info-label {
+        text-align: left !important;
     }
     
     /* Compact invoice title */
@@ -1406,15 +1417,28 @@ select.note-field {
         // Set the document title to be used as the filename when saving
         // Format: {INV-001} - {Client Name}
         const originalTitle = document.title;
-        document.title = `${invoiceNumber} - ${clientName}`;
+        const printTitle = `${invoiceNumber} - ${clientName}`;
+        document.title = printTitle;
         
-        // Print the document
-        window.print();
+        // Also update the <title> tag directly for mobile browser compatibility
+        const titleElement = document.querySelector('title');
+        const originalTitleTag = titleElement ? titleElement.textContent : '';
+        if (titleElement) {
+            titleElement.textContent = printTitle;
+        }
         
-        // Restore the original title after printing
+        // Small delay to ensure title is applied before print dialog opens (mobile fix)
         setTimeout(() => {
-            document.title = originalTitle;
-        }, 1000);
+            window.print();
+            
+            // Restore the original title after printing
+            setTimeout(() => {
+                document.title = originalTitle;
+                if (titleElement) {
+                    titleElement.textContent = originalTitleTag;
+                }
+            }, 1000);
+        }, 100);
     }
     
     // Function to show toast notifications
