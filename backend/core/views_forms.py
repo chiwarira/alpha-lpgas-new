@@ -1601,6 +1601,156 @@ def daily_sales_report(request):
                 'count': month_count
             })
     
+    # Product Performance Analysis - Gas Exchange products over time
+    import json as json_lib
+    gas_exchange_sizes = ['5kg', '9kg', '14kg', '19kg', '48kg']
+    gas_exchange_products = []
+    
+    # Find gas exchange products in invoices created in this range
+    gas_items = InvoiceItem.objects.filter(
+        invoice__in=invoices_created,
+        product__name__icontains='gas exchange'
+    ).select_related('product', 'invoice')
+    
+    # Build time-series data based on range_type
+    product_performance_labels = []
+    product_performance_data = {}  # {product_name: [values per period]}
+    product_qty_data = {}  # {product_name: [qty per period]}
+    
+    if range_type == 'daily':
+        # Single day - no time series needed, just totals
+        for size in gas_exchange_sizes:
+            size_items = gas_items.filter(product__name__icontains=size)
+            agg = size_items.aggregate(total=Sum('total'), qty=Sum('quantity'))
+            if agg['total']:
+                label = f"{size} Gas Exchange"
+                gas_exchange_products.append({
+                    'name': label,
+                    'total': float(agg['total'] or 0),
+                    'qty': int(agg['qty'] or 0),
+                })
+    elif range_type == 'weekly':
+        # Break down by day of the week
+        current = start_date
+        while current <= end_date:
+            product_performance_labels.append(current.strftime('%a %d'))
+            for size in gas_exchange_sizes:
+                label = f"{size} Gas Exchange"
+                if label not in product_performance_data:
+                    product_performance_data[label] = []
+                    product_qty_data[label] = []
+                day_items = gas_items.filter(invoice__issue_date=current, product__name__icontains=size)
+                agg = day_items.aggregate(total=Sum('total'), qty=Sum('quantity'))
+                product_performance_data[label].append(float(agg['total'] or 0))
+                product_qty_data[label].append(int(agg['qty'] or 0))
+            current += timedelta(days=1)
+    elif range_type == 'monthly':
+        # Break down by day
+        current = start_date
+        while current <= end_date:
+            product_performance_labels.append(current.strftime('%d'))
+            for size in gas_exchange_sizes:
+                label = f"{size} Gas Exchange"
+                if label not in product_performance_data:
+                    product_performance_data[label] = []
+                    product_qty_data[label] = []
+                day_items = gas_items.filter(invoice__issue_date=current, product__name__icontains=size)
+                agg = day_items.aggregate(total=Sum('total'), qty=Sum('quantity'))
+                product_performance_data[label].append(float(agg['total'] or 0))
+                product_qty_data[label].append(int(agg['qty'] or 0))
+            current += timedelta(days=1)
+    elif range_type == 'yearly':
+        # Break down by month
+        for month_num in range(1, 13):
+            month_start_d = date(start_date.year, month_num, 1)
+            last_day_m = calendar.monthrange(start_date.year, month_num)[1]
+            month_end_d = date(start_date.year, month_num, last_day_m)
+            product_performance_labels.append(month_start_d.strftime('%b'))
+            for size in gas_exchange_sizes:
+                label = f"{size} Gas Exchange"
+                if label not in product_performance_data:
+                    product_performance_data[label] = []
+                    product_qty_data[label] = []
+                month_items = gas_items.filter(
+                    invoice__issue_date__gte=month_start_d,
+                    invoice__issue_date__lte=month_end_d,
+                    product__name__icontains=size
+                )
+                agg = month_items.aggregate(total=Sum('total'), qty=Sum('quantity'))
+                product_performance_data[label].append(float(agg['total'] or 0))
+                product_qty_data[label].append(int(agg['qty'] or 0))
+    else:  # custom
+        # Determine appropriate granularity
+        if num_days <= 31:
+            # Daily
+            current = start_date
+            while current <= end_date:
+                product_performance_labels.append(current.strftime('%d %b'))
+                for size in gas_exchange_sizes:
+                    label = f"{size} Gas Exchange"
+                    if label not in product_performance_data:
+                        product_performance_data[label] = []
+                        product_qty_data[label] = []
+                    day_items = gas_items.filter(invoice__issue_date=current, product__name__icontains=size)
+                    agg = day_items.aggregate(total=Sum('total'), qty=Sum('quantity'))
+                    product_performance_data[label].append(float(agg['total'] or 0))
+                    product_qty_data[label].append(int(agg['qty'] or 0))
+                current += timedelta(days=1)
+        else:
+            # Weekly
+            week_s = start_date
+            week_n = 1
+            while week_s <= end_date:
+                week_e = min(week_s + timedelta(days=6), end_date)
+                product_performance_labels.append(f"W{week_n}")
+                for size in gas_exchange_sizes:
+                    label = f"{size} Gas Exchange"
+                    if label not in product_performance_data:
+                        product_performance_data[label] = []
+                        product_qty_data[label] = []
+                    wk_items = gas_items.filter(
+                        invoice__issue_date__gte=week_s,
+                        invoice__issue_date__lte=week_e,
+                        product__name__icontains=size
+                    )
+                    agg = wk_items.aggregate(total=Sum('total'), qty=Sum('quantity'))
+                    product_performance_data[label].append(float(agg['total'] or 0))
+                    product_qty_data[label].append(int(agg['qty'] or 0))
+                week_s += timedelta(days=7)
+                week_n += 1
+    
+    # Build Chart.js datasets
+    perf_colors = {
+        '5kg Gas Exchange': '#20c997',
+        '9kg Gas Exchange': '#0d6efd',
+        '14kg Gas Exchange': '#ffc107',
+        '19kg Gas Exchange': '#dc3545',
+        '48kg Gas Exchange': '#6f42c1',
+    }
+    
+    perf_sales_datasets = []
+    perf_qty_datasets = []
+    for product_name in product_performance_data:
+        color = perf_colors.get(product_name, '#6c757d')
+        # Only include products that have at least some data
+        if any(v > 0 for v in product_performance_data[product_name]):
+            perf_sales_datasets.append({
+                'label': product_name,
+                'data': product_performance_data[product_name],
+                'borderColor': color,
+                'backgroundColor': color + '30',
+                'tension': 0.3,
+                'fill': False,
+            })
+        if any(v > 0 for v in product_qty_data[product_name]):
+            perf_qty_datasets.append({
+                'label': product_name,
+                'data': product_qty_data[product_name],
+                'borderColor': color,
+                'backgroundColor': color + '60',
+                'tension': 0.3,
+            })
+    
     # Lead time analysis - calculate days between orders for each client
     from django.db.models import Min, Max
     lead_time_data = []
@@ -1669,6 +1819,11 @@ def daily_sales_report(request):
         'weekly_breakdown': weekly_breakdown,
         'monthly_breakdown': monthly_breakdown,
         'lead_time_data': lead_time_data,
+        'gas_exchange_products': gas_exchange_products,
+        'perf_labels': json_lib.dumps(product_performance_labels),
+        'perf_sales_datasets': json_lib.dumps(perf_sales_datasets),
+        'perf_qty_datasets': json_lib.dumps(perf_qty_datasets),
+        'has_perf_data': bool(perf_sales_datasets or gas_exchange_products),
     }
     
     return render(request, 'core/daily_sales_report.html', context)

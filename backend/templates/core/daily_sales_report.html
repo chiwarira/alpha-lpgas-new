@@ -563,6 +563,47 @@
     </div>
 </div>
 
+<!-- Product Performance Analysis - Gas Exchange -->
+{% if has_perf_data %}
+<div class="card mb-4">
+    <div class="card-header bg-dark text-white">
+        <h4 class="mb-0"><i class="bi bi-bar-chart-line"></i> Product Performance</h4>
+    </div>
+    <div class="card-body">
+        {% if range_type == 'daily' %}
+        <!-- Daily view: show summary cards instead of graphs -->
+        <div class="row">
+            {% for product in gas_exchange_products %}
+            <div class="col-md-4 col-6 mb-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted">{{ product.name }}</h6>
+                        <h3 class="mb-0">{{ product.qty }}</h3>
+                        <small class="text-muted">units</small>
+                        <hr class="my-2">
+                        <h5 class="text-success mb-0">R{{ product.total|floatformat:2 }}</h5>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- Multi-period view: show line graphs -->
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <h5 class="text-center"><i class="bi bi-cash-coin"></i> Sales (R) Over Time</h5>
+                <canvas id="perfSalesChart" height="200"></canvas>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <h5 class="text-center"><i class="bi bi-box-seam"></i> Quantity Sold Over Time</h5>
+                <canvas id="perfQtyChart" height="200"></canvas>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
 <!-- Detailed Transactions -->
 <div class="card mb-4">
     <div class="card-header bg-secondary text-white" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#transactionDetailsCollapse" aria-expanded="false" aria-controls="transactionDetailsCollapse">
@@ -914,6 +955,105 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    {% endif %}
+    
+    // Product Performance Charts
+    {% if has_perf_data and range_type != 'daily' %}
+    (function() {
+        var perfLabels = {{ perf_labels|safe }};
+        var perfSalesDatasets = {{ perf_sales_datasets|safe }};
+        var perfQtyDatasets = {{ perf_qty_datasets|safe }};
+        
+        // Legend click: first click solos a product (hides others), subsequent clicks toggle others on/off
+        function soloLegendClick(e, legendItem, legend) {
+            var chart = legend.chart;
+            var ci = legendItem.datasetIndex;
+            var total = chart.data.datasets.length;
+            var visibleCount = 0;
+            var clickedIsVisible = !chart.getDatasetMeta(ci).hidden;
+            chart.data.datasets.forEach(function(ds, i) {
+                if (!chart.getDatasetMeta(i).hidden) visibleCount++;
+            });
+            if (visibleCount === total) {
+                // All visible — solo the clicked product
+                chart.data.datasets.forEach(function(ds, i) {
+                    chart.getDatasetMeta(i).hidden = (i !== ci);
+                });
+            } else if (visibleCount === 1 && clickedIsVisible) {
+                // Only the clicked one is visible — restore all
+                chart.data.datasets.forEach(function(ds, i) {
+                    chart.getDatasetMeta(i).hidden = false;
+                });
+            } else {
+                // Some are hidden — toggle the clicked one
+                chart.getDatasetMeta(ci).hidden = clickedIsVisible;
+            }
+            chart.update();
+        }
+        
+        // Sales Chart
+        var perfSalesCtx = document.getElementById('perfSalesChart');
+        if (perfSalesCtx) {
+            new Chart(perfSalesCtx, {
+                type: 'line',
+                data: {
+                    labels: perfLabels,
+                    datasets: perfSalesDatasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            onClick: soloLegendClick
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) { return ctx.dataset.label + ': R' + ctx.parsed.y.toFixed(2); }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: function(value) { return 'R' + value.toFixed(0); } }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Quantity Chart
+        var perfQtyCtx = document.getElementById('perfQtyChart');
+        if (perfQtyCtx) {
+            new Chart(perfQtyCtx, {
+                type: 'bar',
+                data: {
+                    labels: perfLabels,
+                    datasets: perfQtyDatasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            onClick: soloLegendClick
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        }
+    })();
     {% endif %}
 });
 </script>
