@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.http import HttpResponse
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -42,10 +43,8 @@ def home(request):
     host = request.get_host()
     if 'localhost' in host or '127.0.0.1' in host:
         frontend_url = 'http://localhost:3000'
-    elif 'staging' in host or 'dev' in host:
-        frontend_url = 'https://alpha-lpgas-frontend-dev.up.railway.app'
     else:
-        frontend_url = 'https://www.alphalpgas.co.za'
+        frontend_url = settings.FRONTEND_URL
     
     html = f"""
     <!DOCTYPE html>

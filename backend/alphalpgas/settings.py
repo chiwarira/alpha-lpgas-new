@@ -18,19 +18,24 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-produc
 DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='https://api.alphalpgas.co.za').split(',')
 
 # Railway-specific settings
 RAILWAY_ENVIRONMENT = config('RAILWAY_ENVIRONMENT', default=None)
-if RAILWAY_ENVIRONMENT:
-    ALLOWED_HOSTS.append('.railway.app')
-    ALLOWED_HOSTS.append('.up.railway.app')
-    ALLOWED_HOSTS.append('api.alphalpgas.co.za')
+VERCEL_ENV = config('VERCEL_ENV', default=None)
+if RAILWAY_ENVIRONMENT or VERCEL_ENV:
+    ALLOWED_HOSTS.extend([
+        '.railway.app',
+        '.up.railway.app',
+        '.vercel.app',
+        'api.alphalpgas.co.za',
+    ])
     # Add your custom domain when you set it up
-    CSRF_TRUSTED_ORIGINS = [
+    CSRF_TRUSTED_ORIGINS.extend([
         'https://*.railway.app',
         'https://*.up.railway.app',
-        'https://api.alphalpgas.co.za',
-    ]
+        'https://*.vercel.app',
+    ])
 
 # Application definition
 INSTALLED_APPS = [
@@ -122,7 +127,7 @@ WSGI_APPLICATION = 'alphalpgas.wsgi.application'
 DATABASES = {
     'default': dj_database_url.config(
         default=config('DATABASE_URL', default=f'postgresql://{config("DB_USER", default="postgres")}:{config("DB_PASSWORD", default="")}@{config("DB_HOST", default="localhost")}:{config("DB_PORT", default="5432")}/{config("DB_NAME", default="alphalpgas")}'),
-        conn_max_age=600
+        conn_max_age=0 if VERCEL_ENV else 600
     )
 }
 
@@ -189,10 +194,11 @@ CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:
 CORS_ALLOW_CREDENTIALS = True
 
 # In Railway production, allow all Railway app origins
-if RAILWAY_ENVIRONMENT:
+if RAILWAY_ENVIRONMENT or VERCEL_ENV:
     CORS_ALLOWED_ORIGIN_REGEXES = [
         r"^https://.*\.up\.railway\.app$",
         r"^https://.*\.railway\.app$",
+        r"^https://.*\.vercel\.app$",
     ]
 
 # REST Framework
