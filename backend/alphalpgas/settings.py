@@ -3,6 +3,7 @@ Django settings for Alpha LPGas project.
 """
 
 import os
+import urllib.parse
 from pathlib import Path
 from datetime import timedelta
 from decouple import config
@@ -124,9 +125,25 @@ TEMPLATES = [
 WSGI_APPLICATION = 'alphalpgas.wsgi.application'
 
 # Database
+# Zanode's default connection string includes `sslnegotiation=direct`, which older
+# PostgreSQL clients (and psycopg2) do not understand. Strip it so the URL works everywhere.
+def _build_database_url():
+    url = config(
+        'DATABASE_URL',
+        default=f'postgresql://{config("DB_USER", default="postgres")}:{config("DB_PASSWORD", default="")}@{config("DB_HOST", default="localhost")}:{config("DB_PORT", default="5432")}/{config("DB_NAME", default="alphalpgas")}'
+    )
+    # Some providers (e.g. Zanode) add parameters that older PostgreSQL clients do not understand.
+    if 'sslnegotiation=' in url:
+        parsed = urllib.parse.urlparse(url)
+        query = urllib.parse.parse_qs(parsed.query)
+        query.pop('sslnegotiation', None)
+        url = urllib.parse.urlunparse(parsed._replace(query=urllib.parse.urlencode(query, doseq=True)))
+    return url
+
+_DATABASE_URL = _build_database_url()
+os.environ['DATABASE_URL'] = _DATABASE_URL
 DATABASES = {
     'default': dj_database_url.config(
-        default=config('DATABASE_URL', default=f'postgresql://{config("DB_USER", default="postgres")}:{config("DB_PASSWORD", default="")}@{config("DB_HOST", default="localhost")}:{config("DB_PORT", default="5432")}/{config("DB_NAME", default="alphalpgas")}'),
         conn_max_age=0 if VERCEL_ENV else 600
     )
 }
