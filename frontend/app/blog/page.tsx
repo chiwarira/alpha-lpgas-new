@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { FileText } from 'lucide-react';
 
 interface BlogPost {
   id: number;
@@ -73,14 +74,14 @@ export default async function BlogPage() {
       <Header />
       
       {/* Hero Section */}
-      <div className="bg-gradient-to-br from-rose-600 to-rose-700 text-white py-16">
+      <div className="bg-gradient-to-br from-red-600 to-red-700 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-5xl md:text-6xl font-bold mb-4">
             {blogIndex?.title || 'Blog'}
           </h1>
           {blogIndex?.intro && (
             <div 
-              className="text-xl text-rose-100 max-w-3xl prose prose-invert"
+              className="text-xl text-red-100 max-w-3xl prose prose-invert"
               dangerouslySetInnerHTML={{ __html: blogIndex.intro }}
             />
           )}
@@ -88,20 +89,20 @@ export default async function BlogPage() {
       </div>
 
       {/* Blog Posts Grid */}
-      <main className="flex-grow bg-gray-50 py-12">
+      <main className="flex-grow bg-slate-50 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {posts.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-lg shadow-sm">
-              <div className="text-6xl mb-4">📝</div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">No blog posts yet</h2>
-              <p className="text-gray-600 mb-4">Check back soon for updates!</p>
-              <p className="text-sm text-gray-500">
+              <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">No blog posts yet</h2>
+              <p className="text-slate-600 mb-4">Check back soon for updates!</p>
+              <p className="text-sm text-slate-500">
                 Create your first post in the{' '}
                 <a 
                   href="http://localhost:8000/cms/" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-rose-600 hover:text-rose-700 font-medium"
+                  className="text-red-600 hover:text-red-700 font-medium"
                 >
                   Wagtail admin
                 </a>
@@ -115,12 +116,12 @@ export default async function BlogPage() {
                   className="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden group"
                 >
                   {/* Card Header with gradient */}
-                  <div className="h-2 bg-gradient-to-r from-rose-500 to-blue-500"></div>
+                  <div className="h-2 bg-gradient-to-r from-red-600 to-slate-900"></div>
                   
                   <div className="p-6">
                     {/* Date Badge */}
                     {post.date && (
-                      <div className="flex items-center text-sm text-gray-500 mb-3">
+                      <div className="flex items-center text-sm text-slate-500 mb-3">
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
@@ -133,7 +134,7 @@ export default async function BlogPage() {
                     )}
                     
                     {/* Title */}
-                    <h2 className="text-2xl font-bold mb-3 group-hover:text-rose-600 transition-colors">
+                    <h2 className="text-2xl font-bold mb-3 group-hover:text-red-600 transition-colors">
                       <Link href={`/blog/${post.meta.slug}`}>
                         {post.title}
                       </Link>
@@ -141,7 +142,7 @@ export default async function BlogPage() {
                     
                     {/* Excerpt */}
                     {post.intro && (
-                      <p className="text-gray-600 mb-4 line-clamp-3">
+                      <p className="text-slate-600 mb-4 line-clamp-3">
                         {post.intro}
                       </p>
                     )}
@@ -149,7 +150,7 @@ export default async function BlogPage() {
                     {/* Read More Link */}
                     <Link 
                       href={`/blog/${post.meta.slug}`}
-                      className="inline-flex items-center text-rose-600 hover:text-rose-700 font-semibold group-hover:gap-2 transition-all"
+                      className="inline-flex items-center text-red-600 hover:text-red-700 font-semibold group-hover:gap-2 transition-all"
                     >
                       Read Article
                       <svg className="w-5 h-5 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">

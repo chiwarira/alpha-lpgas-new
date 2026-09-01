@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, Phone, MapPin, Send } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, Check } from 'lucide-react';
 import Link from 'next/link';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 export default function ContactPage() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -63,36 +65,14 @@ export default function ContactPage() {
 
   return (
     <>
-      {/* Navigation */}
-      <nav className="bg-white text-gray-800 shadow-lg border-b-2 border-rose-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link href="/" className="cursor-pointer">
-                <img src="/alpha-lpgas-logo.svg" alt="Alpha LPGas Logo" className="h-12" />
-              </Link>
-            </div>
-            <div className="hidden md:flex space-x-8">
-              <Link href="/" className="text-gray-700 hover:text-rose-600 font-semibold transition">Home</Link>
-              <a href="/#products" className="text-gray-700 hover:text-rose-600 font-semibold transition">Products</a>
-              <Link href="/contact" className="text-rose-600 font-semibold">Contact Us</Link>
-            </div>
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <a href="tel:0744545665" className="bg-rose-600 text-white hover:bg-rose-700 px-3 py-2 sm:px-4 rounded-lg font-semibold transition whitespace-nowrap">
-                <span className="hidden sm:inline">📞 074 454 5665</span>
-                <span className="sm:hidden text-xl">📞</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Header />
 
-      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Contact Us</h1>
-          <p className="text-lg text-gray-600">
+          <h1 className="text-4xl font-bold text-slate-900 mb-4">Contact Us</h1>
+          <p className="text-lg text-slate-600">
             Have a question? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
           </p>
         </div>
@@ -101,35 +81,35 @@ export default function ContactPage() {
           {/* Contact Information */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">Get in Touch</h2>
+              <h2 className="text-2xl font-semibold text-slate-900 mb-4">Get in Touch</h2>
               
               <div className="flex items-start space-x-4">
-                <Phone className="w-6 h-6 text-blue-600 mt-1" />
+                <Phone className="w-6 h-6 text-red-600 mt-1" />
                 <div>
-                  <h3 className="font-medium text-gray-900">Phone</h3>
-                  <p className="text-gray-600">{process.env.NEXT_PUBLIC_COMPANY_PHONE || '074 454 5665'}</p>
+                  <h3 className="font-medium text-slate-900">Phone</h3>
+                  <p className="text-slate-600">{process.env.NEXT_PUBLIC_COMPANY_PHONE || '074 454 5665'}</p>
                 </div>
               </div>
 
               <div className="flex items-start space-x-4">
-                <Mail className="w-6 h-6 text-blue-600 mt-1" />
+                <Mail className="w-6 h-6 text-red-600 mt-1" />
                 <div>
-                  <h3 className="font-medium text-gray-900">Email</h3>
-                  <p className="text-gray-600">{process.env.NEXT_PUBLIC_COMPANY_EMAIL || 'info@alphalpgas.co.za'}</p>
+                  <h3 className="font-medium text-slate-900">Email</h3>
+                  <p className="text-slate-600">{process.env.NEXT_PUBLIC_COMPANY_EMAIL || 'info@alphalpgas.co.za'}</p>
                 </div>
               </div>
 
               <div className="flex items-start space-x-4">
-                <MapPin className="w-6 h-6 text-blue-600 mt-1" />
+                <MapPin className="w-6 h-6 text-red-600 mt-1" />
                 <div>
-                  <h3 className="font-medium text-gray-900">Address</h3>
-                  <p className="text-gray-600">{process.env.NEXT_PUBLIC_COMPANY_ADDRESS || 'Sunnyacres Shopping Centre, Fish Hoek, Cape Town'}</p>
+                  <h3 className="font-medium text-slate-900">Address</h3>
+                  <p className="text-slate-600">{process.env.NEXT_PUBLIC_COMPANY_ADDRESS || 'Sunnyacres Shopping Centre, Fish Hoek, Cape Town'}</p>
                 </div>
               </div>
 
-              <div className="pt-6 border-t border-gray-200">
-                <h3 className="font-medium text-gray-900 mb-2">Business Hours</h3>
-                <p className="text-gray-600 text-sm">Mon – Sun: 8am – 7pm</p>
+              <div className="pt-6 border-t border-slate-200">
+                <h3 className="font-medium text-slate-900 mb-2">Business Hours</h3>
+                <p className="text-slate-600 text-sm">Mon – Sun: 8am – 7pm</p>
               </div>
             </div>
           </div>
@@ -137,12 +117,12 @@ export default function ContactPage() {
           {/* Contact Form */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-md p-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-6">Send us a Message</h2>
+              <h2 className="text-2xl font-semibold text-slate-900 mb-6">Send us a Message</h2>
 
               {success && (
                 <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-green-800">
-                    ✓ Thank you for contacting us! We'll get back to you soon.
+                  <p className="text-green-800 flex items-center gap-2">
+                    <Check className="w-4 h-4" /> Thank you for contacting us! We'll get back to you soon.
                   </p>
                 </div>
               )}
@@ -156,7 +136,7 @@ export default function ContactPage() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-2">
                       Name *
                     </label>
                     <input
@@ -166,13 +146,13 @@ export default function ContactPage() {
                       required
                       value={formData.name}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       placeholder="Your name"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
                       Email *
                     </label>
                     <input
@@ -182,7 +162,7 @@ export default function ContactPage() {
                       required
                       value={formData.email}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       placeholder="your@email.com"
                     />
                   </div>
@@ -190,7 +170,7 @@ export default function ContactPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="phone" className="block text-sm font-medium text-slate-700 mb-2">
                       Phone
                     </label>
                     <input
@@ -199,13 +179,13 @@ export default function ContactPage() {
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       placeholder="074 123 4567"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="subject" className="block text-sm font-medium text-slate-700 mb-2">
                       Subject
                     </label>
                     <input
@@ -214,14 +194,14 @@ export default function ContactPage() {
                       name="subject"
                       value={formData.subject}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       placeholder="How can we help?"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="message" className="block text-sm font-medium text-slate-700 mb-2">
                     Message *
                   </label>
                   <textarea
@@ -231,7 +211,7 @@ export default function ContactPage() {
                     value={formData.message}
                     onChange={handleChange}
                     rows={6}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     placeholder="Tell us more about your inquiry..."
                   />
                 </div>
@@ -239,7 +219,7 @@ export default function ContactPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-colors"
+                  className="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-red-700 disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-colors"
                 >
                   {loading ? (
                     <>
@@ -258,6 +238,7 @@ export default function ContactPage() {
         </div>
       </div>
     </div>
+      <Footer />
     </>
   );
 }
