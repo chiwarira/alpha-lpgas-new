@@ -30,12 +30,14 @@ if RAILWAY_ENVIRONMENT or VERCEL_ENV:
         '.up.railway.app',
         '.vercel.app',
         'api.alphalpgas.co.za',
+        'api-staging.alphalpgas.co.za',
     ])
     # Add your custom domain when you set it up
     CSRF_TRUSTED_ORIGINS.extend([
         'https://*.railway.app',
         'https://*.up.railway.app',
         'https://*.vercel.app',
+        'https://api-staging.alphalpgas.co.za',
     ])
 
 # Application definition
