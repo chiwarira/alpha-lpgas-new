@@ -44,8 +44,8 @@ def setup_wagtail():
     site.root_page.add_child(instance=blog_index)
     blog_index.save_revision().publish()
     
-    print(f"✓ Blog index page created at /blog")
-    print(f"✓ You can now access:")
+    print("OK Blog index page created at /blog")
+    print("OK You can now access:")
     print(f"  - Wagtail Admin: http://localhost:8000/cms/")
     print(f"  - Blog: http://localhost:8000/blog/")
     print(f"\nNext steps:")
