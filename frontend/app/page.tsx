@@ -364,9 +364,9 @@ export default function Home() {
       <section
         id="home"
         className="relative bg-slate-900 text-white py-24 lg:py-32 bg-cover bg-center"
-        style={banner?.background_image ? {
-          backgroundImage: `linear-gradient(${banner.overlay_rgba}, ${banner.overlay_rgba}), url(${banner.background_image.startsWith('http') ? banner.background_image : `${apiUrl}/media/${banner.background_image}`})`
-        } : {}}
+        style={{
+          backgroundImage: `linear-gradient(${banner?.overlay_rgba || 'rgba(37, 99, 235, 0.3)'}, ${banner?.overlay_rgba || 'rgba(37, 99, 235, 0.3)'}), url(${banner?.background_image ? (banner.background_image.startsWith('http') ? banner.background_image : `${apiUrl}/media/${banner.background_image}`) : '/images/hero-bg.jpg'})`
+        }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
