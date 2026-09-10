@@ -37,7 +37,11 @@ if RAILWAY_ENVIRONMENT or VERCEL_ENV:
         'https://*.railway.app',
         'https://*.up.railway.app',
         'https://*.vercel.app',
+        'https://alphalpgas.co.za',
+        'https://www.alphalpgas.co.za',
+        'https://staging.alphalpgas.co.za',
         'https://api-staging.alphalpgas.co.za',
+        'https://api.alphalpgas.co.za',
     ])
 
 # Application definition
@@ -218,6 +222,7 @@ if RAILWAY_ENVIRONMENT or VERCEL_ENV:
         r"^https://.*\.up\.railway\.app$",
         r"^https://.*\.railway\.app$",
         r"^https://.*\.vercel\.app$",
+        r"^https://([a-z0-9-]+\.)?alphalpgas\.co\.za$",
     ]
 
 # REST Framework
