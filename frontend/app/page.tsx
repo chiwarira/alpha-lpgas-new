@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Checkout from '../components/CheckoutSinglePage';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import WhatsAppButton from '@/components/WhatsAppButton';
 import { Flame, Check, Package, Truck, Shield, Award, Phone, MapPin, Home as HomeIcon, ShoppingCart, PartyPopper, Loader2 } from 'lucide-react';
 
 interface Product {
@@ -380,13 +381,14 @@ export default function Home() {
               <p className="text-lg md:text-xl mb-8 text-slate-200 max-w-xl">
                 {banner?.subtitle || 'Fast, reliable gas delivery to your doorstep in Fish Hoek and surrounding areas. Order online and get same-day delivery!'}
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row flex-wrap gap-4">
                 <a href="#products" className="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-full font-bold text-lg transition shadow-lg">
                   Order Now
                 </a>
                 <Link href="/contact" className="inline-flex items-center justify-center bg-white text-slate-900 hover:bg-slate-100 px-8 py-4 rounded-full font-bold text-lg transition shadow-lg">
                   Contact Us
                 </Link>
+                <WhatsAppButton label="Order on WhatsApp" />
               </div>
             </div>
             <div className="hidden lg:block">
@@ -637,6 +639,11 @@ export default function Home() {
       </section>
 
       <Footer />
+
+      {/* Floating WhatsApp CTA */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <WhatsAppButton label="Order on WhatsApp" className="shadow-2xl" />
+      </div>
 
       {/* Cart Sidebar */}
       {showCart && (
