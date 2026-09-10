@@ -259,7 +259,7 @@ export default function Home() {
   };
 
   const orderViaWhatsApp = (product?: Product) => {
-    const phone = '27744545665'; // WhatsApp number
+    const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '27832347160'; // WhatsApp number
     let message = '';
     
     if (product) {
