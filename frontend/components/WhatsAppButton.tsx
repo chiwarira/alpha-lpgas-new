@@ -7,7 +7,7 @@ interface WhatsAppButtonProps {
   className?: string;
 }
 
-const DEFAULT_PHONE = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '27832347160';
+const DEFAULT_PHONE = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '27744545665';
 const DEFAULT_MESSAGE = "Hi Alpha LPGas, I'd like to place an order.";
 
 export default function WhatsAppButton({

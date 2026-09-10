@@ -178,7 +178,7 @@ export default function ProductDetail() {
   const orderViaWhatsApp = () => {
     if (!product) return;
     
-    const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '27832347160';
+    const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '27744545665';
     const message = `Hi! I'd like to order:\n\n${quantity}x ${product.name} - R${(parseFloat(product.unit_price) * quantity).toFixed(2)}`;
     
     // GA4: Track WhatsApp order event
