@@ -201,10 +201,10 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': config('CLOUDINARY_API_SECRET', default=''),
 }
 
-# Media files - Use Cloudinary in production, local storage in development
+# Media files - Use Cloudinary in production when credentials are provided, local storage otherwise
 if not DEBUG and config('CLOUDINARY_CLOUD_NAME', default=''):
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-    # Don't set MEDIA_URL - let Cloudinary handle it
+    # Cloudinary storage returns absolute URLs; no need to override MEDIA_URL
 else:
     MEDIA_URL = '/media/'
     MEDIA_ROOT = BASE_DIR / 'media'
