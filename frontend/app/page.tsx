@@ -474,7 +474,7 @@ export default function Home() {
                 return (
                 <div key={product.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 hover:shadow-xl transition-all duration-300 overflow-hidden">
                   <Link href={`/products/${productSlug}`}>
-                    <div className="bg-slate-900 p-8 text-center cursor-pointer">
+                    <div className="bg-white p-8 text-center cursor-pointer">
                       {product.main_image ? (
                         <img 
                           src={product.main_image.startsWith('http') ? product.main_image : `${apiUrl}/media/${product.main_image}`} 
@@ -482,9 +482,9 @@ export default function Home() {
                           className="w-full h-48 object-contain mb-4"
                         />
                       ) : (
-                        <Package className="w-20 h-20 text-white mx-auto mb-4" />
+                        <Package className="w-20 h-20 text-slate-300 mx-auto mb-4" />
                       )}
-                      <h3 className="text-2xl font-bold text-white">{product.name}</h3>
+                      <h3 className="text-2xl font-bold text-slate-900">{product.name}</h3>
                     </div>
                   </Link>
                   <div className="p-6">
