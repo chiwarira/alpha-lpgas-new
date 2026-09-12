@@ -1436,7 +1436,8 @@ def daily_sales_report(request):
     
     # Get product sales breakdown for invoices created in this date range
     product_summary = InvoiceItem.objects.filter(
-        invoice__in=invoices_created
+        invoice__issue_date__gte=start_date,
+        invoice__issue_date__lte=end_date
     ).values(
         'product__name'
     ).annotate(
@@ -1608,7 +1609,8 @@ def daily_sales_report(request):
     
     # Find gas exchange products in invoices created in this range
     gas_items = InvoiceItem.objects.filter(
-        invoice__in=invoices_created,
+        invoice__issue_date__gte=start_date,
+        invoice__issue_date__lte=end_date,
         product__name__icontains='gas exchange'
     ).select_related('product', 'invoice')
     
