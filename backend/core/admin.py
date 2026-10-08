@@ -175,7 +175,7 @@ class InvoiceAdmin(admin.ModelAdmin):
     list_filter = ['status', 'delivery_zone', 'issue_date', 'due_date', 'created_at']
     search_fields = ['invoice_number', 'client__name']
     autocomplete_fields = ['client', 'delivery_zone']
-    readonly_fields = ['subtotal', 'tax_amount', 'total_amount', 'paid_amount', 'balance', 'created_at', 'updated_at', 'order_link']
+    readonly_fields = ['subtotal', 'tax_amount', 'total_amount', 'paid_amount', 'balance', 'created_at', 'updated_at']
     ordering = ['-created_at']
     inlines = [InvoiceItemInline]
     

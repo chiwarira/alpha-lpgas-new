@@ -192,12 +192,12 @@ class InvoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invoice
         fields = [
-            'id', 'invoice_number', 'client', 'client_name', 'client_email',
+            'id', 'invoice_number', 'order', 'client', 'client_name', 'client_email',
             'client_phone', 'client_address', 'client_city', 'client_state',
             'client_postal_code', 'client_country', 'client_tax_id', 'quote',
-            'quote_number', 'delivery_zone', 'delivery_zone_name', 'issue_date', 
-            'due_date', 'status', 'subtotal', 'tax_amount', 'total_amount', 
-            'paid_amount', 'balance', 'notes', 'terms', 'items', 'created_at', 
+            'quote_number', 'delivery_zone', 'delivery_zone_name', 'issue_date',
+            'due_date', 'status', 'subtotal', 'tax_amount', 'total_amount',
+            'paid_amount', 'balance', 'notes', 'terms', 'items', 'created_at',
             'updated_at', 'created_by', 'created_by_name'
         ]
         read_only_fields = ['id', 'subtotal', 'tax_amount', 'total_amount', 'balance', 'created_at', 'updated_at', 'created_by']
@@ -308,10 +308,18 @@ class OrderItemSerializer(serializers.ModelSerializer):
     """Serializer for OrderItem model"""
     product_name = serializers.CharField(source='product.name', read_only=True)
     variant_name = serializers.CharField(source='variant.name', read_only=True, allow_null=True)
-    
+    tax_rate = serializers.SerializerMethodField(read_only=True)
+    tax_amount = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = OrderItem
         fields = '__all__'
+
+    def get_tax_rate(self, obj):
+        return obj.invoice_item.tax_rate if obj.invoice_item_id else None
+
+    def get_tax_amount(self, obj):
+        return obj.invoice_item.tax_amount if obj.invoice_item_id else None
 
 
 class OrderStatusHistorySerializer(serializers.ModelSerializer):
@@ -329,16 +337,30 @@ class OrderSerializer(serializers.ModelSerializer):
     driver_name = serializers.SerializerMethodField()
     driver_phone = serializers.CharField(source='assigned_driver.phone', read_only=True, allow_null=True)
     driver_vehicle = serializers.CharField(source='assigned_driver.vehicle_registration', read_only=True, allow_null=True)
-    
+    invoice = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = Order
-        fields = '__all__'
+        fields = [
+            'id', 'order_number', 'client', 'customer_name', 'customer_email',
+            'customer_phone', 'delivery_address', 'delivery_zone',
+            'delivery_zone_name', 'delivery_notes', 'assigned_driver', 'driver_name',
+            'driver_phone', 'driver_vehicle', 'subtotal', 'delivery_fee',
+            'discount_amount', 'promo_code', 'total', 'payment_method',
+            'payment_status', 'yoco_payment_id', 'status', 'estimated_delivery',
+            'delivered_at', 'notes', 'created_at', 'updated_at', 'items',
+            'status_history', 'invoice',
+        ]
         read_only_fields = ['order_number', 'created_at', 'updated_at']
-    
+
     def get_driver_name(self, obj):
         if obj.assigned_driver:
             return obj.assigned_driver.user.get_full_name() or obj.assigned_driver.user.username
         return None
+
+    def get_invoice(self, obj):
+        invoice = obj.invoices.first()
+        return invoice.id if invoice else None
 
 
 class ContactSubmissionSerializer(serializers.ModelSerializer):
