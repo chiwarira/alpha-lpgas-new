@@ -21,15 +21,21 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='https://api.alphalpgas.co.za').split(',')
 
-# Vercel / production-specific settings
+# Railway-specific settings
+RAILWAY_ENVIRONMENT = config('RAILWAY_ENVIRONMENT', default=None)
 VERCEL_ENV = config('VERCEL_ENV', default=None)
-if VERCEL_ENV:
+if RAILWAY_ENVIRONMENT or VERCEL_ENV:
     ALLOWED_HOSTS.extend([
+        '.railway.app',
+        '.up.railway.app',
         '.vercel.app',
         'api.alphalpgas.co.za',
         'api-staging.alphalpgas.co.za',
     ])
+    # Add your custom domain when you set it up
     CSRF_TRUSTED_ORIGINS.extend([
+        'https://*.railway.app',
+        'https://*.up.railway.app',
         'https://*.vercel.app',
         'https://alphalpgas.co.za',
         'https://www.alphalpgas.co.za',
@@ -210,9 +216,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3002,http://127.0.0.1:3003,https://www.alphalpgas.co.za,https://alphalpgas.co.za').split(',')
 CORS_ALLOW_CREDENTIALS = True
 
-# In Vercel production, allow all Vercel app origins and custom domains
-if VERCEL_ENV:
+# In Railway production, allow all Railway app origins
+if RAILWAY_ENVIRONMENT or VERCEL_ENV:
     CORS_ALLOWED_ORIGIN_REGEXES = [
+        r"^https://.*\.up\.railway\.app$",
+        r"^https://.*\.railway\.app$",
         r"^https://.*\.vercel\.app$",
         r"^https://([a-z0-9-]+\.)?alphalpgas\.co\.za$",
     ]
@@ -366,7 +374,7 @@ LOGGING = {
 
 # Security Settings (Production)
 if not DEBUG:
-    # Vercel uses a proxy, so we need to trust proxy headers
+    # Railway uses a proxy, so we need to trust proxy headers
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True

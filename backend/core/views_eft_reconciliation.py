@@ -23,7 +23,7 @@ EXPENSE_KEYWORDS = [
     'fuel', 'wages', 'salary', 'rent', 'reimbursement', 'loan',
     'deposit', 'nedbank send', 'instant payment fee',
     'sasol', 'shell', 'digitalocean', 'google workspa', 'afrihost',
-    'openai', 'vodacom', 'mtn', 'cartrack', 'checkers',
+    'railway', 'openai', 'vodacom', 'mtn', 'cartrack', 'checkers',
     'dischem', 'starbucks', 'windsurf', 'suburban', 'village serv',
     'prepaid electricity', 'schaap', 'lekkerwater', 'paul wages',
     'fanuel', 'grace wages', 'redfern', 'palisade', 'sunnyacres',

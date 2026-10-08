@@ -1,77 +1,65 @@
-# Run Migration in Production
+# Run Migration on Railway Production
 
-## What changed
+## Option 1: Using Railway CLI
 
-The latest code adds `Invoice.order`, `Order.client`, and `OrderItem.invoice_item` fields, plus auto-generated delivery orders for invoices.
-
-Required migrations:
-
-- `0041_invoice_order_order_client`
-- `0042_orderitem_invoice_item`
-
-After migrating, run the backfill command so existing invoices get their corresponding delivery orders:
-
+1. **Install Railway CLI** (if not already installed):
 ```bash
-python manage.py backfill_order_invoices
+npm install -g @railway/cli
 ```
 
-## Option 1: Vercel CLI (recommended)
-
-Assumes the backend is deployed on Vercel and the production `DATABASE_URL` is available.
-
-1. **Install Vercel CLI**:
+2. **Login to Railway**:
 ```bash
-npm install -g vercel
+railway login
 ```
 
-2. **Login**:
+3. **Link to your project**:
 ```bash
-vercel login
+railway link
 ```
 
-3. **Link your project**:
+4. **Run the migration**:
 ```bash
-vercel link
+railway run python manage.py migrate
 ```
 
-4. **Pull environment variables**:
-```bash
-vercel env pull .env.production
-```
+## Option 2: Using Railway Dashboard
 
-5. **Run migrations**:
-```bash
-vercel --prod
-# Or run a one-off command against the production DB with the pulled env:
-DATABASE_URL="<production_database_url>" python manage.py migrate
-DATABASE_URL="<production_database_url>" python manage.py backfill_order_invoices
-```
+1. Go to your Railway project dashboard
+2. Click on your Django service
+3. Go to the **"Settings"** tab
+4. Scroll to **"Deploy"** section
+5. Add a **one-off command**:
+   ```
+   python manage.py migrate
+   ```
+6. Click **"Run"**
 
-## Option 2: Local shell with production `DATABASE_URL`
+## Option 3: Add to Deployment Process
 
-If you have direct access to the production database URL:
+Update your Railway deployment to always run migrations:
 
-```bash
-export DATABASE_URL="postgresql://..."
-python manage.py migrate
-python manage.py backfill_order_invoices
-```
+1. In Railway dashboard, go to **Settings** → **Deploy**
+2. Set **"Build Command"**:
+   ```
+   pip install -r requirements.txt
+   ```
+3. Set **"Start Command"**:
+   ```
+   python manage.py migrate && gunicorn alphalpgas.wsgi:application
+   ```
+
+This will automatically run migrations on every deployment.
 
 ## Verify Migration
 
-After running, check the migrations were applied:
+After running, check the migration was applied:
 ```bash
-python manage.py showmigrations core
+railway run python manage.py showmigrations core
 ```
 
 Look for:
 ```
-[X] 0041_invoice_order_order_client
-[X] 0042_orderitem_invoice_item
+[X] 0036_alter_creditnoteitem_quantity_and_more
 ```
 
 The `[X]` means it's been applied.
-
-## Why the production API was returning 500
-
-If you see `GET https://api.alphalpgas.co.za/accounting/ 500 (Internal Server Error)` after the code was deployed, it is almost certainly because the production database is missing the new `order`/`client`/`invoice_item` columns. Running `migrate` (and optionally the backfill) resolves it.
