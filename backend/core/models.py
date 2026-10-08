@@ -694,6 +694,7 @@ class Invoice(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='invoices')
     quote = models.ForeignKey(Quote, on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices')
     delivery_zone = models.ForeignKey('DeliveryZone', on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices', help_text="Delivery zone for this invoice")
+    order = models.ForeignKey('Order', on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices', help_text="Delivery order generated from this invoice")
     issue_date = models.DateField(db_index=True)
     payment_terms = models.CharField(max_length=20, choices=PAYMENT_TERMS_CHOICES, default='net_30', help_text="Payment terms for this invoice")
     due_date = models.DateField(db_index=True)
@@ -1125,6 +1126,7 @@ class Order(models.Model):
     order_number = models.CharField(max_length=50, unique=True, editable=False)
     
     # Customer Info
+    client = models.ForeignKey('Client', on_delete=models.SET_NULL, null=True, blank=True, related_name='orders', help_text="Linked client account (matched or created on invoicing)")
     customer_name = models.CharField(max_length=255)
     customer_email = models.EmailField(blank=True)
     customer_phone = models.CharField(max_length=50)
@@ -1193,6 +1195,7 @@ class Order(models.Model):
 class OrderItem(models.Model):
     """Items in an order"""
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    invoice_item = models.ForeignKey('InvoiceItem', on_delete=models.SET_NULL, null=True, blank=True, related_name='order_items', help_text="Invoice line item this order item was generated from")
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
     variant = models.ForeignKey(ProductVariant, on_delete=models.SET_NULL, null=True, blank=True)
     quantity = models.IntegerField(default=1)

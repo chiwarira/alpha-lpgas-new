@@ -171,11 +171,11 @@ class InvoiceItemInline(admin.TabularInline):
 
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
-    list_display = ['invoice_number', 'client_name', 'delivery_zone', 'issue_date', 'due_date', 'status', 'total_amount', 'paid_amount', 'balance_display', 'created_at']
+    list_display = ['invoice_number', 'client_name', 'delivery_zone', 'issue_date', 'due_date', 'status', 'total_amount', 'paid_amount', 'balance_display', 'order_link', 'created_at']
     list_filter = ['status', 'delivery_zone', 'issue_date', 'due_date', 'created_at']
     search_fields = ['invoice_number', 'client__name']
     autocomplete_fields = ['client', 'delivery_zone']
-    readonly_fields = ['subtotal', 'tax_amount', 'total_amount', 'paid_amount', 'balance', 'created_at', 'updated_at']
+    readonly_fields = ['subtotal', 'tax_amount', 'total_amount', 'paid_amount', 'balance', 'created_at', 'updated_at', 'order_link']
     ordering = ['-created_at']
     inlines = [InvoiceItemInline]
     
@@ -186,6 +186,15 @@ class InvoiceAdmin(admin.ModelAdmin):
     @admin.display(description='Balance', ordering='total_amount')
     def balance_display(self, obj):
         return obj.balance
+
+    @admin.display(description='Delivery Order', ordering='order__order_number')
+    def order_link(self, obj):
+        from django.urls import reverse
+        from django.utils.html import format_html
+        if obj.order_id:
+            url = reverse('admin:core_order_change', args=[obj.order_id])
+            return format_html('<a href="{}">{}</a>', url, obj.order.order_number)
+        return '-'
 
 
 @admin.register(Payment)
@@ -344,7 +353,7 @@ class OrderAdmin(admin.ModelAdmin):
             'fields': ('order_number', 'status', 'created_at', 'updated_at')
         }),
         ('Customer', {
-            'fields': ('customer_name', 'customer_email', 'customer_phone')
+            'fields': ('client', 'customer_name', 'customer_email', 'customer_phone')
         }),
         ('Delivery', {
             'fields': ('delivery_address', 'delivery_zone', 'assigned_driver', 'delivery_notes', 'estimated_delivery', 'delivered_at')
