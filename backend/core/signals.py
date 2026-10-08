@@ -20,8 +20,9 @@ def reverse_loyalty_on_invoice_delete(sender, instance, **kwargs):
         txn.delete()
 
 
-def create_order_from_invoice(invoice):
+def create_order_from_invoice(invoice, created_at=None):
     """Create a delivery Order mirroring an invoice's current line items."""
+    from django.utils import timezone
     from .models import Order, OrderItem, OrderStatusHistory
 
     client = invoice.client
@@ -31,6 +32,7 @@ def create_order_from_invoice(invoice):
     # Compute totals from line items — invoice totals may not be recalculated yet
     items_total = sum(item.total for item in invoice.items.all())
 
+    timestamp = created_at or timezone.now()
     order = Order.objects.create(
         client=client,
         customer_name=client.name,
@@ -45,11 +47,13 @@ def create_order_from_invoice(invoice):
         payment_method='eft',
         payment_status='paid' if invoice.status == 'paid' else 'pending',
         notes=f'Auto-created from {invoice.invoice_number}',
+        created_at=timestamp,
     )
     OrderStatusHistory.objects.create(
         order=order,
         status='pending',
         notes=f'Order created from invoice {invoice.invoice_number}',
+        created_at=timestamp,
     )
     for item in invoice.items.all():
         OrderItem.objects.create(

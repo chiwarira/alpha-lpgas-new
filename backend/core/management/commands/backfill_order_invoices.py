@@ -1,3 +1,5 @@
+from datetime import datetime, time, timezone as dt_timezone
+
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
@@ -36,7 +38,8 @@ class Command(BaseCommand):
                 continue
 
             with transaction.atomic():
-                order = create_order_from_invoice(invoice)
+                created_at = datetime.combine(invoice.issue_date, time.min, tzinfo=dt_timezone.utc)
+                order = create_order_from_invoice(invoice, created_at=created_at)
                 Invoice.objects.filter(pk=invoice.pk).update(order=order)
                 created += 1
                 self.stdout.write(
