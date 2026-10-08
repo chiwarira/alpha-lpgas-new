@@ -48,7 +48,7 @@ python manage.py migrate
 
 ### Step 4: Set Up Webhook
 
-1. Deploy your app to a public HTTPS URL (Railway, Heroku, etc.)
+1. Deploy your app to a public HTTPS URL (Vercel, Heroku, etc.)
 
 2. In Meta Developer Console:
    - Go to WhatsApp → Configuration

@@ -135,7 +135,7 @@ curl http://localhost:8000/api/accounting/orders/
 
 1. If all tests pass, commit changes to git
 2. Push to GitHub
-3. Deploy to Railway (will auto-deploy)
+3. Deploy to Vercel (will auto-deploy)
 4. Test on production environment
 5. Create additional drivers as needed
 

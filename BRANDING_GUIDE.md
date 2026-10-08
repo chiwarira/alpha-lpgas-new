@@ -197,9 +197,9 @@ const settings = await response.json();
 
 ## Production Deployment
 
-### Railway Setup:
+### Vercel Setup:
 
-When deploying to Railway, ensure:
+When deploying to Vercel, ensure:
 
 1. **Media files are configured:**
    ```env
@@ -208,18 +208,18 @@ When deploying to Railway, ensure:
 
 2. **Static files collected:**
    ```bash
-   railway run python manage.py collectstatic
+   vercel run python manage.py collectstatic
    ```
 
 3. **Upload logo/favicon via admin:**
    - Go to `https://api.alphalpgas.co.za/admin/`
    - Upload branding assets
-   - Files stored in Railway's persistent storage
+   - Files stored in Vercel's persistent storage
 
 ### Media Storage:
 
 For production, consider:
-- **Railway** - Built-in storage (simple, good for small files)
+- **Vercel** - Built-in storage (simple, good for small files)
 - **AWS S3** - Scalable cloud storage (for larger sites)
 - **Cloudinary** - Image optimization + CDN (recommended)
 

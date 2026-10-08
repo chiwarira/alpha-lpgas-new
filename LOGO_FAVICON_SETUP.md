@@ -219,9 +219,9 @@ Design:     Simple, recognizable at small size
 
 ## Production Deployment
 
-### Railway Configuration:
+### Vercel Configuration:
 
-Ensure these settings in Railway:
+Ensure these settings in Vercel:
 
 ```env
 # Backend (Django service)
@@ -235,13 +235,13 @@ NEXT_PUBLIC_API_URL=https://api.alphalpgas.co.za
 ### After Deployment:
 
 1. Upload logo/favicon via production admin
-2. Files stored in Railway's persistent storage
+2. Files stored in Vercel's persistent storage
 3. Accessible via media URL
 4. Frontend fetches automatically
 
 ### Media Storage Options:
 
-**Railway (Default):**
+**Vercel (Default):**
 - ✅ Simple, built-in
 - ✅ Good for small files
 - ⚠️ Limited storage

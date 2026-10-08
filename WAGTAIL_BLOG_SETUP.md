@@ -123,7 +123,7 @@ When deploying to production:
    python manage.py collectstatic --noinput
    ```
 
-4. **Update environment variables** in Railway:
+4. **Update environment variables** in Vercel:
    - Ensure `WAGTAILADMIN_BASE_URL` is set to your production domain
    - Already configured in settings.py to use `SITE_URL`
 

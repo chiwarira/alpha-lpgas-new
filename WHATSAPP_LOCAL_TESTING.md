@@ -202,10 +202,10 @@ DATABASE_URL=sqlite:///db.sqlite3
 ALLOWED_HOSTS=localhost,127.0.0.1,.ngrok-free.app
 ```
 
-### Production (Railway)
+### Production (Vercel)
 ```bash
 DEBUG=False
-DATABASE_URL=postgresql://... (provided by Railway)
+DATABASE_URL=postgresql://... (provided by Vercel)
 ALLOWED_HOSTS=api.alphalpgas.co.za
 ```
 
@@ -272,7 +272,7 @@ ngrok http 8000
 - ✅ Experimenting with AI prompts
 - ✅ Learning how the system works
 
-### Use Production (Railway) For:
+### Use Production (Vercel) For:
 - ✅ Real customer orders
 - ✅ 24/7 availability
 - ✅ Stable webhook URL

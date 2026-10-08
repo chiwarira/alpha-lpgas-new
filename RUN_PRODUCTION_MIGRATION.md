@@ -1,4 +1,4 @@
-# Run Migration on Railway Production
+# Run Migration in Production
 
 ## What changed
 
@@ -15,66 +15,53 @@ After migrating, run the backfill command so existing invoices get their corresp
 python manage.py backfill_order_invoices
 ```
 
-## Option 1: Using Railway CLI
+## Option 1: Vercel CLI (recommended)
 
-1. **Install Railway CLI** (if not already installed):
+Assumes the backend is deployed on Vercel and the production `DATABASE_URL` is available.
+
+1. **Install Vercel CLI**:
 ```bash
-npm install -g @railway/cli
+npm install -g vercel
 ```
 
-2. **Login to Railway**:
+2. **Login**:
 ```bash
-railway login
+vercel login
 ```
 
-3. **Link to your project**:
+3. **Link your project**:
 ```bash
-railway link
+vercel link
 ```
 
-4. **Run the migration**:
+4. **Pull environment variables**:
 ```bash
-railway run python manage.py migrate
+vercel env pull .env.production
 ```
 
-5. **Backfill historical invoices**:
+5. **Run migrations**:
 ```bash
-railway run python manage.py backfill_order_invoices
+vercel --prod
+# Or run a one-off command against the production DB with the pulled env:
+DATABASE_URL="<production_database_url>" python manage.py migrate
+DATABASE_URL="<production_database_url>" python manage.py backfill_order_invoices
 ```
 
-## Option 2: Using Railway Dashboard
+## Option 2: Local shell with production `DATABASE_URL`
 
-1. Go to your Railway project dashboard
-2. Click on your Django service
-3. Go to the **"Settings"** tab
-4. Scroll to **"Deploy"** section
-5. Add a **one-off command**:
-   ```
-   python manage.py migrate && python manage.py backfill_order_invoices
-   ```
-6. Click **"Run"**
+If you have direct access to the production database URL:
 
-## Option 3: Add to Deployment Process
-
-Update your Railway deployment to always run migrations and the invoice backfill:
-
-1. In Railway dashboard, go to **Settings** → **Deploy**
-2. Set **"Build Command"**:
-   ```
-   pip install -r requirements.txt
-   ```
-3. Set **"Start Command"**:
-   ```
-   python manage.py migrate && python manage.py backfill_order_invoices && gunicorn alphalpgas.wsgi:application
-   ```
-
-This will automatically run migrations and backfill on every deployment.
+```bash
+export DATABASE_URL="postgresql://..."
+python manage.py migrate
+python manage.py backfill_order_invoices
+```
 
 ## Verify Migration
 
 After running, check the migrations were applied:
 ```bash
-railway run python manage.py showmigrations core
+python manage.py showmigrations core
 ```
 
 Look for:

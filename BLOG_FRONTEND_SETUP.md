@@ -154,7 +154,7 @@ The blog pages automatically construct the correct API URL.
 
 ## Production Deployment
 
-### Backend (Railway)
+### Backend (Vercel)
 
 1. Ensure migrations are run:
    ```bash

@@ -132,18 +132,18 @@ You have two options:
 
 ## 3. Server Requirements (Already Done! ✅)
 
-Your Railway deployment already has:
+Your Vercel deployment already has:
 
 ### ✅ Public HTTPS Endpoint
 - **Production URL**: `https://api.alphalpgas.co.za`
-- **SSL Certificate**: Automatically managed by Railway
+- **SSL Certificate**: Automatically managed by Vercel
 - **Webhook endpoint**: Will be at `/whatsapp/webhook/`
 
 ### What You Need to Do:
 
-#### Step 1: Add Environment Variables to Railway
+#### Step 1: Add Environment Variables to Vercel
 
-1. Go to https://railway.app
+1. Go to https://vercel.com
 2. Select **Alpha LPGas** project
 3. Click **backend** service
 4. Go to **"Variables"** tab
@@ -194,9 +194,9 @@ ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
 #### Step 3: Test the Connection
 
 1. Send a WhatsApp message to your business number
-2. Check Railway logs:
+2. Check Vercel logs:
    ```bash
-   railway logs --service backend
+   vercel logs --service backend
    ```
 3. You should see webhook events coming in
 
@@ -210,7 +210,7 @@ ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
 - [ ] **Permanent access token** generated and saved
 - [ ] **OpenAI or Anthropic** account created
 - [ ] **AI API key** generated and saved
-- [ ] **Environment variables** added to Railway
+- [ ] **Environment variables** added to Vercel
 - [ ] **Webhook configured** in Meta dashboard
 - [ ] **Test message** sent and received
 
@@ -238,15 +238,15 @@ ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
 ## Troubleshooting
 
 ### Webhook Not Receiving Messages
-1. Check Railway logs for errors
+1. Check Vercel logs for errors
 2. Verify webhook URL is accessible: `https://api.alphalpgas.co.za/whatsapp/webhook/`
-3. Check verify token matches in both Meta and Railway
+3. Check verify token matches in both Meta and Vercel
 4. Ensure webhook fields are subscribed
 
 ### AI Not Responding
 1. Check AI provider API key is valid
 2. Verify sufficient credits/balance
-3. Check Railway logs for AI API errors
+3. Check Vercel logs for AI API errors
 4. Test API key with curl:
    ```bash
    curl https://api.openai.com/v1/models \
@@ -274,7 +274,7 @@ Once setup is complete:
 - **Meta WhatsApp Docs**: https://developers.facebook.com/docs/whatsapp
 - **OpenAI API Docs**: https://platform.openai.com/docs
 - **Anthropic Docs**: https://docs.anthropic.com/
-- **Railway Docs**: https://docs.railway.app/
+- **Vercel Docs**: https://docs.vercel.com/
 
 ---
 

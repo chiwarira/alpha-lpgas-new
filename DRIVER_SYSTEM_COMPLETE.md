@@ -409,7 +409,7 @@ Docs: http://localhost:8000/api/docs/
 5. **Deploy to Production**:
    - Commit changes
    - Push to GitHub
-   - Deploy to Railway
+   - Deploy to Vercel
    - Test on production
 
 ---
