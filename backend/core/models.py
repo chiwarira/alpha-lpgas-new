@@ -1187,8 +1187,14 @@ class Order(models.Model):
     def save(self, *args, **kwargs):
         if not self.order_number:
             from django.utils import timezone
-            timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
-            self.order_number = f"ORD-{timestamp}"
+            import time
+            while True:
+                timestamp = timezone.now().strftime('%Y%m%d%H%M%S%f')
+                candidate = f"ORD-{timestamp}"
+                if not Order.objects.filter(order_number=candidate).exists():
+                    self.order_number = candidate
+                    break
+                time.sleep(0.001)
         super().save(*args, **kwargs)
 
 
