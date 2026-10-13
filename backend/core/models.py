@@ -800,6 +800,8 @@ class InvoiceItem(models.Model):
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     stock_deducted = models.BooleanField(default=False, help_text="Whether stock has been deducted for this item")
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
     def save(self, *args, **kwargs):
         # Calculate total and VAT (VAT is included in unit price)

@@ -168,9 +168,9 @@ class InvoiceItemSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'invoice', 'product', 'product_name', 'product_sku', 'product_code',
             'description', 'quantity', 'unit_price', 'tax_rate',
-            'total', 'tax_amount'
+            'total', 'tax_amount', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'total', 'tax_amount']
+        read_only_fields = ['id', 'total', 'tax_amount', 'created_at', 'updated_at']
 
 
 class InvoiceSerializer(serializers.ModelSerializer):

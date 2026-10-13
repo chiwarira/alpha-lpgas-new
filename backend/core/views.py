@@ -322,7 +322,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['status', 'client']
     search_fields = ['invoice_number', 'client__name']
-    ordering_fields = ['invoice_number', 'issue_date', 'due_date', 'total_amount', 'created_at']
+    ordering_fields = ['invoice_number', 'issue_date', 'due_date', 'total_amount', 'created_at', 'updated_at']
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -349,8 +349,9 @@ class InvoiceItemViewSet(viewsets.ModelViewSet):
     queryset = InvoiceItem.objects.all()
     serializer_class = InvoiceItemSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['invoice', 'product']
+    ordering_fields = ['id', 'created_at']
 
 
 class PaymentViewSet(viewsets.ModelViewSet):
@@ -361,7 +362,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['invoice', 'payment_method']
     search_fields = ['payment_number', 'reference_number', 'invoice__invoice_number']
-    ordering_fields = ['payment_number', 'payment_date', 'amount', 'created_at']
+    ordering_fields = ['payment_number', 'payment_date', 'amount', 'created_at', 'updated_at']
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -502,9 +503,10 @@ class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
     permission_classes = [permissions.AllowAny]  # Change to IsAuthenticated for production
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['status', 'payment_status', 'payment_method']
     search_fields = ['order_number', 'customer_name', 'customer_email', 'customer_phone']
+    ordering_fields = ['created_at', 'updated_at']
     
     def create(self, request, *args, **kwargs):
         """Create order with items"""
