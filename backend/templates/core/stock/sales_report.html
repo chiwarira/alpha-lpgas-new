@@ -1,0 +1,156 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Tank Sales Report - Alpha LPGas{% endblock %}
+{% block nav_stock %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+@media print { .print-hide, .nav-pills, form { display: none !important; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-graph-up"></i> Tank Sales Report</h1>
+        <p class="text-muted mb-0">Cylinders moved per size - refills (gas exchange) and tanks sold (deposits).</p>
+    </div>
+    <div class="col-md-6 text-end print-hide">
+        <button type="button" class="btn btn-success" onclick="window.print();"><i class="bi bi-printer"></i> Print</button>
+        <a href="{% url 'accounting_forms:stock_dashboard' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back to Stock</a>
+    </div>
+</div>
+
+<div class="card mb-4 print-hide">
+    <div class="card-body">
+        <ul class="nav nav-pills mb-3">
+            <li class="nav-item"><a class="nav-link {% if range_type == 'daily' %}active{% endif %}" href="?range=daily"><i class="bi bi-calendar-day"></i> Daily</a></li>
+            <li class="nav-item"><a class="nav-link {% if range_type == 'weekly' %}active{% endif %}" href="?range=weekly"><i class="bi bi-calendar-week"></i> Weekly</a></li>
+            <li class="nav-item"><a class="nav-link {% if range_type == 'monthly' %}active{% endif %}" href="?range=monthly"><i class="bi bi-calendar-month"></i> Monthly</a></li>
+            <li class="nav-item"><a class="nav-link {% if range_type == 'yearly' %}active{% endif %}" href="?range=yearly"><i class="bi bi-calendar"></i> Yearly</a></li>
+            <li class="nav-item"><a class="nav-link {% if range_type == 'custom' %}active{% endif %}" href="?range=custom&date_from={{ start_date|date:'Y-m-d' }}&date_to={{ end_date|date:'Y-m-d' }}"><i class="bi bi-calendar-range"></i> Custom</a></li>
+        </ul>
+
+        <form method="get" class="row g-3 align-items-end">
+            <input type="hidden" name="range" value="{{ range_type }}">
+            {% if range_type == 'daily' or range_type == 'weekly' %}
+            <div class="col-md-4">
+                <label class="form-label">{% if range_type == 'daily' %}Date{% else %}Any date in the week{% endif %}</label>
+                <input type="date" name="date" class="form-control" value="{{ ref|date:'Y-m-d' }}">
+            </div>
+            {% elif range_type == 'monthly' %}
+            <div class="col-md-4">
+                <label class="form-label">Month</label>
+                <input type="month" name="month" class="form-control" value="{{ ref|date:'Y-m' }}">
+            </div>
+            {% elif range_type == 'yearly' %}
+            <div class="col-md-4">
+                <label class="form-label">Year</label>
+                <input type="number" name="year" class="form-control" value="{{ ref.year }}" min="2020" max="2100">
+            </div>
+            {% else %}
+            <div class="col-md-3">
+                <label class="form-label">From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ start_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ end_date|date:'Y-m-d' }}">
+            </div>
+            {% endif %}
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> View</button>
+            </div>
+            {% if range_type != 'custom' %}
+            <div class="col-md-6 text-end">
+                <div class="btn-group">
+                    <a class="btn btn-outline-secondary" href="?range={{ range_type }}&{% if range_type == 'monthly' %}month={{ prev_ref|date:'Y-m' }}{% elif range_type == 'yearly' %}year={{ prev_ref.year }}{% else %}date={{ prev_ref|date:'Y-m-d' }}{% endif %}"><i class="bi bi-chevron-left"></i> Previous</a>
+                    <a class="btn btn-outline-secondary" href="?range={{ range_type }}">Current</a>
+                    <a class="btn btn-outline-secondary" href="?range={{ range_type }}&{% if range_type == 'monthly' %}month={{ next_ref|date:'Y-m' }}{% elif range_type == 'yearly' %}year={{ next_ref.year }}{% else %}date={{ next_ref|date:'Y-m-d' }}{% endif %}">Next <i class="bi bi-chevron-right"></i></a>
+                </div>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<h4 class="mb-3">{{ label }}</h4>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white"><div class="card-body"><h6>Refills (gas exchanges)</h6><h2 class="mb-0">{{ refills_total }}</h2></div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white"><div class="card-body"><h6>Tanks sold (deposits)</h6><h2 class="mb-0">{{ tanks_total }}</h2></div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-secondary text-white"><div class="card-body"><h6>Tanks returned (refunds)</h6><h2 class="mb-0">{{ refunds_total }}</h2></div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white"><div class="card-body"><h6>Gas sold</h6><h2 class="mb-0">{{ gas_kg_total|floatformat:0 }} <small class="fs-6">kg</small></h2></div></div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-5 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><strong>Totals by cylinder size</strong></div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead class="table-dark"><tr><th>Size</th><th class="text-end">Refills</th><th class="text-end">Tanks sold</th><th class="text-end">Returned</th><th class="text-end">Gas (kg)</th></tr></thead>
+                    <tbody>
+                        {% for t in size_totals %}
+                        <tr>
+                            <td><strong>{{ t.size.name }}</strong></td>
+                            <td class="text-end">{{ t.refills }}</td>
+                            <td class="text-end">{{ t.tanks }}</td>
+                            <td class="text-end">{{ t.refunds }}</td>
+                            <td class="text-end">{{ t.gas_kg|floatformat:0 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light fw-bold">
+                        <tr><td>Total</td><td class="text-end">{{ refills_total }}</td><td class="text-end">{{ tanks_total }}</td><td class="text-end">{{ refunds_total }}</td><td class="text-end">{{ gas_kg_total|floatformat:0 }}</td></tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><strong>Breakdown by {{ group }}</strong></div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th rowspan="2" class="align-bottom">{{ group|capfirst }}</th>
+                                <th colspan="{{ sizes|length|add:1 }}" class="text-center border-start">Refills</th>
+                                <th colspan="{{ sizes|length|add:1 }}" class="text-center border-start">Tanks sold</th>
+                            </tr>
+                            <tr class="small">
+                                {% for cs in sizes %}<th class="text-end {% if forloop.first %}border-start{% endif %}">{{ cs.name }}</th>{% endfor %}<th class="text-end fw-bold">Total</th>
+                                {% for cs in sizes %}<th class="text-end {% if forloop.first %}border-start{% endif %}">{{ cs.name }}</th>{% endfor %}<th class="text-end fw-bold">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in timeline %}
+                            <tr>
+                                <td>{% if group == 'month' %}{{ row.period|date:"M Y" }}{% elif group == 'week' %}w/c {{ row.period|date:"d M Y" }}{% else %}{{ row.period|date:"D d M Y" }}{% endif %}</td>
+                                {% for v in row.refill_cells %}<td class="text-end {% if forloop.first %}border-start{% endif %}">{% if v %}{{ v }}{% else %}<span class="text-muted">-</span>{% endif %}</td>{% endfor %}
+                                <td class="text-end fw-bold">{{ row.refills_total }}</td>
+                                {% for v in row.tank_cells %}<td class="text-end {% if forloop.first %}border-start{% endif %}">{% if v %}{{ v }}{% else %}<span class="text-muted">-</span>{% endif %}</td>{% endfor %}
+                                <td class="text-end fw-bold">{{ row.tanks_total }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="{{ empty_colspan }}" class="text-center text-muted py-4">No cylinder sales in this period.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

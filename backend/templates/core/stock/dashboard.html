@@ -1,0 +1,237 @@
+{% extends 'core/base.html' %}
+{% load stock_tags %}
+
+{% block title %}Stock Management - Alpha LPGas{% endblock %}
+{% block nav_stock %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-boxes"></i> Stock Management</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:stock_receive' %}" class="btn btn-success"><i class="bi bi-plus-circle"></i> Receive Stock</a>
+        <a href="{% url 'accounting_forms:stock_adjust' %}" class="btn btn-outline-primary"><i class="bi bi-clipboard-check"></i> Stocktake</a>
+        <a href="{% url 'accounting_forms:stock_sales_report' %}" class="btn btn-outline-primary"><i class="bi bi-graph-up"></i> Sales Report</a>
+        <a href="{% url 'accounting_forms:stock_movements' %}" class="btn btn-outline-secondary"><i class="bi bi-list-ul"></i> Movements</a>
+        <a href="{% url 'accounting_forms:stock_settings' %}" class="btn btn-outline-secondary"><i class="bi bi-bell"></i> Alerts</a>
+    </div>
+</div>
+
+{% if not alerts_configured %}
+<div class="alert alert-warning">
+    <i class="bi bi-whatsapp"></i> WhatsApp stock alerts are not configured yet.
+    <a href="{% url 'accounting_forms:stock_settings' %}" class="alert-link">Add recipient numbers</a> to get notified when stock is received or runs low.
+</div>
+{% endif %}
+
+{% if low_recs %}
+<div class="alert alert-danger d-flex justify-content-between align-items-center">
+    <div>
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <strong>Re-order needed:</strong>
+        {% for r in low_recs %}
+            {{ r.cylinder_size.name }} ({{ r.full }} full, suggest ordering {{ r.suggested_order_qty }}){% if not forloop.last %}, {% endif %}
+        {% endfor %}
+    </div>
+    <form method="post" action="{% url 'accounting_forms:stock_low_stock_check' %}" class="ms-3">
+        {% csrf_token %}
+        <button class="btn btn-sm btn-danger" type="submit"><i class="bi bi-whatsapp"></i> Send alert now</button>
+    </form>
+</div>
+{% endif %}
+
+<!-- Summary cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h6 class="card-title">Full Cylinders</h6>
+                <h2 class="mb-0">{{ total_full }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-secondary text-white">
+            <div class="card-body">
+                <h6 class="card-title">Empty Cylinders</h6>
+                <h2 class="mb-0">{{ total_empty }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h6 class="card-title">Refills Today / Week / Month</h6>
+                <h2 class="mb-0">{{ summary.today.refills_total }} <small class="fs-6">/ {{ summary.week.refills_total }} / {{ summary.month.refills_total }}</small></h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h6 class="card-title">Tanks Sold Today / Week / Month</h6>
+                <h2 class="mb-0">{{ summary.today.tanks_total }} <small class="fs-6">/ {{ summary.week.tanks_total }} / {{ summary.month.tanks_total }}</small></h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stock levels & reorder -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong><i class="bi bi-box-seam"></i> Stock Levels & Re-order Recommendations</strong>
+        <small class="text-muted">Averages based on last {{ settings.sales_history_days }} days of sales</small>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Size</th>
+                        <th class="text-end">Full</th>
+                        <th class="text-end">Empties</th>
+                        <th class="text-end">Reorder level</th>
+                        <th class="text-end">Sold ({{ settings.sales_history_days }}d)</th>
+                        <th class="text-end">Avg / day</th>
+                        <th class="text-end">Avg / week</th>
+                        <th class="text-end">Days cover</th>
+                        <th>Runs out</th>
+                        <th class="text-end">Suggested order</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in recs %}
+                    <tr class="{% if r.is_low %}table-danger{% endif %}">
+                        <td><strong>{{ r.cylinder_size.name }}</strong></td>
+                        <td class="text-end fs-5"><strong class="{% if r.full < 0 %}text-danger{% endif %}">{{ r.full }}</strong></td>
+                        <td class="text-end {% if r.empties < 0 %}text-danger{% endif %}">{{ r.empties }}{% if r.empties < 0 or r.full < 0 %} <i class="bi bi-exclamation-circle" title="Negative count - please do a stocktake"></i>{% endif %}</td>
+                        <td class="text-end">{{ r.reorder_level }}</td>
+                        <td class="text-end">{{ r.sold_in_window }}</td>
+                        <td class="text-end">{{ r.avg_daily|floatformat:1 }}</td>
+                        <td class="text-end">{{ r.avg_weekly|floatformat:1 }}</td>
+                        <td class="text-end">{% if r.days_cover is not None %}{{ r.days_cover|floatformat:0 }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                        <td>{% if r.runs_out_on %}{{ r.runs_out_on|date:"D d M" }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                        <td class="text-end">{% if r.suggested_order_qty %}<span class="badge bg-warning text-dark fs-6">{{ r.suggested_order_qty }}</span>{% else %}<span class="text-muted">0</span>{% endif %}</td>
+                        <td>{% if r.is_low %}<span class="badge bg-danger">LOW - reorder</span>{% else %}<span class="badge bg-success">OK</span>{% endif %}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="11" class="text-center text-muted py-4">No cylinder sizes configured.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Sales by period -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong><i class="bi bi-graph-up"></i> Tanks Sold by Period</strong>
+                <a href="{% url 'accounting_forms:stock_sales_report' %}" class="btn btn-sm btn-outline-primary">Full report</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Size</th>
+                            <th colspan="2" class="text-center border-start">Today</th>
+                            <th colspan="2" class="text-center border-start">This week</th>
+                            <th colspan="2" class="text-center border-start">This month</th>
+                            <th colspan="2" class="text-center border-start">Last 30d</th>
+                        </tr>
+                        <tr class="small text-muted">
+                            <th></th>
+                            <th class="text-end border-start">Refill</th><th class="text-end">Tank</th>
+                            <th class="text-end border-start">Refill</th><th class="text-end">Tank</th>
+                            <th class="text-end border-start">Refill</th><th class="text-end">Tank</th>
+                            <th class="text-end border-start">Refill</th><th class="text-end">Tank</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in recs %}
+                        {% with cs=r.cylinder_size %}
+                        <tr>
+                            <td><strong>{{ cs.name }}</strong></td>
+                            <td class="text-end border-start">{{ summary.today.refills|dict_get:cs }}</td><td class="text-end">{{ summary.today.tanks|dict_get:cs }}</td>
+                            <td class="text-end border-start">{{ summary.week.refills|dict_get:cs }}</td><td class="text-end">{{ summary.week.tanks|dict_get:cs }}</td>
+                            <td class="text-end border-start">{{ summary.month.refills|dict_get:cs }}</td><td class="text-end">{{ summary.month.tanks|dict_get:cs }}</td>
+                            <td class="text-end border-start">{{ summary.last_30.refills|dict_get:cs }}</td><td class="text-end">{{ summary.last_30.tanks|dict_get:cs }}</td>
+                        </tr>
+                        {% endwith %}
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td>Total</td>
+                            <td class="text-end border-start">{{ summary.today.refills_total }}</td><td class="text-end">{{ summary.today.tanks_total }}</td>
+                            <td class="text-end border-start">{{ summary.week.refills_total }}</td><td class="text-end">{{ summary.week.tanks_total }}</td>
+                            <td class="text-end border-start">{{ summary.month.refills_total }}</td><td class="text-end">{{ summary.month.tanks_total }}</td>
+                            <td class="text-end border-start">{{ summary.last_30.refills_total }}</td><td class="text-end">{{ summary.last_30.tanks_total }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="card-footer small text-muted">
+                <strong>Refill</strong> = gas exchange (full out, empty in). <strong>Tank</strong> = cylinder sold with deposit (customer keeps the cylinder).
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent deliveries -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><strong><i class="bi bi-truck"></i> Recent Stock Deliveries</strong></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>Date</th><th>Ref</th><th>Supplier</th><th>Items</th><th class="text-end">Cylinders</th></tr></thead>
+                    <tbody>
+                        {% for p in recent_purchases %}
+                        <tr>
+                            <td>{{ p.date|date:"d M Y" }}</td>
+                            <td><a href="{% url 'accounting_forms:stock_purchase_detail' p.pk %}">{{ p.purchase_number }}</a></td>
+                            <td>{{ p.supplier.name|default:"-" }}</td>
+                            <td class="small">{% for i in p.items.all %}{{ i.quantity }}x{{ i.cylinder_size.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+                            <td class="text-end">{{ p.total_cylinders }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">No deliveries recorded yet. <a href="{% url 'accounting_forms:stock_receive' %}">Receive stock</a></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent movements -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong><i class="bi bi-arrow-left-right"></i> Recent Movements</strong>
+        <a href="{% url 'accounting_forms:stock_movements' %}" class="btn btn-sm btn-outline-secondary">View all</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light"><tr><th>Date</th><th>Type</th><th>Size</th><th class="text-end">Full</th><th class="text-end">Empty</th><th>Reference</th><th>Notes</th></tr></thead>
+            <tbody>
+                {% for m in recent_movements %}
+                <tr>
+                    <td>{{ m.date|date:"d M Y" }}</td>
+                    <td><span class="badge {% if m.movement_type == 'purchase' %}bg-success{% elif m.movement_type == 'sale' %}bg-primary{% elif m.movement_type == 'deposit' %}bg-info{% elif m.movement_type == 'reversal' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ m.get_movement_type_display }}</span></td>
+                    <td>{{ m.cylinder_size.name }}</td>
+                    <td class="text-end {% if m.quantity > 0 %}text-success{% elif m.quantity < 0 %}text-danger{% endif %}">{{ m.quantity|signed }}</td>
+                    <td class="text-end {% if m.empty_change > 0 %}text-success{% elif m.empty_change < 0 %}text-danger{% endif %}">{{ m.empty_change|signed }}</td>
+                    <td>{% if m.invoice %}<a href="{% url 'accounting_forms:invoice_detail' m.invoice.invoice_number %}">{{ m.reference }}</a>{% else %}{{ m.reference }}{% endif %}</td>
+                    <td class="small text-muted">{{ m.notes|truncatechars:60 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-3">No stock movements yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

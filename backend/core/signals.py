@@ -20,6 +20,17 @@ def reverse_loyalty_on_invoice_delete(sender, instance, **kwargs):
         txn.delete()
 
 
+@receiver(pre_delete, sender='core.InvoiceItem')
+def reverse_stock_on_invoice_item_delete(sender, instance, **kwargs):
+    """When a line item (or its invoice) is deleted, put the cylinders back."""
+    from .services.stock_service import reverse_invoice_item_stock
+    try:
+        reverse_invoice_item_stock(instance, reason="Line item deleted")
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("Failed to reverse stock for invoice item %s", instance.pk)
+
+
 def create_order_from_invoice(invoice, created_at=None):
     """Create a delivery Order mirroring an invoice's current line items."""
     from django.utils import timezone

@@ -32,7 +32,9 @@ class GasStock(models.Model):
     """
     cylinder_size = models.OneToOneField(CylinderSize, on_delete=models.CASCADE, related_name='stock')
     quantity = models.IntegerField(default=0, help_text="Number of full cylinders in stock")
+    empty_quantity = models.IntegerField(default=0, help_text="Number of empty cylinders on hand")
     reorder_level = models.IntegerField(default=10, help_text="Minimum stock before reorder alert")
+    last_low_stock_alert_at = models.DateTimeField(null=True, blank=True, help_text="When the last low-stock alert was sent for this size")
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
@@ -40,7 +42,7 @@ class GasStock(models.Model):
         verbose_name_plural = 'Gas Stock Levels'
     
     def __str__(self):
-        return f"{self.cylinder_size.name}: {self.quantity} cylinders"
+        return f"{self.cylinder_size.name}: {self.quantity} full / {self.empty_quantity} empty"
     
     @property
     def total_volume_kg(self):
@@ -72,13 +74,16 @@ class StockMovement(models.Model):
         ('transfer', 'Transfer'),
         ('return', 'Customer Return'),
         ('damage', 'Damaged/Write-off'),
+        ('deposit', 'Cylinder Sold (Deposit)'),
+        ('reversal', 'Reversal'),
     ]
     
     movement_number = models.CharField(max_length=50, unique=True, blank=True)
     movement_type = models.CharField(max_length=20, choices=MOVEMENT_TYPE_CHOICES)
     date = models.DateField()
     cylinder_size = models.ForeignKey(CylinderSize, on_delete=models.PROTECT, related_name='movements')
-    quantity = models.IntegerField(help_text="Positive for stock in, negative for stock out")
+    quantity = models.IntegerField(help_text="Change in FULL cylinders: positive for stock in, negative for stock out")
+    empty_change = models.IntegerField(default=0, help_text="Change in EMPTY cylinders: positive when empties received, negative when empties go out")
     
     # Reference to related records
     supplier = models.ForeignKey('Supplier', on_delete=models.SET_NULL, null=True, blank=True, related_name='stock_movements')
@@ -134,15 +139,15 @@ class StockMovement(models.Model):
         super().save(*args, **kwargs)
     
     def _update_stock(self):
-        """Update GasStock levels based on movement"""
-        stock, created = GasStock.objects.get_or_create(
-            cylinder_size=self.cylinder_size,
-            defaults={'quantity': 0}
+        """Update GasStock levels (full and empty) based on movement"""
+        from django.db.models import F
+        GasStock.objects.get_or_create(cylinder_size=self.cylinder_size, defaults={'quantity': 0})
+        # Levels are the running sum of movements; negatives are allowed so that
+        # reversals stay exact and the UI can flag that a stocktake is needed.
+        GasStock.objects.filter(cylinder_size=self.cylinder_size).update(
+            quantity=F('quantity') + self.quantity,
+            empty_quantity=F('empty_quantity') + self.empty_change,
         )
-        stock.quantity += self.quantity
-        if stock.quantity < 0:
-            stock.quantity = 0  # Prevent negative stock
-        stock.save()
     
     @property
     def volume_kg(self):
@@ -220,6 +225,7 @@ class StockPurchaseItem(models.Model):
     purchase = models.ForeignKey(StockPurchase, on_delete=models.CASCADE, related_name='items')
     cylinder_size = models.ForeignKey(CylinderSize, on_delete=models.PROTECT)
     quantity = models.IntegerField(validators=[MinValueValidator(1)])
+    empties_returned = models.IntegerField(default=0, validators=[MinValueValidator(0)], help_text="Empty cylinders handed back to the supplier with this order")
     unit_cost = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
     total_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     
@@ -243,6 +249,7 @@ class StockPurchaseItem(models.Model):
                 date=self.purchase.date,
                 cylinder_size=self.cylinder_size,
                 quantity=self.quantity,  # Positive for purchase
+                empty_change=-self.empties_returned,
                 supplier=self.purchase.supplier,
                 expense=self.purchase.expense,
                 reference=self.purchase.invoice_number,
@@ -258,3 +265,53 @@ class StockPurchaseItem(models.Model):
     def volume_kg(self):
         """Total gas volume in kg"""
         return self.quantity * self.cylinder_size.weight_kg
+
+
+class StockAlertSettings(models.Model):
+    """Singleton settings for stock alerts and re-order recommendations"""
+    alerts_enabled = models.BooleanField(default=True, help_text="Master switch for WhatsApp stock alerts")
+    whatsapp_numbers = models.TextField(
+        blank=True,
+        help_text="Comma or newline separated WhatsApp numbers with country code, e.g. 27821234567"
+    )
+    notify_on_stock_received = models.BooleanField(default=True, help_text="Send a WhatsApp when new stock is recorded")
+    notify_on_low_stock = models.BooleanField(default=True, help_text="Send a WhatsApp when stock reaches the reorder level")
+    low_stock_alert_cooldown_hours = models.IntegerField(default=24, help_text="Minimum hours between low-stock alerts for the same cylinder size")
+
+    # Re-order recommendation parameters
+    sales_history_days = models.IntegerField(default=28, help_text="Number of days of sales history used to calculate average daily sales")
+    supplier_lead_time_days = models.IntegerField(default=2, help_text="Days between placing an order and receiving stock")
+    safety_stock_days = models.IntegerField(default=3, help_text="Extra days of cover to keep as a buffer")
+    reorder_cover_days = models.IntegerField(default=14, help_text="How many days of sales a re-order should cover")
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Stock Alert Settings'
+        verbose_name_plural = 'Stock Alert Settings'
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        pass
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    @property
+    def recipient_numbers(self):
+        """Parsed list of recipient numbers (digits only)"""
+        import re
+        numbers = []
+        for raw in re.split(r'[,\n;]+', self.whatsapp_numbers or ''):
+            digits = re.sub(r'\D', '', raw)
+            if digits:
+                numbers.append(digits)
+        return numbers
+
+    def __str__(self):
+        return "Stock Alert Settings"

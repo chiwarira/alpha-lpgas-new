@@ -1,0 +1,40 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ purchase.purchase_number }} - Stock Delivery{% endblock %}
+{% block nav_stock %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-truck"></i> Delivery {{ purchase.purchase_number }}</h1>
+        <p class="text-muted mb-0">{{ purchase.date|date:"l, d F Y" }} &middot; {{ purchase.supplier.name|default:"Unknown supplier" }}{% if purchase.invoice_number %} &middot; Supplier ref {{ purchase.invoice_number }}{% endif %}</p>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:stock_dashboard' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back to Stock</a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead class="table-dark"><tr><th>Size</th><th class="text-end">Full received</th><th class="text-end">Empties returned</th><th class="text-end">Gas (kg)</th><th class="text-end">Unit cost</th><th class="text-end">Total</th></tr></thead>
+            <tbody>
+                {% for i in purchase.items.all %}
+                <tr>
+                    <td><strong>{{ i.cylinder_size.name }}</strong></td>
+                    <td class="text-end">{{ i.quantity }}</td>
+                    <td class="text-end">{{ i.empties_returned }}</td>
+                    <td class="text-end">{{ i.volume_kg|floatformat:0 }}</td>
+                    <td class="text-end">R {{ i.unit_cost|floatformat:2 }}</td>
+                    <td class="text-end">R {{ i.total_cost|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="table-light fw-bold">
+                <tr><td>Total</td><td class="text-end">{{ purchase.total_cylinders }}</td><td></td><td class="text-end">{{ purchase.total_volume_kg|floatformat:0 }}</td><td></td><td class="text-end">R {{ purchase.total_cost|floatformat:2 }}</td></tr>
+            </tfoot>
+        </table>
+    </div>
+    {% if purchase.notes %}<div class="card-footer small text-muted">{{ purchase.notes }}</div>{% endif %}
+</div>
+{% endblock %}

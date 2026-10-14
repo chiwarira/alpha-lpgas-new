@@ -19,7 +19,7 @@ from .models_tax_reporting import (
 )
 
 # Import stock management models
-from .models_stock import CylinderSize, GasStock, StockMovement, StockPurchase, StockPurchaseItem
+from .models_stock import CylinderSize, GasStock, StockMovement, StockPurchase, StockPurchaseItem, StockAlertSettings
 
 # Import loyalty program models
 from .models_loyalty import LoyaltyCard, LoyaltyTransaction
@@ -36,6 +36,7 @@ class UserMenuPermission(models.Model):
     can_see_sales = models.BooleanField(default=True, verbose_name='Sales menu')
     can_see_people = models.BooleanField(default=True, verbose_name='People menu')
     can_see_products = models.BooleanField(default=True, verbose_name='Products menu')
+    can_see_stock = models.BooleanField(default=True, verbose_name='Stock menu')
     can_see_orders = models.BooleanField(default=True, verbose_name='Orders menu')
     can_see_accounting = models.BooleanField(default=True, verbose_name='Accounting menu')
     can_see_admin = models.BooleanField(default=True, verbose_name='Admin link')
@@ -513,6 +514,16 @@ class Product(models.Model):
     is_exchange = models.BooleanField(default=False, help_text="Is this an exchange product?")
     requires_empty_cylinder = models.BooleanField(default=False)
     
+    # Cylinder stock tracking
+    STOCK_EFFECT_CHOICES = [
+        ('none', 'No stock effect'),
+        ('exchange', 'Gas refill/exchange (full -1, empty +1)'),
+        ('deposit', 'Cylinder sold / deposit (empty -1, counts as tank sold)'),
+        ('deposit_refund', 'Cylinder returned / deposit refund (empty +1)'),
+    ]
+    cylinder_size = models.ForeignKey('CylinderSize', on_delete=models.SET_NULL, null=True, blank=True, related_name='products', help_text="Cylinder size this product affects in stock")
+    stock_effect = models.CharField(max_length=20, choices=STOCK_EFFECT_CHOICES, default='none', help_text="How selling one unit of this product changes cylinder stock")
+    
     # SEO
     meta_title = models.CharField(max_length=255, blank=True)
     meta_description = models.TextField(blank=True)
@@ -810,44 +821,14 @@ class InvoiceItem(models.Model):
         self.tax_amount = self.total - (self.total / (1 + self.tax_rate / 100))
         
         is_new = self.pk is None
+        previous = None
+        if not is_new:
+            previous = InvoiceItem.objects.filter(pk=self.pk).select_related('product').first()
         super().save(*args, **kwargs)
         
-        # Deduct stock for exchange products (only once)
-        if is_new and self.product.is_exchange and not self.stock_deducted:
-            self._deduct_stock()
-
-    def _deduct_stock(self):
-        """Deduct stock for gas exchange products"""
-        from .models_stock import CylinderSize, StockMovement
-        
-        # Extract weight from product (e.g., "9kg" -> 9)
-        weight_str = self.product.weight.lower().replace('kg', '').strip()
-        try:
-            weight_kg = int(weight_str)
-        except (ValueError, AttributeError):
-            return  # Can't determine weight, skip stock deduction
-        
-        # Find matching cylinder size
-        try:
-            cylinder_size = CylinderSize.objects.get(weight_kg=weight_kg)
-        except CylinderSize.DoesNotExist:
-            return  # No matching cylinder size configured
-        
-        # Create stock movement (negative quantity for sale)
-        StockMovement.objects.create(
-            movement_type='sale',
-            date=self.invoice.issue_date,
-            cylinder_size=cylinder_size,
-            quantity=-int(self.quantity),  # Negative for stock out
-            invoice=self.invoice,
-            invoice_item=self,
-            reference=self.invoice.invoice_number,
-            notes=f"Sale: {self.product.name} x {self.quantity}"
-        )
-        
-        # Mark as deducted
-        self.stock_deducted = True
-        super().save(update_fields=['stock_deducted'])
+        # Keep cylinder stock in sync with this line item
+        from .services.stock_service import sync_invoice_item_stock
+        sync_invoice_item_stock(self, previous=previous)
 
     def __str__(self):
         return f"{self.product.name} x {self.quantity}"

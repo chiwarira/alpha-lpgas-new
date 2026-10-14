@@ -251,6 +251,24 @@
                     </li>
                     {% endif %}
                     
+                    <!-- Stock -->
+                    {% if not menu_perms or menu_perms.can_see_stock %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% block nav_stock %}{% endblock %}" href="#" id="stockDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-boxes"></i> Stock
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="stockDropdown">
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:stock_dashboard' %}"><i class="bi bi-speedometer2"></i> Stock Overview</a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:stock_receive' %}"><i class="bi bi-truck"></i> Receive Stock</a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:stock_adjust' %}"><i class="bi bi-clipboard-check"></i> Stocktake</a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:stock_sales_report' %}"><i class="bi bi-graph-up"></i> Tank Sales Report</a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:stock_movements' %}"><i class="bi bi-arrow-left-right"></i> Movements</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:stock_settings' %}"><i class="bi bi-bell"></i> Alerts & Re-order Settings</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                    
                     <!-- Orders & Delivery -->
                     {% if not menu_perms or menu_perms.can_see_orders %}
                     <li class="nav-item dropdown">

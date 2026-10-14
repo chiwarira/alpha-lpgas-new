@@ -1,0 +1,85 @@
+{% extends 'core/base.html' %}
+{% load stock_tags %}
+
+{% block title %}Stock Movements - Alpha LPGas{% endblock %}
+{% block nav_stock %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-arrow-left-right"></i> Stock Movements</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:stock_dashboard' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back to Stock</a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">Size</label>
+                <select name="size" class="form-select">
+                    <option value="">All</option>
+                    {% for cs in sizes %}<option value="{{ cs.id }}" {% if filters.size == cs.id|stringformat:"s" %}selected{% endif %}>{{ cs.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Type</label>
+                <select name="type" class="form-select">
+                    <option value="">All</option>
+                    {% for value, text in types %}<option value="{{ value }}" {% if filters.type == value %}selected{% endif %}>{{ text }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> Filter</button>
+                <a href="{% url 'accounting_forms:stock_movements' %}" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover table-sm mb-0">
+            <thead class="table-dark"><tr><th>Date</th><th>Number</th><th>Type</th><th>Size</th><th class="text-end">Full</th><th class="text-end">Empty</th><th>Reference</th><th>Notes</th><th>By</th></tr></thead>
+            <tbody>
+                {% for m in page %}
+                <tr>
+                    <td>{{ m.date|date:"d M Y" }}</td>
+                    <td><code>{{ m.movement_number }}</code></td>
+                    <td><span class="badge {% if m.movement_type == 'purchase' %}bg-success{% elif m.movement_type == 'sale' %}bg-primary{% elif m.movement_type == 'deposit' %}bg-info{% elif m.movement_type == 'reversal' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ m.get_movement_type_display }}</span></td>
+                    <td>{{ m.cylinder_size.name }}</td>
+                    <td class="text-end {% if m.quantity > 0 %}text-success{% elif m.quantity < 0 %}text-danger{% endif %}">{{ m.quantity|signed }}</td>
+                    <td class="text-end {% if m.empty_change > 0 %}text-success{% elif m.empty_change < 0 %}text-danger{% endif %}">{{ m.empty_change|signed }}</td>
+                    <td>{% if m.invoice %}<a href="{% url 'accounting_forms:invoice_detail' m.invoice.invoice_number %}">{{ m.reference }}</a>{% else %}{{ m.reference }}{% endif %}</td>
+                    <td class="small text-muted">{{ m.notes|truncatechars:70 }}</td>
+                    <td class="small">{{ m.created_by.username|default:"system" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9" class="text-center text-muted py-4">No movements match these filters.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page.has_other_pages %}
+    <div class="card-footer">
+        <nav>
+            <ul class="pagination mb-0">
+                {% if page.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ page.previous_page_number }}&size={{ filters.size }}&type={{ filters.type }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}">Previous</a></li>{% endif %}
+                <li class="page-item disabled"><span class="page-link">Page {{ page.number }} of {{ page.paginator.num_pages }}</span></li>
+                {% if page.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page.next_page_number }}&size={{ filters.size }}&type={{ filters.type }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}">Next</a></li>{% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

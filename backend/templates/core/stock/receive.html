@@ -1,0 +1,109 @@
+{% extends 'core/base.html' %}
+{% load stock_tags %}
+
+{% block title %}Receive Stock - Alpha LPGas{% endblock %}
+{% block nav_stock %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-truck"></i> Receive Stock</h1>
+        <p class="text-muted mb-0">Record full cylinders delivered by the supplier and any empties handed back.</p>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:stock_dashboard' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back to Stock</a>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Date received</label>
+                    <input type="date" name="date" class="form-control" value="{{ today|date:'Y-m-d' }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Supplier</label>
+                    <select name="supplier" class="form-select">
+                        <option value="">-- Select supplier --</option>
+                        {% for s in suppliers %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Supplier invoice / delivery note no.</label>
+                    <input type="text" name="invoice_number" class="form-control" placeholder="Optional">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Notes</label>
+                    <input type="text" name="notes" class="form-control" placeholder="Optional">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><strong>Cylinders</strong></div>
+        <div class="card-body p-0">
+            <table class="table mb-0 align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Size</th>
+                        <th class="text-end">Currently full</th>
+                        <th class="text-end">Currently empty</th>
+                        <th style="width:160px">Full received</th>
+                        <th style="width:160px">Empties returned</th>
+                        <th style="width:160px">Cost per cylinder (R)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cs in sizes %}
+                    {% with st=stocks|dict_get:cs.id %}
+                    <tr>
+                        <td><strong>{{ cs.name }}</strong></td>
+                        <td class="text-end">{{ st.quantity|default:0 }}</td>
+                        <td class="text-end" id="empties-now-{{ cs.id }}">{{ st.empty_quantity|default:0 }}</td>
+                        <td><input type="number" min="0" name="qty_{{ cs.id }}" class="form-control qty-input" data-size="{{ cs.id }}" placeholder="0"></td>
+                        <td><input type="number" min="0" name="empties_{{ cs.id }}" class="form-control" id="empties-{{ cs.id }}" placeholder="0"></td>
+                        <td><input type="number" min="0" step="0.01" name="cost_{{ cs.id }}" class="form-control" placeholder="0.00"></td>
+                    </tr>
+                    {% endwith %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer small text-muted">
+            Tip: "Empties returned" defaults to the number of full cylinders received (a straight swap). Adjust it if you returned fewer or more empties.
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="send_alert" id="send_alert" {% if alerts_configured %}checked{% else %}disabled{% endif %}>
+            <label class="form-check-label" for="send_alert">
+                <i class="bi bi-whatsapp text-success"></i> Send "new stock received" WhatsApp to alert recipients
+                {% if not alerts_configured %}<small class="text-muted">(no numbers configured)</small>{% endif %}
+            </label>
+        </div>
+        <button type="submit" class="btn btn-success btn-lg"><i class="bi bi-check-circle"></i> Record Delivery</button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.qty-input').forEach(function (input) {
+    input.addEventListener('input', function () {
+        var empties = document.getElementById('empties-' + input.dataset.size);
+        var onHand = parseInt(document.getElementById('empties-now-' + input.dataset.size).textContent) || 0;
+        if (!empties.dataset.touched) {
+            empties.value = Math.min(parseInt(input.value) || 0, onHand) || '';
+        }
+    });
+});
+document.querySelectorAll('[id^="empties-"]').forEach(function (el) {
+    if (el.tagName === 'INPUT') el.addEventListener('input', function () { el.dataset.touched = '1'; });
+});
+</script>
+{% endblock %}

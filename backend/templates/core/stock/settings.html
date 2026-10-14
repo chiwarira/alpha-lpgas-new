@@ -1,0 +1,137 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Stock Alerts - Alpha LPGas{% endblock %}
+{% block nav_stock %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-bell"></i> Stock Alerts & Re-order Settings</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:stock_dashboard' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back to Stock</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-7">
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+            <div class="card mb-4">
+                <div class="card-header"><strong><i class="bi bi-whatsapp text-success"></i> WhatsApp recipients</strong></div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        {{ form.alerts_enabled }}
+                        <label class="form-check-label" for="{{ form.alerts_enabled.id_for_label }}">Enable WhatsApp stock alerts</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.whatsapp_numbers.id_for_label }}">Numbers to notify</label>
+                        {{ form.whatsapp_numbers }}
+                        <div class="form-text">One per line or comma separated, international format without "+" (e.g. 27821234567). Messages are sent through the WhatsApp Business API configured under Admin &rarr; WhatsApp Configuration.</div>
+                        {% for e in form.whatsapp_numbers.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="form-check mb-2">
+                        {{ form.notify_on_stock_received }}
+                        <label class="form-check-label" for="{{ form.notify_on_stock_received.id_for_label }}">Notify when new stock is received</label>
+                    </div>
+                    <div class="form-check mb-3">
+                        {{ form.notify_on_low_stock }}
+                        <label class="form-check-label" for="{{ form.notify_on_low_stock.id_for_label }}">Notify when stock is at/below reorder level (daily check)</label>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.low_stock_alert_cooldown_hours.id_for_label }}">Hours between repeat low-stock alerts (per size)</label>
+                            {{ form.low_stock_alert_cooldown_hours }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><strong><i class="bi bi-calculator"></i> Re-order calculation</strong></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.sales_history_days.id_for_label }}">Sales history window (days)</label>
+                            {{ form.sales_history_days }}
+                            <div class="form-text">Average daily sales are calculated over this many days.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.supplier_lead_time_days.id_for_label }}">Supplier lead time (days)</label>
+                            {{ form.supplier_lead_time_days }}
+                            <div class="form-text">Days from placing an order until it arrives.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.safety_stock_days.id_for_label }}">Safety buffer (days)</label>
+                            {{ form.safety_stock_days }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.reorder_cover_days.id_for_label }}">Days of sales each order should cover</label>
+                            {{ form.reorder_cover_days }}
+                        </div>
+                    </div>
+                    <div class="alert alert-light border mt-3 mb-0 small">
+                        A size is flagged <strong>LOW</strong> when full stock is at/below its reorder level (set on the Stocktake page) <em>or</em> below
+                        <code>avg daily sales x (lead time + safety days)</code>.
+                        Suggested order = <code>avg daily sales x (lead time + safety + cover days) - current full stock</code>.
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-end mb-4">
+                <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-save"></i> Save Settings</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card mb-4">
+            <div class="card-header"><strong>Test &amp; run now</strong></div>
+            <div class="card-body">
+                <p class="small text-muted">Current recipients: {% if recipients %}{{ recipients|join:", " }}{% else %}<em>none</em>{% endif %}</p>
+                <form method="post" action="{% url 'accounting_forms:stock_test_alert' %}" class="d-inline">
+                    {% csrf_token %}
+                    <button class="btn btn-outline-success" type="submit" {% if not recipients %}disabled{% endif %}><i class="bi bi-whatsapp"></i> Send test message</button>
+                </form>
+                <form method="post" action="{% url 'accounting_forms:stock_low_stock_check' %}" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'accounting_forms:stock_settings' %}">
+                    <button class="btn btn-outline-danger" type="submit" {% if not recipients %}disabled{% endif %}><i class="bi bi-exclamation-triangle"></i> Run low-stock check now</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header"><strong>Daily scheduled check</strong></div>
+            <div class="card-body small">
+                <p>Run this once a day (cron, GitHub Action or Celery beat) to send the low-stock summary:</p>
+                <pre class="bg-light p-2 rounded mb-2">python manage.py check_stock_levels</pre>
+                <p class="mb-0">Add <code>--force</code> to ignore the cooldown, or <code>--dry-run</code> to preview the message without sending.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><strong>Preview: what would be flagged now</strong></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>Size</th><th class="text-end">Full</th><th class="text-end">Avg/day</th><th class="text-end">Reorder pt</th><th class="text-end">Suggest</th><th></th></tr></thead>
+                    <tbody>
+                        {% for r in recs %}
+                        <tr class="{% if r.is_low %}table-danger{% endif %}">
+                            <td>{{ r.cylinder_size.name }}</td>
+                            <td class="text-end">{{ r.full }}</td>
+                            <td class="text-end">{{ r.avg_daily|floatformat:1 }}</td>
+                            <td class="text-end">{{ r.reorder_point|floatformat:0 }} / {{ r.reorder_level }}</td>
+                            <td class="text-end">{{ r.suggested_order_qty }}</td>
+                            <td>{% if r.is_low %}<span class="badge bg-danger">LOW</span>{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

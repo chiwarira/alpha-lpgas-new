@@ -4,7 +4,7 @@ from .models import (
     Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem,
     DeliveryZone, PromoCode, Driver, Order, OrderItem, OrderStatusHistory, ContactSubmission, Testimonial,
     CustomScript, Supplier, ExpenseCategory, Expense, JournalEntry, TaxPeriod, SupplierGasRate,
-    CylinderSize, GasStock, StockMovement, StockPurchase, StockPurchaseItem,
+    CylinderSize, GasStock, StockMovement, StockPurchase, StockPurchaseItem, StockAlertSettings,
     LoyaltyCard, LoyaltyTransaction,
     AccountType, VATReturn, CIPCAnnualReturn, SARSTaxReturn, FinancialStatement, TaxConfiguration,
     WhatsAppConversation, WhatsAppMessage, WhatsAppOrderIntent, WhatsAppConfig,
@@ -621,9 +621,9 @@ class CylinderSizeAdmin(admin.ModelAdmin):
 
 @admin.register(GasStock)
 class GasStockAdmin(admin.ModelAdmin):
-    list_display = ['cylinder_size', 'quantity', 'total_volume_display', 'reorder_level', 'stock_status', 'updated_at']
+    list_display = ['cylinder_size', 'quantity', 'empty_quantity', 'total_volume_display', 'reorder_level', 'stock_status', 'updated_at']
     list_filter = ['cylinder_size']
-    readonly_fields = ['updated_at']
+    readonly_fields = ['updated_at', 'last_low_stock_alert_at']
     
     def total_volume_display(self, obj):
         return f"{obj.total_volume_kg} kg"
@@ -639,7 +639,7 @@ class GasStockAdmin(admin.ModelAdmin):
 class StockPurchaseItemInline(admin.TabularInline):
     model = StockPurchaseItem
     extra = 1
-    fields = ['cylinder_size', 'quantity', 'unit_cost', 'total_cost', 'volume_kg_display']
+    fields = ['cylinder_size', 'quantity', 'empties_returned', 'unit_cost', 'total_cost', 'volume_kg_display']
     readonly_fields = ['total_cost', 'volume_kg_display']
     
     def volume_kg_display(self, obj):
@@ -688,7 +688,7 @@ class StockPurchaseAdmin(admin.ModelAdmin):
 
 @admin.register(StockMovement)
 class StockMovementAdmin(admin.ModelAdmin):
-    list_display = ['movement_number', 'date', 'movement_type', 'cylinder_size', 'quantity', 'volume_kg_display', 'reference', 'created_at']
+    list_display = ['movement_number', 'date', 'movement_type', 'cylinder_size', 'quantity', 'empty_change', 'volume_kg_display', 'reference', 'created_at']
     list_filter = ['movement_type', 'cylinder_size', 'date']
     search_fields = ['movement_number', 'reference', 'notes']
     date_hierarchy = 'date'
@@ -696,7 +696,7 @@ class StockMovementAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Movement Details', {
-            'fields': ('movement_number', 'date', 'movement_type', 'cylinder_size', 'quantity')
+            'fields': ('movement_number', 'date', 'movement_type', 'cylinder_size', 'quantity', 'empty_change')
         }),
         ('Reference', {
             'fields': ('reference', 'supplier', 'expense', 'invoice', 'invoice_item'),
@@ -1106,8 +1106,8 @@ class TaxConfigurationAdmin(admin.ModelAdmin):
 
 @admin.register(UserMenuPermission)
 class UserMenuPermissionAdmin(admin.ModelAdmin):
-    list_display = ['user', 'can_see_sales', 'can_see_people', 'can_see_products', 'can_see_orders', 'can_see_accounting', 'can_see_admin']
-    list_filter = ['can_see_sales', 'can_see_people', 'can_see_products', 'can_see_orders', 'can_see_accounting']
+    list_display = ['user', 'can_see_sales', 'can_see_people', 'can_see_products', 'can_see_stock', 'can_see_orders', 'can_see_accounting', 'can_see_admin']
+    list_filter = ['can_see_sales', 'can_see_people', 'can_see_products', 'can_see_stock', 'can_see_orders', 'can_see_accounting']
     search_fields = ['user__username', 'user__first_name', 'user__last_name']
     
     fieldsets = (
@@ -1115,7 +1115,7 @@ class UserMenuPermissionAdmin(admin.ModelAdmin):
             'fields': ('user',)
         }),
         ('Top-Level Menu Sections', {
-            'fields': ('can_see_sales', 'can_see_people', 'can_see_products', 'can_see_orders', 'can_see_accounting', 'can_see_admin'),
+            'fields': ('can_see_sales', 'can_see_people', 'can_see_products', 'can_see_stock', 'can_see_orders', 'can_see_accounting', 'can_see_admin'),
             'description': 'Toggle entire menu sections on/off. If a section is hidden, all its sub-items are also hidden.'
         }),
         ('Sales Sub-Items', {
@@ -1139,3 +1139,14 @@ class UserMenuPermissionAdmin(admin.ModelAdmin):
             'description': 'Fine-grained control over Accounting menu items. Only applies if "Accounting menu" is enabled above.'
         }),
     )
+
+
+@admin.register(StockAlertSettings)
+class StockAlertSettingsAdmin(admin.ModelAdmin):
+    list_display = ['__str__', 'alerts_enabled', 'notify_on_stock_received', 'notify_on_low_stock', 'updated_at']
+
+    def has_add_permission(self, request):
+        return not StockAlertSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False

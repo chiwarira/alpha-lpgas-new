@@ -86,6 +86,7 @@ class ProductForm(forms.ModelForm):
             'category', 'unit_price', 'compare_at_price', 'cost_price', 'tax_rate',
             'main_image', 'image_2', 'image_3', 'image_4',
             'weight', 'is_exchange', 'requires_empty_cylinder',
+            'cylinder_size', 'stock_effect',
             'track_inventory', 'stock_quantity', 'low_stock_threshold',
             'is_active', 'is_featured', 'show_on_website', 'available_for_invoicing',
             'meta_title', 'meta_description', 'order'
@@ -155,6 +156,8 @@ class ProductForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'e.g., 9kg, 19kg, 48kg'
             }),
+            'cylinder_size': forms.Select(attrs={'class': 'form-select'}),
+            'stock_effect': forms.Select(attrs={'class': 'form-select'}),
             'stock_quantity': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': '0'

@@ -1,0 +1,55 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Stocktake - Alpha LPGas{% endblock %}
+{% block nav_stock %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-clipboard-check"></i> Stocktake / Set Levels</h1>
+        <p class="text-muted mb-0">Enter the actual number of cylinders counted. Leave a box blank to keep the current value. Differences are recorded as adjustments.</p>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:stock_dashboard' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back to Stock</a>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="card mb-4">
+        <div class="card-body p-0">
+            <table class="table mb-0 align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Size</th>
+                        <th class="text-end">Full (system)</th>
+                        <th style="width:160px">Full (counted)</th>
+                        <th class="text-end">Empty (system)</th>
+                        <th style="width:160px">Empty (counted)</th>
+                        <th style="width:160px">Reorder level</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td><strong>{{ row.size.name }}</strong></td>
+                        <td class="text-end">{{ row.stock.quantity }}</td>
+                        <td><input type="number" min="0" name="full_{{ row.size.id }}" class="form-control" placeholder="{{ row.stock.quantity }}"></td>
+                        <td class="text-end">{{ row.stock.empty_quantity }}</td>
+                        <td><input type="number" min="0" name="empty_{{ row.size.id }}" class="form-control" placeholder="{{ row.stock.empty_quantity }}"></td>
+                        <td><input type="number" min="0" name="reorder_{{ row.size.id }}" class="form-control" value="{{ row.stock.reorder_level }}"></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer">
+            <label class="form-label mb-1">Reason / notes</label>
+            <input type="text" name="notes" class="form-control" placeholder="e.g. Weekly stocktake" value="Stocktake">
+        </div>
+    </div>
+    <div class="text-end">
+        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-save"></i> Save Counts</button>
+    </div>
+</form>
+{% endblock %}

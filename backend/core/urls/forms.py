@@ -54,6 +54,10 @@ from ..views_loyalty import (
     send_loyalty_card_whatsapp_view, download_loyalty_card
 )
 from ..views_client_leadtime import client_lead_time_analysis
+from ..views_stock import (
+    stock_dashboard, stock_receive, stock_adjust, stock_sales_report, stock_movements,
+    stock_purchase_detail, stock_settings, stock_send_test_alert, stock_run_low_stock_check,
+)
 
 app_name = 'accounting_forms'
 
@@ -161,4 +165,15 @@ urlpatterns = [
     # EFT Reconciliation
     path('eft-reconciliation/', eft_reconciliation_upload, name='eft_reconciliation_upload'),
     path('eft-reconciliation/review/', eft_reconciliation_review, name='eft_reconciliation_review'),
+    
+    # Stock Management
+    path('stock/', stock_dashboard, name='stock_dashboard'),
+    path('stock/receive/', stock_receive, name='stock_receive'),
+    path('stock/adjust/', stock_adjust, name='stock_adjust'),
+    path('stock/sales/', stock_sales_report, name='stock_sales_report'),
+    path('stock/movements/', stock_movements, name='stock_movements'),
+    path('stock/deliveries/<int:pk>/', stock_purchase_detail, name='stock_purchase_detail'),
+    path('stock/settings/', stock_settings, name='stock_settings'),
+    path('stock/settings/test-alert/', stock_send_test_alert, name='stock_test_alert'),
+    path('stock/check-low-stock/', stock_run_low_stock_check, name='stock_low_stock_check'),
 ]
