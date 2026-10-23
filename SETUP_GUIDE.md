@@ -24,7 +24,7 @@ This guide will walk you through setting up the Alpha LPGas platform from scratc
 ### Accounts Needed
 - **Google Cloud Console**: For OAuth (https://console.cloud.google.com/)
 - **YOCO Account**: For payment processing (https://www.yoco.com/)
-- **DigitalOcean Account**: For production hosting (https://www.digitalocean.com/)
+- **Vercel Account**: For production hosting (https://vercel.com/)
 
 ## Local Development Setup
 

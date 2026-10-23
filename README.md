@@ -58,10 +58,9 @@ A comprehensive full-stack web application for LPG gas delivery with integrated 
 - **WhatsApp Business API**: Order notifications (optional)
 
 ### Deployment
-- **DigitalOcean**: Cloud hosting
-- **Nginx**: Web server
-- **Gunicorn**: WSGI server
-- **Let's Encrypt**: SSL certificates
+- **Vercel**: Backend and frontend hosting
+- **GitHub Actions**: Database migrations on push (dev → staging, main → production)
+- **PostgreSQL**: Managed database
 
 ## 📋 Prerequisites
 
@@ -247,62 +246,21 @@ frontend/
 
 ## 🚀 Deployment
 
-### DigitalOcean Deployment
+### Vercel
 
-1. **Create Droplet**
-   - Ubuntu 22.04 LTS
-   - 2GB RAM minimum
-   - Add SSH key
+Both the Django backend and the Next.js frontend deploy on Vercel:
 
-2. **Create Managed PostgreSQL Database**
-   - PostgreSQL 12+
-   - Note connection details
+- **`main`** → production deployment (`api.alphalpgas.co.za` backend, `alphalpgas.co.za` frontend)
+- **`dev`** → preview deployment, aliased to `api-staging.alphalpgas.co.za`
 
-3. **Deploy Backend**
-   ```bash
-   # SSH into droplet
-   ssh root@your-droplet-ip
-   
-   # Clone repository
-   git clone <repository-url>
-   cd alpha-lpgas-new/backend
-   
-   # Install dependencies
-   sudo apt update
-   sudo apt install python3-pip python3-venv nginx
-   
-   # Setup application
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   
-   # Configure environment
-   nano .env
-   # Add production settings
-   
-   # Run migrations
-   python manage.py migrate
-   python manage.py collectstatic
-   
-   # Setup Gunicorn and Nginx
-   # (See deployment guide for detailed steps)
-   ```
+### Database migrations
 
-4. **Deploy Frontend**
-   ```bash
-   # Build Next.js app
-   cd frontend
-   npm install
-   npm run build
-   
-   # Deploy to Vercel or serve with Nginx
-   ```
+GitHub Actions apply migrations automatically on push:
 
-5. **SSL Certificate**
-   ```bash
-   sudo apt install certbot python3-certbot-nginx
-   sudo certbot --nginx -d yourdomain.com
-   ```
+- Push to `dev` → `migrate-staging.yml` runs against the staging database
+- Push to `main` → `migrate.yml` runs against the production database
+
+The staging/production `DATABASE_URL` values live in GitHub environment secrets (`Alpha LPGas / dev/staging` and `Alpha LPGas / production`).
 
 ## 🧪 Testing
 

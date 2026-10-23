@@ -8,6 +8,12 @@
 - Backend: `cd backend && venv/Scripts/python manage.py runserver 8000` (Windows venv at `backend/venv`). Uses local Postgres from `backend/.env` (`DATABASE_URL`).
 - Apply migrations: `venv/Scripts/python manage.py migrate`.
 
+## Deployment
+- Backend + frontend both deploy on Vercel (project `alpha-lpgas-backend` / repo linked via root `.vercel/`).
+- `main` → production (`api.alphalpgas.co.za`); `dev` → preview deploy aliased to `api-staging.alphalpgas.co.za` (`vercel ls` / `vercel inspect` to check).
+- GitHub Actions run migrations on push: `migrate-staging.yml` (dev → `DATABASE_URL_STAGING`) and `migrate.yml` (main → `DATABASE_URL`). No code-deploy workflow — Vercel's Git integration handles that.
+- `settings.py` extends `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS`/CORS for `*.vercel.app` + `*.alphalpgas.co.za` when `VERCEL_ENV` is set.
+
 ## Tests
 - The local Postgres role cannot create databases, so run tests with the SQLite test settings:
   `cd backend && venv/Scripts/python manage.py test core.tests --settings=alphalpgas.settings_test`

@@ -59,12 +59,9 @@ Alpha LPGas is a comprehensive full-stack web application for LPG gas delivery w
 - **UI Components**: Radix UI primitives
 
 ### Infrastructure
-- **Hosting**: DigitalOcean
-- **Web Server**: Nginx
-- **App Server**: Gunicorn
-- **Process Manager**: Supervisor
-- **SSL**: Let's Encrypt (Certbot)
-- **Database**: DigitalOcean Managed PostgreSQL
+- **Hosting**: Vercel (backend + frontend; `dev` → `api-staging.alphalpgas.co.za`, `main` → production)
+- **Database**: Managed PostgreSQL
+- **Migrations**: GitHub Actions on push (`migrate-staging.yml` for dev, `migrate.yml` for main)
 
 ## Project Structure
 
@@ -249,18 +246,15 @@ alpha-lpgas-new/
 ## Deployment Configuration
 
 ### Production Environment
-- **Server**: DigitalOcean Droplet (2GB RAM)
+- **Hosting**: Vercel (`main` branch → `api.alphalpgas.co.za` + `alphalpgas.co.za`)
+- **Staging**: Vercel preview deployments (`dev` branch → `api-staging.alphalpgas.co.za`)
 - **Database**: Managed PostgreSQL
-- **Web Server**: Nginx
-- **App Server**: Gunicorn (3 workers)
-- **Process Manager**: Supervisor
-- **SSL**: Let's Encrypt
-- **Monitoring**: Logs + Supervisor status
+- **Migrations**: GitHub Actions run `manage.py migrate` on push to dev/main
+- **Monitoring**: Vercel deployment logs
 
 ### Environment Variables
 - Separate .env for development/production
-- Secrets managed securely
-- Database credentials from DigitalOcean
+- Secrets managed securely (Vercel project env vars + GitHub environment secrets for migrations)
 - API keys for integrations
 
 ## Future Enhancements
@@ -289,7 +283,6 @@ alpha-lpgas-new/
 
 - **README.md**: Project overview and quick start
 - **SETUP_GUIDE.md**: Detailed local setup instructions
-- **DEPLOYMENT_GUIDE.md**: Production deployment steps
 - **API Documentation**: Swagger UI at `/api/docs/`
 - **Code Comments**: Inline documentation
 
@@ -303,9 +296,8 @@ alpha-lpgas-new/
 
 ### Backup Strategy
 - **Database**: Daily automated backups (7-day retention)
-- **Media Files**: Weekly backups to DigitalOcean Spaces
+- **Media Files**: Regular off-site backups
 - **Code**: Git repository (GitHub/GitLab)
-- **Snapshots**: Weekly droplet snapshots
 
 ## Support & Contact
 
