@@ -7,7 +7,7 @@ from django.db.models import Sum
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from datetime import date, timedelta
-from .models import Client, Product, Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem, Order, Driver, DeliveryZone, ContactSubmission
+from .models import Client, Product, Quote, QuoteItem, Invoice, InvoiceItem, Payment, CreditNote, CreditNoteItem, Order, Driver, DeliveryZone, ContactSubmission, Vehicle
 from .models_accounting import Supplier, Expense, ExpenseCategory, JournalEntry, TaxPeriod
 from .forms import (
     ClientForm, ProductForm, QuoteForm, QuoteItemFormSet,
@@ -777,6 +777,8 @@ def invoice_create(request):
         if form.is_valid() and formset.is_valid():
             invoice = form.save(commit=False)
             invoice.created_by = request.user
+            if invoice.assigned_driver and not invoice.assigned_vehicle:
+                invoice.assigned_vehicle = invoice.assigned_driver.get_vehicle_for_date(invoice.issue_date or date.today())
             invoice.save()
             
             # Save items and populate from product
@@ -868,7 +870,10 @@ def invoice_edit(request, invoice_number):
         )
         
         if form.is_valid() and formset.is_valid():
-            invoice = form.save()
+            invoice = form.save(commit=False)
+            if invoice.assigned_driver and not invoice.assigned_vehicle:
+                invoice.assigned_vehicle = invoice.assigned_driver.get_vehicle_for_date(invoice.issue_date or date.today())
+            invoice.save()
             
             # Save items and populate from product for new items
             for item_form in formset:
@@ -1945,6 +1950,7 @@ def order_assign_driver(request, pk):
             try:
                 driver = Driver.objects.get(pk=driver_id, is_active=True)
                 order.assigned_driver = driver
+                order.assigned_vehicle = driver.get_vehicle_for_date(date.today())
                 order.save()
                 
                 messages.success(request, f'Order #{order.order_number} assigned to {driver.user.get_full_name()}')
@@ -1953,13 +1959,18 @@ def order_assign_driver(request, pk):
         else:
             # Unassign driver
             order.assigned_driver = None
+            order.assigned_vehicle = None
             order.save()
             messages.success(request, f'Driver unassigned from order #{order.order_number}')
         
         return redirect('accounting_forms:order_detail', pk=pk)
     
     # Get available drivers
-    available_drivers = Driver.objects.filter(is_active=True).select_related('user').order_by('user__first_name')
+    available_drivers = list(
+        Driver.objects.filter(is_active=True).select_related('user', 'default_vehicle').order_by('user__first_name')
+    )
+    for d in available_drivers:
+        d.vehicle_today = d.get_vehicle_for_date(date.today())
     
     return render(request, 'core/order_assign_driver.html', {
         'order': order,
@@ -1987,13 +1998,22 @@ def driver_list(request):
             Q(user__last_name__icontains=search_query) |
             Q(user__username__icontains=search_query) |
             Q(phone__icontains=search_query) |
-            Q(vehicle_registration__icontains=search_query)
+            Q(default_vehicle__registration_number__icontains=search_query)
         )
     
     if status_filter:
         drivers = drivers.filter(status=status_filter)
     
-    drivers = drivers.order_by('-is_active', 'user__first_name')
+    drivers = list(drivers.order_by('-is_active', 'user__first_name').select_related('default_vehicle'))
+    
+    # Attach today's assigned vehicle (fall back to default vehicle)
+    from .models_fleet import VehicleAssignment
+    todays_vehicles = {
+        a.driver_id: a.vehicle
+        for a in VehicleAssignment.objects.filter(date=date.today()).select_related('vehicle')
+    }
+    for d in drivers:
+        d.vehicle_today = todays_vehicles.get(d.pk) or d.default_vehicle
     
     # Calculate stats
     total_drivers = Driver.objects.count()
@@ -2025,12 +2045,19 @@ def driver_detail(request, pk):
     total_deliveries = driver.total_deliveries
     completed_deliveries = driver.assigned_orders.filter(status='delivered').count()
     
+    vehicle_today = driver.get_vehicle_for_date(date.today())
+    upcoming_assignments = driver.vehicle_assignments.filter(
+        date__gte=date.today()
+    ).select_related('vehicle').order_by('date')[:10]
+    
     return render(request, 'core/driver_detail.html', {
         'driver': driver,
         'orders': orders,
         'active_deliveries': active_deliveries,
         'total_deliveries': total_deliveries,
         'completed_deliveries': completed_deliveries,
+        'vehicle_today': vehicle_today,
+        'upcoming_assignments': upcoming_assignments,
     })
 
 
@@ -2051,9 +2078,7 @@ def driver_create(request):
         phone = request.POST.get('phone')
         id_number = request.POST.get('id_number', '')
         address = request.POST.get('address', '')
-        vehicle_type = request.POST.get('vehicle_type')
-        vehicle_registration = request.POST.get('vehicle_registration')
-        vehicle_make_model = request.POST.get('vehicle_make_model', '')
+        default_vehicle_id = request.POST.get('default_vehicle') or None
         drivers_license_number = request.POST.get('drivers_license_number', '')
         license_expiry_date = request.POST.get('license_expiry_date') or None
         
@@ -2073,9 +2098,7 @@ def driver_create(request):
                 phone=phone,
                 id_number=id_number,
                 address=address,
-                vehicle_type=vehicle_type,
-                vehicle_registration=vehicle_registration,
-                vehicle_make_model=vehicle_make_model,
+                default_vehicle_id=default_vehicle_id,
                 drivers_license_number=drivers_license_number,
                 license_expiry_date=license_expiry_date,
                 status='available',
@@ -2091,6 +2114,7 @@ def driver_create(request):
     return render(request, 'core/driver_form.html', {
         'title': 'Create Driver',
         'is_edit': False,
+        'vehicles': Vehicle.objects.filter(is_active=True).order_by('registration_number'),
     })
 
 
@@ -2110,9 +2134,7 @@ def driver_edit(request, pk):
         driver.phone = request.POST.get('phone')
         driver.id_number = request.POST.get('id_number', '')
         driver.address = request.POST.get('address', '')
-        driver.vehicle_type = request.POST.get('vehicle_type')
-        driver.vehicle_registration = request.POST.get('vehicle_registration')
-        driver.vehicle_make_model = request.POST.get('vehicle_make_model', '')
+        driver.default_vehicle_id = request.POST.get('default_vehicle') or None
         driver.drivers_license_number = request.POST.get('drivers_license_number', '')
         license_expiry = request.POST.get('license_expiry_date')
         driver.license_expiry_date = license_expiry if license_expiry else None
@@ -2131,6 +2153,7 @@ def driver_edit(request, pk):
         'title': 'Edit Driver',
         'driver': driver,
         'is_edit': True,
+        'vehicles': Vehicle.objects.filter(is_active=True).order_by('registration_number'),
     })
 
 

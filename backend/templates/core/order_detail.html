@@ -38,6 +38,8 @@
                 <span class="badge bg-warning" style="font-size: 1.2rem;">Out for Delivery</span>
                 {% elif order.status == 'delivered' %}
                 <span class="badge bg-success" style="font-size: 1.2rem;">Delivered</span>
+                {% elif order.status == 'failed' %}
+                <span class="badge bg-danger" style="font-size: 1.2rem;">Failed</span>
                 {% elif order.status == 'cancelled' %}
                 <span class="badge bg-danger" style="font-size: 1.2rem;">Cancelled</span>
                 {% endif %}
@@ -65,7 +67,11 @@
                 {% if order.assigned_driver %}
                 <p class="mb-0">
                     <strong>{{ order.assigned_driver.user.get_full_name }}</strong><br>
-                    <small>{{ order.assigned_driver.vehicle_registration }}</small>
+                    {% if order.assigned_vehicle %}
+                    <small><code>{{ order.assigned_vehicle.registration_number }}</code>{% if order.assigned_vehicle.make_model %} - {{ order.assigned_vehicle.make_model }}{% endif %}</small>
+                    {% elif order.assigned_driver.default_vehicle %}
+                    <small><code>{{ order.assigned_driver.default_vehicle.registration_number }}</code></small>
+                    {% endif %}
                 </p>
                 {% else %}
                 <span class="text-muted">Not assigned</span>
@@ -128,6 +134,12 @@
                     <tr>
                         <th>Notes:</th>
                         <td>{{ order.delivery_notes }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if order.delivery_failure_reason %}
+                    <tr>
+                        <th>Failure Reason:</th>
+                        <td><span class="text-danger">{{ order.delivery_failure_reason }}</span></td>
                     </tr>
                     {% endif %}
                     <tr>
@@ -222,6 +234,31 @@
         </table>
     </div>
 </div>
+
+<!-- Proof of Delivery -->
+{% if order.pod_photo or order.pod_signature %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-check2-square"></i> Proof of Delivery</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% if order.pod_signature %}
+            <div class="col-md-6">
+                <p><strong>Signature:</strong></p>
+                <img src="{{ order.pod_signature.url }}" alt="Customer signature" class="img-fluid border rounded" style="max-height: 200px; background: #fff;">
+            </div>
+            {% endif %}
+            {% if order.pod_photo %}
+            <div class="col-md-6">
+                <p><strong>Photo:</strong></p>
+                <img src="{{ order.pod_photo.url }}" alt="Delivery photo" class="img-fluid rounded" style="max-height: 300px;">
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Status History -->
 {% if order.status_history.all %}

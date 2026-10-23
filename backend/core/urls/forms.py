@@ -58,6 +58,11 @@ from ..views_stock import (
     stock_dashboard, stock_receive, stock_adjust, stock_sales_report, stock_movements,
     stock_purchase_detail, stock_settings, stock_send_test_alert, stock_run_low_stock_check,
 )
+from ..views_fleet import (
+    vehicle_list, vehicle_create, vehicle_edit, vehicle_detail, vehicle_delete,
+    vehicle_service_add, vehicle_service_delete,
+    vehicle_assignments, vehicle_assignment_delete, driver_stock_report,
+)
 
 app_name = 'accounting_forms'
 
@@ -138,6 +143,17 @@ urlpatterns = [
     path('drivers/<int:pk>/edit/', driver_edit, name='driver_edit'),
     path('drivers/<int:pk>/delete/', driver_delete, name='driver_delete'),
     
+    # Vehicles / Fleet
+    path('vehicles/', vehicle_list, name='vehicle_list'),
+    path('vehicles/create/', vehicle_create, name='vehicle_create'),
+    path('vehicles/assignments/', vehicle_assignments, name='vehicle_assignments'),
+    path('vehicles/assignments/<int:pk>/delete/', vehicle_assignment_delete, name='vehicle_assignment_delete'),
+    path('vehicles/<int:pk>/', vehicle_detail, name='vehicle_detail'),
+    path('vehicles/<int:pk>/edit/', vehicle_edit, name='vehicle_edit'),
+    path('vehicles/<int:pk>/delete/', vehicle_delete, name='vehicle_delete'),
+    path('vehicles/<int:pk>/service/', vehicle_service_add, name='vehicle_service_add'),
+    path('vehicles/<int:pk>/service/<int:record_pk>/delete/', vehicle_service_delete, name='vehicle_service_delete'),
+    
     # Contact Submissions
     path('contact-submissions/', contact_submission_list, name='contact_submission_list'),
     path('contact-submissions/<int:pk>/', contact_submission_detail, name='contact_submission_detail'),
@@ -171,6 +187,7 @@ urlpatterns = [
     path('stock/receive/', stock_receive, name='stock_receive'),
     path('stock/adjust/', stock_adjust, name='stock_adjust'),
     path('stock/sales/', stock_sales_report, name='stock_sales_report'),
+    path('stock/driver-stock/', driver_stock_report, name='driver_stock_report'),
     path('stock/movements/', stock_movements, name='stock_movements'),
     path('stock/deliveries/<int:pk>/', stock_purchase_detail, name='stock_purchase_detail'),
     path('stock/settings/', stock_settings, name='stock_settings'),

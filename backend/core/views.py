@@ -283,6 +283,8 @@ class QuoteViewSet(viewsets.ModelViewSet):
             total_amount=quote.total_amount,
             notes=quote.notes,
             terms=quote.terms,
+            assigned_driver_id=request.data.get('assigned_driver'),
+            assigned_vehicle_id=request.data.get('assigned_vehicle'),
             created_by=request.user
         )
         
@@ -415,7 +417,7 @@ class DriverViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['status', 'is_active']
-    search_fields = ['user__first_name', 'user__last_name', 'user__username', 'phone', 'vehicle_registration']
+    search_fields = ['user__first_name', 'user__last_name', 'user__username', 'phone', 'default_vehicle__registration_number']
     ordering_fields = ['created_at', 'total_deliveries', 'rating']
     ordering = ['-created_at']
     

@@ -45,7 +45,7 @@
     <p class="mb-2">
         <strong>{{ order.assigned_driver.user.get_full_name }}</strong><br>
         Phone: {{ order.assigned_driver.phone }}<br>
-        Vehicle: {{ order.assigned_driver.vehicle_type }} ({{ order.assigned_driver.vehicle_registration }})<br>
+        Vehicle: {% if order.assigned_vehicle %}{{ order.assigned_vehicle.registration_number }} ({{ order.assigned_vehicle.make_model|default:order.assigned_vehicle.get_vehicle_type_display }}){% else %}Not assigned{% endif %}<br>
         Status: {{ order.assigned_driver.get_status_display }}
     </p>
     <form method="post" class="d-inline">
@@ -76,7 +76,7 @@
                                 <p class="mb-1">
                                     <small>
                                         <i class="bi bi-telephone"></i> {{ driver.phone }}<br>
-                                        <i class="bi bi-truck"></i> {{ driver.vehicle_type }} ({{ driver.vehicle_registration }})
+                                        <i class="bi bi-truck"></i> {% if driver.vehicle_today %}{{ driver.vehicle_today.registration_number }} ({{ driver.vehicle_today.make_model|default:driver.vehicle_today.get_vehicle_type_display }}){% else %}No vehicle assigned{% endif %}
                                     </small>
                                 </p>
                                 <p class="mb-0">

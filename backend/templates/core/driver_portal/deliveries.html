@@ -46,7 +46,9 @@
                     </small>
                 </div>
                 <div>
-                    {% if delivery.status == 'confirmed' %}
+                    {% if delivery.status == 'pending' %}
+                    <span class="badge bg-secondary">New</span>
+                    {% elif delivery.status == 'confirmed' %}
                     <span class="badge bg-info">Confirmed</span>
                     {% elif delivery.status == 'preparing' %}
                     <span class="badge bg-warning">Preparing</span>
@@ -54,8 +56,10 @@
                     <span class="badge bg-primary">Out for Delivery</span>
                     {% elif delivery.status == 'delivered' %}
                     <span class="badge bg-success">Delivered</span>
+                    {% elif delivery.status == 'failed' %}
+                    <span class="badge bg-danger">Failed</span>
                     {% elif delivery.status == 'cancelled' %}
-                    <span class="badge bg-danger">Cancelled</span>
+                    <span class="badge bg-secondary">Cancelled</span>
                     {% endif %}
                 </div>
             </div>
@@ -63,9 +67,6 @@
             <div class="mb-2">
                 <p class="mb-1">
                     <i class="bi bi-geo-alt"></i> {{ delivery.delivery_address|truncatewords:15 }}
-                </p>
-                <p class="mb-1">
-                    <i class="bi bi-telephone"></i> {{ delivery.customer_phone }}
                 </p>
                 {% if delivery.delivery_zone %}
                 <p class="mb-1">

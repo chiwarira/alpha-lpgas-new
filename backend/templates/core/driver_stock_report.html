@@ -1,0 +1,97 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Driver Stock Counts - Alpha LPGas{% endblock %}
+
+{% block nav_stock %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-clipboard-data"></i> Driver Stock Counts</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:stock_dashboard' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Stock Overview
+        </a>
+    </div>
+</div>
+
+<!-- Date Picker -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label for="date" class="form-label">Date</label>
+                <input type="date" class="form-control" id="date" name="date" value="{{ report_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-8">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> View</button>
+                <a href="{% url 'accounting_forms:driver_stock_report' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-calendar-day"></i> Today
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if missing_opening %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i>
+    <strong>No opening count yet:</strong>
+    {% for d in missing_opening %}{{ d.user.get_full_name|default:d.user.username }}{% if not forloop.last %}, {% endif %}{% endfor %}
+</div>
+{% endif %}
+
+{% if report_rows %}
+{% for row in report_rows %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-person"></i>
+            <a href="{% url 'accounting_forms:driver_detail' row.driver.pk %}">
+                {{ row.driver.user.get_full_name|default:row.driver.user.username }}
+            </a>
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Cylinder</th>
+                        <th><i class="bi bi-sunrise"></i> Opening (Full / Empty)</th>
+                        <th><i class="bi bi-plus-circle"></i> Restock (Full / Empty)</th>
+                        <th><i class="bi bi-moon-stars"></i> Closing (Full / Empty)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cell in row.cells %}
+                    <tr>
+                        <td><strong>{{ cell.size.name }}</strong></td>
+                        <td>
+                            {% if cell.opening %}{{ cell.opening.0 }} / {{ cell.opening.1 }}{% else %}<span class="text-muted">-</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if cell.restock %}{{ cell.restock.0 }} / {{ cell.restock.1 }}{% else %}<span class="text-muted">-</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if cell.closing %}{{ cell.closing.0 }} / {{ cell.closing.1 }}{% else %}<span class="text-muted">-</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-clipboard-x" style="font-size: 3rem; color: #ccc;"></i>
+        <h5 class="mt-3">No stock counts for {{ report_date|date:"d M Y" }}</h5>
+        <p class="text-muted">Counts appear here after drivers submit them from the driver portal.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

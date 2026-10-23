@@ -27,6 +27,9 @@ from .models_loyalty import LoyaltyCard, LoyaltyTransaction
 # Import WhatsApp models
 from .models_whatsapp import WhatsAppConversation, WhatsAppMessage, WhatsAppOrderIntent, WhatsAppConfig
 
+# Import fleet management models
+from .models_fleet import Vehicle, VehicleServiceRecord, VehicleAssignment, DriverStockCount, DriverStockCountItem
+
 
 class UserMenuPermission(models.Model):
     """Controls which accounting menu sections/items a user can see"""
@@ -54,6 +57,7 @@ class UserMenuPermission(models.Model):
     can_see_clients = models.BooleanField(default=True, verbose_name='Clients')
     can_see_suppliers = models.BooleanField(default=True, verbose_name='Suppliers')
     can_see_drivers = models.BooleanField(default=True, verbose_name='Drivers')
+    can_see_vehicles = models.BooleanField(default=True, verbose_name='Vehicles')
     can_see_contact_submissions = models.BooleanField(default=True, verbose_name='Contact Submissions')
     
     # Orders sub-items
@@ -706,6 +710,8 @@ class Invoice(models.Model):
     quote = models.ForeignKey(Quote, on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices')
     delivery_zone = models.ForeignKey('DeliveryZone', on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices', help_text="Delivery zone for this invoice")
     order = models.ForeignKey('Order', on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices', help_text="Delivery order generated from this invoice")
+    assigned_driver = models.ForeignKey('Driver', on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices', help_text="Driver assigned to this delivery")
+    assigned_vehicle = models.ForeignKey('Vehicle', on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices', help_text="Vehicle for this delivery (auto-filled from the daily roster)")
     issue_date = models.DateField(db_index=True)
     payment_terms = models.CharField(max_length=20, choices=PAYMENT_TERMS_CHOICES, default='net_30', help_text="Payment terms for this invoice")
     due_date = models.DateField(db_index=True)
@@ -1057,9 +1063,7 @@ class Driver(models.Model):
     address = models.TextField(blank=True)
     
     # Vehicle Info
-    vehicle_type = models.CharField(max_length=100, help_text="e.g., Bakkie, Van, Truck")
-    vehicle_registration = models.CharField(max_length=50, help_text="Vehicle registration number")
-    vehicle_make_model = models.CharField(max_length=100, blank=True, help_text="e.g., Toyota Hilux")
+    default_vehicle = models.ForeignKey('Vehicle', on_delete=models.SET_NULL, null=True, blank=True, related_name='default_for_drivers', help_text="Vehicle this driver normally uses when no daily assignment exists")
     
     # Driver Status
     STATUS_CHOICES = [
@@ -1092,11 +1096,18 @@ class Driver(models.Model):
         ordering = ['user__first_name', 'user__last_name']
     
     def __str__(self):
-        return f"{self.user.get_full_name() or self.user.username} - {self.vehicle_registration}"
+        return self.user.get_full_name() or self.user.username
     
     def get_active_deliveries(self):
         """Get current active deliveries for this driver"""
-        return self.assigned_orders.filter(status__in=['confirmed', 'preparing', 'out_for_delivery'])
+        return self.assigned_orders.filter(status__in=['pending', 'confirmed', 'preparing', 'out_for_delivery', 'failed'])
+
+    def get_vehicle_for_date(self, for_date):
+        """Vehicle this driver is assigned on a given date, falling back to their default vehicle."""
+        assignment = self.vehicle_assignments.filter(date=for_date).select_related('vehicle').first()
+        if assignment:
+            return assignment.vehicle
+        return self.default_vehicle
     
     def update_delivery_count(self):
         """Update total deliveries count"""
@@ -1119,6 +1130,7 @@ class Order(models.Model):
     delivery_zone = models.ForeignKey(DeliveryZone, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
     delivery_notes = models.TextField(blank=True)
     assigned_driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_orders', help_text="Driver assigned to this delivery")
+    assigned_vehicle = models.ForeignKey('Vehicle', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_orders', help_text="Vehicle used for this delivery")
     
     # Order Details
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
@@ -1149,6 +1161,7 @@ class Order(models.Model):
         ('preparing', 'Preparing'),
         ('out_for_delivery', 'Out for Delivery'),
         ('delivered', 'Delivered'),
+        ('failed', 'Failed Delivery'),
         ('cancelled', 'Cancelled'),
     ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
@@ -1156,6 +1169,9 @@ class Order(models.Model):
     # Tracking
     estimated_delivery = models.DateTimeField(null=True, blank=True)
     delivered_at = models.DateTimeField(null=True, blank=True)
+    pod_photo = models.ImageField(upload_to='pod/', blank=True, null=True, help_text="Proof-of-delivery photo")
+    pod_signature = models.ImageField(upload_to='pod/signatures/', blank=True, null=True, help_text="Captured customer signature")
+    delivery_failure_reason = models.TextField(blank=True, help_text="Reason recorded when a delivery attempt failed")
     
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

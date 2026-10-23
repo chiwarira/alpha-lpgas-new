@@ -236,6 +236,8 @@
                             {% if not menu_perms or menu_perms.can_see_suppliers %}<li><a class="dropdown-item" href="{% url 'accounting_forms:supplier_list' %}"><i class="bi bi-building"></i> Suppliers</a></li>{% endif %}
                             {% if not menu_perms or menu_perms.can_see_suppliers %}<li><a class="dropdown-item" href="{% url 'accounting_forms:supplier_gas_rates' %}"><i class="bi bi-graph-up"></i> Gas Rates</a></li>{% endif %}
                             {% if not menu_perms or menu_perms.can_see_drivers %}<li><a class="dropdown-item" href="{% url 'accounting_forms:driver_list' %}"><i class="bi bi-truck"></i> Drivers</a></li>{% endif %}
+                            {% if not menu_perms or menu_perms.can_see_vehicles %}<li><a class="dropdown-item" href="{% url 'accounting_forms:vehicle_list' %}"><i class="bi bi-truck-front"></i> Vehicles</a></li>{% endif %}
+                            {% if not menu_perms or menu_perms.can_see_vehicles %}<li><a class="dropdown-item" href="{% url 'accounting_forms:vehicle_assignments' %}"><i class="bi bi-calendar-check"></i> Daily Assignments</a></li>{% endif %}
                             <li><hr class="dropdown-divider"></li>
                             {% if not menu_perms or menu_perms.can_see_contact_submissions %}<li><a class="dropdown-item" href="{% url 'accounting_forms:contact_submission_list' %}"><i class="bi bi-envelope"></i> Contact Submissions</a></li>{% endif %}
                         </ul>
@@ -263,6 +265,7 @@
                             <li><a class="dropdown-item" href="{% url 'accounting_forms:stock_adjust' %}"><i class="bi bi-clipboard-check"></i> Stocktake</a></li>
                             <li><a class="dropdown-item" href="{% url 'accounting_forms:stock_sales_report' %}"><i class="bi bi-graph-up"></i> Tank Sales Report</a></li>
                             <li><a class="dropdown-item" href="{% url 'accounting_forms:stock_movements' %}"><i class="bi bi-arrow-left-right"></i> Movements</a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounting_forms:driver_stock_report' %}"><i class="bi bi-clipboard-data"></i> Driver Stock Counts</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'accounting_forms:stock_settings' %}"><i class="bi bi-bell"></i> Alerts & Re-order Settings</a></li>
                         </ul>

@@ -68,16 +68,29 @@
         <h6 class="mb-0"><i class="bi bi-truck"></i> Vehicle Information</h6>
     </div>
     <div class="card-body">
+        {% if vehicle_today %}
         <p class="mb-2">
-            <strong>Type:</strong> {{ driver.vehicle_type }}
+            <strong>Vehicle Today:</strong> <code>{{ vehicle_today.registration_number }}</code>
         </p>
+        {% if vehicle_today.make_model %}
         <p class="mb-2">
-            <strong>Registration:</strong> <code>{{ driver.vehicle_registration }}</code>
+            <strong>Make & Model:</strong> {{ vehicle_today.make_model }}
         </p>
-        {% if driver.vehicle_make_model %}
+        {% endif %}
         <p class="mb-0">
-            <strong>Make & Model:</strong> {{ driver.vehicle_make_model }}
+            <strong>Type:</strong> {{ vehicle_today.get_vehicle_type_display }}
         </p>
+        {% elif driver.default_vehicle %}
+        <p class="mb-2">
+            <strong>Default Vehicle:</strong> <code>{{ driver.default_vehicle.registration_number }}</code>
+        </p>
+        {% if driver.default_vehicle.make_model %}
+        <p class="mb-0">
+            <strong>Make & Model:</strong> {{ driver.default_vehicle.make_model }}
+        </p>
+        {% endif %}
+        {% else %}
+        <p class="mb-0 text-muted">No vehicle assigned yet. Check with the office.</p>
         {% endif %}
     </div>
 </div>

@@ -1,0 +1,264 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ vehicle.registration_number }} - Alpha LPGas{% endblock %}
+
+{% block nav_drivers %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-truck-front"></i> {{ vehicle.registration_number }}</h1>
+        {% if vehicle.make_model %}
+        <p class="text-muted mb-0">{{ vehicle.make_model }}{% if vehicle.year %} ({{ vehicle.year }}){% endif %}</p>
+        {% endif %}
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:vehicle_edit' vehicle.pk %}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Edit
+        </a>
+        <a href="{% url 'accounting_forms:vehicle_delete' vehicle.pk %}" class="btn btn-danger">
+            <i class="bi bi-trash"></i> Delete
+        </a>
+        <a href="{% url 'accounting_forms:vehicle_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<!-- Status Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Status</h5>
+                {% if vehicle.status == 'active' %}
+                <span class="badge bg-success" style="font-size: 1.2rem;">Active</span>
+                {% elif vehicle.status == 'in_maintenance' %}
+                <span class="badge bg-warning" style="font-size: 1.2rem;">In Maintenance</span>
+                {% elif vehicle.status == 'decommissioned' %}
+                <span class="badge bg-secondary" style="font-size: 1.2rem;">Decommissioned</span>
+                {% endif %}
+                {% if not vehicle.is_active %}
+                <span class="badge bg-secondary" style="font-size: 1.2rem;">Inactive</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Last Service</h5>
+                <h4 class="mb-0">{{ vehicle.last_service_date|date:"d M Y"|default:"Never" }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center {% if vehicle.service_overdue %}bg-danger text-white{% endif %}">
+            <div class="card-body">
+                <h5 class="card-title">Next Service Due</h5>
+                <h4 class="mb-0">{{ vehicle.next_service_due_date|date:"d M Y"|default:"-" }}</h4>
+                {% if vehicle.service_overdue %}<small>Overdue!</small>{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Vehicle Details -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-card-text"></i> Vehicle Details</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th style="width: 180px;">Registration:</th>
+                        <td><code>{{ vehicle.registration_number }}</code></td>
+                    </tr>
+                    <tr>
+                        <th>VIN Number:</th>
+                        <td>{{ vehicle.vin_number|default:"Not provided" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Engine Number:</th>
+                        <td>{{ vehicle.engine_number|default:"Not provided" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Type:</th>
+                        <td>{{ vehicle.get_vehicle_type_display }}</td>
+                    </tr>
+                    <tr>
+                        <th>Make & Model:</th>
+                        <td>{{ vehicle.make_model|default:"Not provided" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Year:</th>
+                        <td>{{ vehicle.year|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>First Registered:</th>
+                        <td>{{ vehicle.first_registration_date|date:"d M Y"|default:"Not provided" }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        {% if default_drivers %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-person"></i> Default Driver{{ default_drivers|length|pluralize }}</h5>
+            </div>
+            <div class="card-body">
+                {% for driver in default_drivers %}
+                <a href="{% url 'accounting_forms:driver_detail' driver.pk %}" class="btn btn-outline-primary btn-sm me-1">
+                    {{ driver.user.get_full_name|default:driver.user.username }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if vehicle.notes %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-sticky"></i> Notes</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">{{ vehicle.notes }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Service History -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tools"></i> Service History</h5>
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#logServiceModal">
+                    <i class="bi bi-plus-circle"></i> Log Service
+                </button>
+            </div>
+            <div class="card-body">
+                {% if service_records %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th class="text-end">Cost</th>
+                                <th>Next Due</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in service_records %}
+                            <tr>
+                                <td>{{ record.service_date|date:"d M Y" }}</td>
+                                <td>
+                                    {{ record.description|truncatewords:8 }}
+                                    {% if record.serviced_by %}<br><small class="text-muted">{{ record.serviced_by }}</small>{% endif %}
+                                </td>
+                                <td class="text-end">R{{ record.cost|floatformat:2 }}</td>
+                                <td>{{ record.next_service_due_date|date:"d M Y"|default:"-" }}</td>
+                                <td class="text-end">
+                                    <form method="post" action="{% url 'accounting_forms:vehicle_service_delete' vehicle.pk record.pk %}"
+                                          onsubmit="return confirm('Delete this service record?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No service records yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Assignment History -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Assignment History</h5>
+            </div>
+            <div class="card-body">
+                {% if assignments %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Driver</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for assignment in assignments %}
+                            <tr>
+                                <td>{{ assignment.date|date:"d M Y" }}</td>
+                                <td>{{ assignment.driver.user.get_full_name|default:assignment.driver.user.username }}</td>
+                                <td class="text-muted">{{ assignment.notes|default:"-" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No assignments yet. Assign this vehicle to a driver on the
+                    <a href="{% url 'accounting_forms:vehicle_assignments' %}">Daily Assignments</a> page.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Service Modal -->
+<div class="modal fade" id="logServiceModal" tabindex="-1" aria-labelledby="logServiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'accounting_forms:vehicle_service_add' vehicle.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="logServiceModalLabel"><i class="bi bi-tools"></i> Log Service</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="{{ service_form.service_date.id_for_label }}" class="form-label">Service Date *</label>
+                        {{ service_form.service_date }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ service_form.description.id_for_label }}" class="form-label">Work Done *</label>
+                        {{ service_form.description }}
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ service_form.cost.id_for_label }}" class="form-label">Cost (R)</label>
+                            {{ service_form.cost }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ service_form.next_service_due_date.id_for_label }}" class="form-label">Next Service Due</label>
+                            {{ service_form.next_service_due_date }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ service_form.serviced_by.id_for_label }}" class="form-label">Serviced By</label>
+                        {{ service_form.serviced_by }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Save Service</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -23,7 +23,7 @@
                     <div class="card-body">
                         <h5>{{ driver.user.get_full_name|default:driver.user.username }}</h5>
                         <p class="mb-1"><strong>Phone:</strong> {{ driver.phone }}</p>
-                        <p class="mb-1"><strong>Vehicle:</strong> {{ driver.vehicle_type }} ({{ driver.vehicle_registration }})</p>
+                        <p class="mb-1"><strong>Default Vehicle:</strong> {% if driver.default_vehicle %}{{ driver.default_vehicle.registration_number }}{% else %}None{% endif %}</p>
                         <p class="mb-1"><strong>Total Deliveries:</strong> {{ driver.total_deliveries }}</p>
                         <p class="mb-0"><strong>Status:</strong> {{ driver.get_status_display }}</p>
                     </div>

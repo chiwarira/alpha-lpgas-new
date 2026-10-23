@@ -52,6 +52,8 @@ def create_order_from_invoice(invoice, created_at=None):
         delivery_address=delivery_address,
         delivery_zone=invoice.delivery_zone,
         delivery_notes=invoice.delivery_note,
+        assigned_driver=invoice.assigned_driver,
+        assigned_vehicle=invoice.assigned_vehicle,
         subtotal=items_total,
         discount_amount=invoice.discount_amount,
         total=items_total - invoice.discount_amount,
@@ -110,9 +112,13 @@ def sync_order_from_invoice(sender, instance, **kwargs):
         subtotal=instance.subtotal,
         discount_amount=instance.discount_amount,
         total=instance.total_amount,
+        assigned_driver=instance.assigned_driver,
+        assigned_vehicle=instance.assigned_vehicle,
     ).update(
         payment_status=payment_status,
         subtotal=instance.subtotal,
         discount_amount=instance.discount_amount,
         total=instance.total_amount,
+        assigned_driver=instance.assigned_driver,
+        assigned_vehicle=instance.assigned_vehicle,
     )

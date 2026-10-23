@@ -1,0 +1,163 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Daily Vehicle Assignments - Alpha LPGas{% endblock %}
+
+{% block nav_drivers %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-calendar-check"></i> Daily Vehicle Assignments</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:vehicle_list' %}" class="btn btn-secondary">
+            <i class="bi bi-truck-front"></i> Vehicles
+        </a>
+        <a href="{% url 'accounting_forms:driver_list' %}" class="btn btn-secondary">
+            <i class="bi bi-people"></i> Drivers
+        </a>
+    </div>
+</div>
+
+<!-- Date Picker -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label for="date" class="form-label">Roster Date</label>
+                <input type="date" class="form-control" id="date" name="date" value="{{ roster_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-8">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> View
+                </button>
+                <a href="{% url 'accounting_forms:vehicle_assignments' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-calendar-day"></i> Today
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Assignments for selected date -->
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-list-check"></i> Assignments for {{ roster_date|date:"l, d F Y" }}</h5>
+            </div>
+            <div class="card-body">
+                {% if assignments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Driver</th>
+                                <th>Vehicle</th>
+                                <th>Notes</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for assignment in assignments %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'accounting_forms:driver_detail' assignment.driver.pk %}">
+                                        {{ assignment.driver.user.get_full_name|default:assignment.driver.user.username }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="{% url 'accounting_forms:vehicle_detail' assignment.vehicle.pk %}">
+                                        <code>{{ assignment.vehicle.registration_number }}</code>
+                                    </a>
+                                    {% if assignment.vehicle.make_model %}<small class="text-muted">{{ assignment.vehicle.make_model }}</small>{% endif %}
+                                </td>
+                                <td class="text-muted">{{ assignment.notes|default:"-" }}</td>
+                                <td class="text-end">
+                                    <form method="post" action="{% url 'accounting_forms:vehicle_assignment_delete' assignment.pk %}"
+                                          onsubmit="return confirm('Remove this assignment?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-calendar-x" style="font-size: 3rem; color: #ccc;"></i>
+                    <p class="text-muted mt-2">No assignments for {{ roster_date|date:"d M Y" }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Add assignment -->
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Assign Vehicle</h5>
+            </div>
+            <div class="card-body">
+                {% if available_drivers and available_vehicles %}
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="driver_id" class="form-label">Driver *</label>
+                        <select class="form-select" id="driver_id" name="driver_id" required>
+                            <option value="">Select driver...</option>
+                            {% for driver in available_drivers %}
+                            <option value="{{ driver.pk }}">{{ driver.user.get_full_name|default:driver.user.username }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Drivers without an assignment for this date</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="vehicle_id" class="form-label">Vehicle *</label>
+                        <select class="form-select" id="vehicle_id" name="vehicle_id" required>
+                            <option value="">Select vehicle...</option>
+                            {% for vehicle in available_vehicles %}
+                            <option value="{{ vehicle.pk }}">{{ vehicle.registration_number }}{% if vehicle.make_model %} - {{ vehicle.make_model }}{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Vehicles not yet assigned for this date</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <input type="text" class="form-control" id="notes" name="notes" placeholder="e.g., Route or delivery area">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check-circle"></i> Assign Vehicle
+                    </button>
+                </form>
+                {% elif not available_vehicles %}
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle"></i> All active vehicles are assigned for this date.
+                    <a href="{% url 'accounting_forms:vehicle_create' %}">Register another vehicle</a>
+                </div>
+                {% elif not available_drivers %}
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle"></i> All active drivers already have a vehicle for this date.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body">
+                <p class="mb-0 text-muted">
+                    <i class="bi bi-info-circle"></i>
+                    Assignments made here automatically fill the <strong>Vehicle</strong> on new invoices:
+                    when you pick a driver, the vehicle they are assigned on the invoice date is used
+                    (falling back to their default vehicle).
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

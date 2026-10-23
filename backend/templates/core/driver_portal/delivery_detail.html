@@ -18,7 +18,9 @@
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <h6 class="mb-1">Current Status</h6>
-                {% if delivery.status == 'confirmed' %}
+                {% if delivery.status == 'pending' %}
+                <span class="badge bg-secondary status-badge">New</span>
+                {% elif delivery.status == 'confirmed' %}
                 <span class="badge bg-info status-badge">Confirmed</span>
                 {% elif delivery.status == 'preparing' %}
                 <span class="badge bg-warning status-badge">Preparing</span>
@@ -26,14 +28,21 @@
                 <span class="badge bg-primary status-badge">Out for Delivery</span>
                 {% elif delivery.status == 'delivered' %}
                 <span class="badge bg-success status-badge">Delivered</span>
+                {% elif delivery.status == 'failed' %}
+                <span class="badge bg-danger status-badge">Failed</span>
                 {% endif %}
             </div>
-            {% if delivery.status in 'confirmed,preparing,out_for_delivery' %}
+            {% if delivery.status in 'pending,confirmed,preparing,out_for_delivery,failed' %}
             <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#updateStatusModal">
                 <i class="bi bi-arrow-repeat"></i> Update
             </button>
             {% endif %}
         </div>
+        {% if delivery.status == 'failed' and delivery.delivery_failure_reason %}
+        <div class="alert alert-danger mt-2 mb-0 py-2">
+            <small><strong>Reason:</strong> {{ delivery.delivery_failure_reason }}</small>
+        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -45,12 +54,6 @@
     <div class="card-body">
         <p class="mb-2">
             <strong>Name:</strong> {{ delivery.customer_name }}
-        </p>
-        <p class="mb-2">
-            <strong>Phone:</strong> 
-            <a href="tel:{{ delivery.customer_phone }}" class="btn btn-sm btn-success">
-                <i class="bi bi-telephone"></i> {{ delivery.customer_phone }}
-            </a>
         </p>
         {% if delivery.customer_email %}
         <p class="mb-0">
@@ -149,7 +152,7 @@
             <strong>Method:</strong> 
             <span class="badge bg-info">{{ delivery.get_payment_method_display }}</span>
         </p>
-        <p class="mb-0">
+        <p class="mb-2">
             <strong>Status:</strong> 
             {% if delivery.payment_status == 'paid' %}
             <span class="badge bg-success">Paid</span>
@@ -159,6 +162,17 @@
             <span class="badge bg-danger">{{ delivery.get_payment_status_display }}</span>
             {% endif %}
         </p>
+        {% if delivery.payment_method == 'cash' and delivery.payment_status == 'pending' %}
+        <hr>
+        <p class="mb-2"><strong>Collect:</strong> R{{ delivery.total|floatformat:2 }} cash</p>
+        <form method="post" action="{% url 'driver_portal:collect_cash' delivery.id %}"
+              onsubmit="return confirm('Confirm you received R{{ delivery.total|floatformat:2 }} cash?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success w-100">
+                <i class="bi bi-cash-coin"></i> Cash Received
+            </button>
+        </form>
+        {% endif %}
     </div>
 </div>
 
@@ -188,6 +202,25 @@
 </div>
 {% endif %}
 
+<!-- Proof of Delivery -->
+{% if delivery.pod_photo or delivery.pod_signature %}
+<div class="card mb-3">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-check2-square"></i> Proof of Delivery</h6>
+    </div>
+    <div class="card-body">
+        {% if delivery.pod_signature %}
+        <p class="mb-1"><strong>Signature:</strong></p>
+        <img src="{{ delivery.pod_signature.url }}" alt="Signature" class="img-fluid border rounded mb-3" style="max-height: 150px; background: #fff;">
+        {% endif %}
+        {% if delivery.pod_photo %}
+        <p class="mb-1"><strong>Photo:</strong></p>
+        <img src="{{ delivery.pod_photo.url }}" alt="Delivery photo" class="img-fluid rounded">
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
 <!-- Update Status Modal -->
 <div class="modal fade" id="updateStatusModal" tabindex="-1">
     <div class="modal-dialog">
@@ -196,24 +229,155 @@
                 <h5 class="modal-title">Update Delivery Status</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="post" action="{% url 'driver_portal:update_status' delivery.id %}">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="d-grid gap-2">
-                        {% if delivery.status in 'confirmed,preparing' %}
+            <div class="modal-body">
+                <div class="d-grid gap-2">
+                    {% if delivery.status in 'pending,confirmed,preparing,failed' %}
+                    <form method="post" action="{% url 'driver_portal:update_status' delivery.id %}" class="d-grid">
+                        {% csrf_token %}
                         <button type="submit" name="status" value="out_for_delivery" class="btn btn-primary btn-lg">
-                            <i class="bi bi-truck"></i> Mark as Out for Delivery
+                            <i class="bi bi-truck"></i> {% if delivery.status == 'failed' %}Re-attempt Delivery{% else %}Mark as Out for Delivery{% endif %}
                         </button>
-                        {% endif %}
-                        {% if delivery.status == 'out_for_delivery' %}
-                        <button type="submit" name="status" value="delivered" class="btn btn-success btn-lg">
-                            <i class="bi bi-check-circle"></i> Mark as Delivered
-                        </button>
-                        {% endif %}
+                    </form>
+                    {% endif %}
+                    {% if delivery.status == 'out_for_delivery' %}
+                    <button type="button" class="btn btn-success btn-lg" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#podModal">
+                        <i class="bi bi-check-circle"></i> Mark as Delivered
+                    </button>
+                    {% endif %}
+                    {% if delivery.status == 'out_for_delivery' or delivery.status == 'failed' %}
+                    <button type="button" class="btn btn-outline-danger btn-lg" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#failedModal">
+                        <i class="bi bi-x-octagon"></i> Delivery Failed
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Proof of Delivery Modal -->
+{% if delivery.status == 'out_for_delivery' %}
+<div class="modal fade" id="podModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'driver_portal:update_status' delivery.id %}" enctype="multipart/form-data" id="podForm">
+                {% csrf_token %}
+                <input type="hidden" name="status" value="delivered">
+                <input type="hidden" name="signature_data" id="signatureData">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-check-circle"></i> Confirm Delivery</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="pod_photo" class="form-label">
+                            <i class="bi bi-camera"></i> Delivery Photo
+                        </label>
+                        <input type="file" class="form-control" id="pod_photo" name="pod_photo"
+                               accept="image/*" capture="environment">
+                        <small class="text-muted">Optional photo of the delivered cylinders</small>
                     </div>
+                    <div class="mb-2">
+                        <label class="form-label"><i class="bi bi-pen"></i> Customer Signature</label>
+                        <canvas id="signaturePad" class="border rounded w-100" height="160"
+                                style="touch-action: none; background: #fff;"></canvas>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <small class="text-muted">Sign in the box (optional)</small>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clearSignature">
+                                <i class="bi bi-eraser"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="bi bi-check-circle"></i> Mark as Delivered
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+{% endif %}
+
+<!-- Failed Delivery Modal -->
+{% if delivery.status == 'out_for_delivery' or delivery.status == 'failed' %}
+<div class="modal fade" id="failedModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'driver_portal:update_status' delivery.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="status" value="failed">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-x-octagon"></i> Delivery Failed</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="failure_reason" class="form-label">What happened? *</label>
+                    <textarea class="form-control" id="failure_reason" name="failure_reason" rows="3" required
+                              placeholder="e.g., customer not home, gate locked, refused delivery"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-x-octagon"></i> Mark as Failed
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if delivery.status == 'out_for_delivery' %}
+<script>
+(function() {
+    const canvas = document.getElementById('signaturePad');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let drawing = false, hasStrokes = false;
+
+    function resizeCanvas() {
+        const data = canvas.toDataURL();
+        canvas.width = canvas.clientWidth;
+        canvas.height = 160;
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#000';
+    }
+    resizeCanvas();
+    document.getElementById('podModal').addEventListener('shown.bs.modal', resizeCanvas);
+
+    function pos(e) {
+        const r = canvas.getBoundingClientRect();
+        const t = e.touches ? e.touches[0] : e;
+        return [t.clientX - r.left, t.clientY - r.top];
+    }
+    function start(e) { drawing = true; hasStrokes = true; ctx.beginPath(); ctx.moveTo(...pos(e)); e.preventDefault(); }
+    function move(e) { if (!drawing) return; ctx.lineTo(...pos(e)); ctx.stroke(); e.preventDefault(); }
+    function end() { drawing = false; }
+
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    canvas.addEventListener('mouseup', end);
+    canvas.addEventListener('mouseleave', end);
+    canvas.addEventListener('touchstart', start, {passive: false});
+    canvas.addEventListener('touchmove', move, {passive: false});
+    canvas.addEventListener('touchend', end);
+
+    document.getElementById('clearSignature').addEventListener('click', function() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        hasStrokes = false;
+        document.getElementById('signatureData').value = '';
+    });
+
+    document.getElementById('podForm').addEventListener('submit', function() {
+        document.getElementById('signatureData').value = hasStrokes ? canvas.toDataURL('image/png') : '';
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}

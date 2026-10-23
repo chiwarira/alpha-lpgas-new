@@ -132,16 +132,25 @@
             <div class="card-body">
                 <table class="table table-borderless">
                     <tr>
-                        <th style="width: 150px;">Vehicle Type:</th>
-                        <td>{{ driver.vehicle_type }}</td>
+                        <th style="width: 150px;">Vehicle Today:</th>
+                        <td>
+                            {% if vehicle_today %}
+                            <a href="{% url 'accounting_forms:vehicle_detail' vehicle_today.pk %}"><code>{{ vehicle_today.registration_number }}</code></a>
+                            {% if vehicle_today.make_model %}<span class="text-muted">{{ vehicle_today.make_model }}</span>{% endif %}
+                            {% else %}
+                            <span class="text-muted">Not assigned</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     <tr>
-                        <th>Registration:</th>
-                        <td><code>{{ driver.vehicle_registration }}</code></td>
-                    </tr>
-                    <tr>
-                        <th>Make & Model:</th>
-                        <td>{{ driver.vehicle_make_model|default:"Not provided" }}</td>
+                        <th>Default Vehicle:</th>
+                        <td>
+                            {% if driver.default_vehicle %}
+                            <a href="{% url 'accounting_forms:vehicle_detail' driver.default_vehicle.pk %}"><code>{{ driver.default_vehicle.registration_number }}</code></a>
+                            {% else %}
+                            <span class="text-muted">None</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     <tr>
                         <th>License Number:</th>
@@ -160,6 +169,25 @@
                 </table>
             </div>
         </div>
+
+        {% if upcoming_assignments %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Upcoming Vehicle Assignments</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0">
+                    {% for assignment in upcoming_assignments %}
+                    <tr>
+                        <td>{{ assignment.date|date:"D d M Y" }}</td>
+                        <td><code>{{ assignment.vehicle.registration_number }}</code></td>
+                        <td class="text-muted">{{ assignment.notes }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+        {% endif %}
 
         {% if driver.notes %}
         <div class="card mb-4">

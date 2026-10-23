@@ -82,28 +82,17 @@
             <!-- Vehicle Information Section -->
             <h5 class="mb-3"><i class="bi bi-truck"></i> Vehicle Information</h5>
             <div class="row mb-3">
-                <div class="col-md-4">
-                    <label for="vehicle_type" class="form-label">Vehicle Type *</label>
-                    <select class="form-select" id="vehicle_type" name="vehicle_type" required>
-                        <option value="">Select type...</option>
-                        <option value="Bakkie" {% if is_edit and driver.vehicle_type == 'Bakkie' %}selected{% endif %}>Bakkie</option>
-                        <option value="Van" {% if is_edit and driver.vehicle_type == 'Van' %}selected{% endif %}>Van</option>
-                        <option value="Truck" {% if is_edit and driver.vehicle_type == 'Truck' %}selected{% endif %}>Truck</option>
-                        <option value="Motorcycle" {% if is_edit and driver.vehicle_type == 'Motorcycle' %}selected{% endif %}>Motorcycle</option>
-                        <option value="Other" {% if is_edit and driver.vehicle_type == 'Other' %}selected{% endif %}>Other</option>
+                <div class="col-md-6">
+                    <label for="default_vehicle" class="form-label">Default Vehicle</label>
+                    <select class="form-select" id="default_vehicle" name="default_vehicle">
+                        <option value="">No default vehicle</option>
+                        {% for vehicle in vehicles %}
+                        <option value="{{ vehicle.pk }}" {% if is_edit and driver.default_vehicle_id == vehicle.pk %}selected{% endif %}>
+                            {{ vehicle.registration_number }}{% if vehicle.make_model %} - {{ vehicle.make_model }}{% endif %}
+                        </option>
+                        {% endfor %}
                     </select>
-                </div>
-                <div class="col-md-4">
-                    <label for="vehicle_registration" class="form-label">Registration Number *</label>
-                    <input type="text" class="form-control" id="vehicle_registration" name="vehicle_registration" 
-                           value="{% if is_edit %}{{ driver.vehicle_registration }}{% endif %}" 
-                           placeholder="e.g., CA 123-456" required>
-                </div>
-                <div class="col-md-4">
-                    <label for="vehicle_make_model" class="form-label">Make & Model</label>
-                    <input type="text" class="form-control" id="vehicle_make_model" name="vehicle_make_model" 
-                           value="{% if is_edit %}{{ driver.vehicle_make_model }}{% endif %}" 
-                           placeholder="e.g., Toyota Hilux">
+                    <small class="text-muted">Used when the driver has no vehicle assigned for the day on the <a href="{% url 'accounting_forms:vehicle_assignments' %}">Daily Assignments</a> roster</small>
                 </div>
             </div>
 

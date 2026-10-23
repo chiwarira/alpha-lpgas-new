@@ -1,0 +1,133 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ title }} - Alpha LPGas{% endblock %}
+
+{% block nav_drivers %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-truck-front"></i> {{ title }}</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'accounting_forms:vehicle_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <!-- Identification Section -->
+            <h5 class="mb-3"><i class="bi bi-card-text"></i> Identification</h5>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="{{ form.registration_number.id_for_label }}" class="form-label">Registration Number *</label>
+                    {{ form.registration_number }}
+                    {% if form.registration_number.errors %}
+                    <div class="text-danger">{{ form.registration_number.errors }}</div>
+                    {% endif %}
+                    <small class="text-muted">License plate number</small>
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.vin_number.id_for_label }}" class="form-label">VIN Number</label>
+                    {{ form.vin_number }}
+                    {% if form.vin_number.errors %}
+                    <div class="text-danger">{{ form.vin_number.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.engine_number.id_for_label }}" class="form-label">Engine Number</label>
+                    {{ form.engine_number }}
+                    {% if form.engine_number.errors %}
+                    <div class="text-danger">{{ form.engine_number.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Vehicle Details Section -->
+            <h5 class="mb-3"><i class="bi bi-truck"></i> Vehicle Details</h5>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="{{ form.vehicle_type.id_for_label }}" class="form-label">Vehicle Type *</label>
+                    {{ form.vehicle_type }}
+                    {% if form.vehicle_type.errors %}
+                    <div class="text-danger">{{ form.vehicle_type.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.make_model.id_for_label }}" class="form-label">Make & Model</label>
+                    {{ form.make_model }}
+                    {% if form.make_model.errors %}
+                    <div class="text-danger">{{ form.make_model.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.year.id_for_label }}" class="form-label">Year</label>
+                    {{ form.year }}
+                    {% if form.year.errors %}
+                    <div class="text-danger">{{ form.year.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="{{ form.first_registration_date.id_for_label }}" class="form-label">First Registration Date</label>
+                    {{ form.first_registration_date }}
+                    {% if form.first_registration_date.errors %}
+                    <div class="text-danger">{{ form.first_registration_date.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.status.id_for_label }}" class="form-label">Status *</label>
+                    {{ form.status }}
+                    {% if form.status.errors %}
+                    <div class="text-danger">{{ form.status.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label d-block">Active</label>
+                    <div class="form-check form-switch mt-2">
+                        {{ form.is_active }}
+                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                            Vehicle is in the fleet and available for assignments
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                {{ form.notes }}
+                {% if form.notes.errors %}
+                <div class="text-danger">{{ form.notes.errors }}</div>
+                {% endif %}
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Form Actions -->
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'accounting_forms:vehicle_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> {% if is_edit %}Update{% else %}Register{% endif %} Vehicle
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

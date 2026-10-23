@@ -1072,6 +1072,15 @@ select.note-field {
                 <div class="invoice-info-value">{{ invoice.delivery_note }}</div>
             </div>
             {% endif %}
+            {% if invoice.assigned_driver %}
+            <div class="invoice-info-row">
+                <div class="invoice-info-label">Driver:</div>
+                <div class="invoice-info-value">
+                    {{ invoice.assigned_driver.user.get_full_name|default:invoice.assigned_driver.user.username }}
+                    {% if invoice.assigned_vehicle %}({{ invoice.assigned_vehicle.registration_number }}){% endif %}
+                </div>
+            </div>
+            {% endif %}
             <div class="invoice-info-row">
                 <div class="invoice-info-label">Issue Date:</div>
                 <div class="invoice-info-value">{{ invoice.issue_date }}</div>

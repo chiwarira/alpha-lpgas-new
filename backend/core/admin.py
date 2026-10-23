@@ -8,6 +8,8 @@ from .models import (
     LoyaltyCard, LoyaltyTransaction,
     AccountType, VATReturn, CIPCAnnualReturn, SARSTaxReturn, FinancialStatement, TaxConfiguration,
     WhatsAppConversation, WhatsAppMessage, WhatsAppOrderIntent, WhatsAppConfig,
+    Vehicle, VehicleServiceRecord, VehicleAssignment,
+    DriverStockCount, DriverStockCountItem,
     UserMenuPermission
 )
 from .admin_loyalty import LoyaltyCardAdmin, LoyaltyTransactionAdmin
@@ -269,9 +271,9 @@ class DeliveryZoneAdmin(admin.ModelAdmin):
 
 @admin.register(Driver)
 class DriverAdmin(admin.ModelAdmin):
-    list_display = ['get_full_name', 'phone', 'vehicle_registration', 'status', 'total_deliveries', 'rating', 'is_active']
-    list_filter = ['status', 'is_active', 'vehicle_type']
-    search_fields = ['user__first_name', 'user__last_name', 'user__username', 'phone', 'vehicle_registration', 'id_number']
+    list_display = ['get_full_name', 'phone', 'default_vehicle', 'status', 'total_deliveries', 'rating', 'is_active']
+    list_filter = ['status', 'is_active']
+    search_fields = ['user__first_name', 'user__last_name', 'user__username', 'phone', 'id_number']
     readonly_fields = ['total_deliveries', 'created_at', 'updated_at']
     list_editable = ['status', 'is_active']
     
@@ -283,7 +285,7 @@ class DriverAdmin(admin.ModelAdmin):
             'fields': ('phone', 'id_number', 'address')
         }),
         ('Vehicle Information', {
-            'fields': ('vehicle_type', 'vehicle_registration', 'vehicle_make_model')
+            'fields': ('default_vehicle',)
         }),
         ('License Information', {
             'fields': ('drivers_license_number', 'license_expiry_date')
@@ -304,6 +306,76 @@ class DriverAdmin(admin.ModelAdmin):
         return obj.user.get_full_name() or obj.user.username
     get_full_name.short_description = 'Driver Name'
     get_full_name.admin_order_field = 'user__first_name'
+
+
+class VehicleServiceRecordInline(admin.TabularInline):
+    model = VehicleServiceRecord
+    extra = 0
+    readonly_fields = ['created_at', 'created_by']
+
+
+@admin.register(Vehicle)
+class VehicleAdmin(admin.ModelAdmin):
+    list_display = ['registration_number', 'make_model', 'vehicle_type', 'year', 'status', 'last_service_date', 'next_service_due_date', 'is_active']
+    list_filter = ['status', 'vehicle_type', 'is_active']
+    search_fields = ['registration_number', 'vin_number', 'engine_number', 'make_model']
+    readonly_fields = ['last_service_date', 'next_service_due_date', 'created_at', 'updated_at']
+    list_editable = ['status', 'is_active']
+    inlines = [VehicleServiceRecordInline]
+
+    fieldsets = (
+        ('Identification', {
+            'fields': ('registration_number', 'vin_number', 'engine_number')
+        }),
+        ('Details', {
+            'fields': ('vehicle_type', 'make_model', 'year', 'first_registration_date')
+        }),
+        ('Service', {
+            'fields': ('last_service_date', 'next_service_due_date')
+        }),
+        ('Status', {
+            'fields': ('status', 'is_active', 'notes')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(VehicleServiceRecord)
+class VehicleServiceRecordAdmin(admin.ModelAdmin):
+    list_display = ['vehicle', 'service_date', 'cost', 'serviced_by', 'next_service_due_date']
+    list_filter = ['service_date', 'vehicle']
+    search_fields = ['vehicle__registration_number', 'description', 'serviced_by']
+    readonly_fields = ['created_at']
+    ordering = ['-service_date']
+
+
+@admin.register(VehicleAssignment)
+class VehicleAssignmentAdmin(admin.ModelAdmin):
+    list_display = ['date', 'driver', 'vehicle', 'notes']
+    list_filter = ['date', 'vehicle']
+    search_fields = ['driver__user__first_name', 'driver__user__last_name', 'vehicle__registration_number']
+    readonly_fields = ['created_at']
+    ordering = ['-date']
+    date_hierarchy = 'date'
+
+
+class DriverStockCountItemInline(admin.TabularInline):
+    model = DriverStockCountItem
+    extra = 0
+
+
+@admin.register(DriverStockCount)
+class DriverStockCountAdmin(admin.ModelAdmin):
+    list_display = ['date', 'driver', 'count_type', 'notes', 'created_at']
+    list_filter = ['count_type', 'date', 'driver']
+    search_fields = ['driver__user__first_name', 'driver__user__last_name', 'notes']
+    readonly_fields = ['created_at', 'updated_at']
+    ordering = ['-date', 'count_type']
+    date_hierarchy = 'date'
+    inlines = [DriverStockCountItemInline]
 
 
 @admin.register(PromoCode)
@@ -356,7 +428,7 @@ class OrderAdmin(admin.ModelAdmin):
             'fields': ('client', 'customer_name', 'customer_email', 'customer_phone')
         }),
         ('Delivery', {
-            'fields': ('delivery_address', 'delivery_zone', 'assigned_driver', 'delivery_notes', 'estimated_delivery', 'delivered_at')
+            'fields': ('delivery_address', 'delivery_zone', 'assigned_driver', 'assigned_vehicle', 'delivery_notes', 'estimated_delivery', 'delivered_at', 'pod_photo', 'pod_signature', 'delivery_failure_reason')
         }),
         ('Pricing', {
             'fields': ('subtotal', 'delivery_fee', 'discount_amount', 'promo_code', 'total')

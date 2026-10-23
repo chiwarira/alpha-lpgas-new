@@ -1,0 +1,90 @@
+{% extends 'core/driver_portal/base.html' %}
+
+{% block title %}{{ type_label }} - Driver Portal{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <h4><i class="bi bi-clipboard-data"></i> {{ type_label }}</h4>
+        <p class="text-muted mb-0">
+            <i class="bi bi-calendar"></i> {{ today|date:"l, d F Y" }}
+            {% if count_type == 'opening' %}
+            <br><small>Count your cylinders before you start your day.</small>
+            {% elif count_type == 'restock' %}
+            <br><small>Enter the extra cylinders you loaded today.</small>
+            {% else %}
+            <br><small>Count what's left on the truck at the end of your day.</small>
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="type" value="{{ count_type }}">
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <div class="row text-center fw-bold">
+                <div class="col-4 text-start">Cylinder</div>
+                <div class="col-4"><i class="bi bi-check-circle-fill text-success"></i> Full</div>
+                <div class="col-4"><i class="bi bi-circle text-secondary"></i> Empty</div>
+            </div>
+        </div>
+        <div class="card-body px-2">
+            {% for row in rows %}
+            <div class="row align-items-center py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                <div class="col-4">
+                    <strong>{{ row.size.name }}</strong>
+                </div>
+                <div class="col-4">
+                    <input type="number" inputmode="numeric" min="0" max="999"
+                           class="form-control form-control-lg text-center stock-input"
+                           name="full_{{ row.size.pk }}" id="full_{{ row.size.pk }}"
+                           value="{% if row.full is not None %}{{ row.full }}{% else %}0{% endif %}">
+                </div>
+                <div class="col-4">
+                    <input type="number" inputmode="numeric" min="0" max="999"
+                           class="form-control form-control-lg text-center stock-input"
+                           name="empty_{{ row.size.pk }}" id="empty_{{ row.size.pk }}"
+                           value="{% if row.empty is not None %}{{ row.empty }}{% else %}0{% endif %}">
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if count_type == 'restock' %}
+    <div class="mb-3">
+        <label for="notes" class="form-label">Notes</label>
+        <input type="text" class="form-control" id="notes" name="notes"
+               placeholder="e.g., picked up at depot">
+    </div>
+    {% endif %}
+
+    <div class="d-grid gap-2 mb-4">
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-check-circle"></i> Save {{ type_label }}
+        </button>
+        {% if count_type != 'opening' %}
+        <a href="{% url 'driver_portal:dashboard' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+        {% endif %}
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stock-input {
+        font-size: 1.4rem;
+        font-weight: bold;
+    }
+    /* Bigger tap targets on mobile */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+        opacity: 1;
+    }
+</style>
+{% endblock %}

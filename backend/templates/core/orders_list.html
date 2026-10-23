@@ -18,6 +18,7 @@
     .status-processing { background-color: #e9d5ff; color: #6b21a8; }
     .status-out_for_delivery { background-color: #c7d2fe; color: #3730a3; }
     .status-delivered { background-color: #d1fae5; color: #065f46; }
+    .status-failed { background-color: #ffedd5; color: #9a3412; }
     .status-cancelled { background-color: #fee2e2; color: #991b1b; }
     
     .payment-pending { background-color: #fef3c7; color: #92400e; }
@@ -129,6 +130,7 @@
                                 <option value="processing" {% if request.GET.status == 'processing' %}selected{% endif %}>Processing</option>
                                 <option value="out_for_delivery" {% if request.GET.status == 'out_for_delivery' %}selected{% endif %}>Out for Delivery</option>
                                 <option value="delivered" {% if request.GET.status == 'delivered' %}selected{% endif %}>Delivered</option>
+                                <option value="failed" {% if request.GET.status == 'failed' %}selected{% endif %}>Failed</option>
                                 <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
                             </select>
                         </div>

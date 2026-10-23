@@ -188,6 +188,13 @@ class InvoiceSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source='created_by.username', read_only=True)
     quote_number = serializers.CharField(source='quote.quote_number', read_only=True)
     delivery_zone_name = serializers.CharField(source='delivery_zone.name', read_only=True, allow_null=True)
+    driver_name = serializers.SerializerMethodField()
+    vehicle_registration = serializers.CharField(source='assigned_vehicle.registration_number', read_only=True, allow_null=True)
+
+    def get_driver_name(self, obj):
+        if obj.assigned_driver:
+            return obj.assigned_driver.user.get_full_name() or obj.assigned_driver.user.username
+        return None
     
     class Meta:
         model = Invoice
@@ -195,7 +202,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'id', 'invoice_number', 'order', 'client', 'client_name', 'client_email',
             'client_phone', 'client_address', 'client_city', 'client_state',
             'client_postal_code', 'client_country', 'client_tax_id', 'quote',
-            'quote_number', 'delivery_zone', 'delivery_zone_name', 'issue_date',
+            'quote_number', 'delivery_zone', 'delivery_zone_name',
+            'assigned_driver', 'driver_name', 'assigned_vehicle', 'vehicle_registration',
+            'issue_date',
             'due_date', 'status', 'subtotal', 'tax_amount', 'total_amount',
             'paid_amount', 'balance', 'notes', 'terms', 'items', 'created_at',
             'updated_at', 'created_by', 'created_by_name'
@@ -336,7 +345,7 @@ class OrderSerializer(serializers.ModelSerializer):
     delivery_zone_name = serializers.CharField(source='delivery_zone.name', read_only=True, allow_null=True)
     driver_name = serializers.SerializerMethodField()
     driver_phone = serializers.CharField(source='assigned_driver.phone', read_only=True, allow_null=True)
-    driver_vehicle = serializers.CharField(source='assigned_driver.vehicle_registration', read_only=True, allow_null=True)
+    driver_vehicle = serializers.CharField(source='assigned_vehicle.registration_number', read_only=True, allow_null=True)
     invoice = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
@@ -344,7 +353,7 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'order_number', 'client', 'customer_name', 'customer_email',
             'customer_phone', 'delivery_address', 'delivery_zone',
-            'delivery_zone_name', 'delivery_notes', 'assigned_driver', 'driver_name',
+            'delivery_zone_name', 'delivery_notes', 'assigned_driver', 'assigned_vehicle', 'driver_name',
             'driver_phone', 'driver_vehicle', 'subtotal', 'delivery_fee',
             'discount_amount', 'promo_code', 'total', 'payment_method',
             'payment_status', 'yoco_payment_id', 'status', 'estimated_delivery',

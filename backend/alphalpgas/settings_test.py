@@ -16,3 +16,6 @@ DATABASES = {
 
 PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
 CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
+
+# Tests shouldn't depend on collectstatic having been run - use plain static URLs
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'

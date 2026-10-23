@@ -4,7 +4,7 @@ Run this with: python manage.py shell < test_driver_functionality.py
 """
 
 from django.contrib.auth.models import User
-from core.models import Driver, Order
+from core.models import Driver, Order, Vehicle
 from datetime import date
 
 print("\n" + "="*60)
@@ -47,14 +47,21 @@ try:
     else:
         print(f"✓ Test 4a: Test user already exists: {user.username}")
     
+    # Create or get a test vehicle
+    vehicle, _ = Vehicle.objects.get_or_create(
+        registration_number='TEST-123-GP',
+        defaults={
+            'vehicle_type': 'bakkie',
+            'make_model': 'Toyota Hilux',
+        }
+    )
+    
     # Create or get driver profile
     driver, created = Driver.objects.get_or_create(
         user=user,
         defaults={
             'phone': '0123456789',
-            'vehicle_type': 'Bakkie',
-            'vehicle_registration': 'TEST-123-GP',
-            'vehicle_make_model': 'Toyota Hilux',
+            'default_vehicle': vehicle,
             'status': 'available',
             'is_active': True
         }

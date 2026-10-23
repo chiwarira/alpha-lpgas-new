@@ -3,7 +3,8 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 from .models import (
     Client, Product, Quote, QuoteItem, Invoice, InvoiceItem,
-    Payment, CreditNote, CreditNoteItem, CompanySettings
+    Payment, CreditNote, CreditNoteItem, CompanySettings,
+    Driver, Vehicle, VehicleServiceRecord, VehicleAssignment
 )
 
 
@@ -279,11 +280,25 @@ class QuoteItemForm(forms.ModelForm):
 
 class InvoiceForm(forms.ModelForm):
     """Form for creating and updating invoices"""
-    
+
+    assigned_driver = forms.ModelChoiceField(
+        queryset=Driver.objects.filter(is_active=True).select_related('user').order_by('user__first_name', 'user__last_name'),
+        required=True,
+        label='Driver',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    assigned_vehicle = forms.ModelChoiceField(
+        queryset=Vehicle.objects.filter(is_active=True).order_by('registration_number'),
+        required=False,
+        label='Vehicle (leave blank to use the daily roster)',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     class Meta:
         model = Invoice
         fields = [
             'client', 'delivery_zone', 'issue_date', 'payment_terms',
+            'assigned_driver', 'assigned_vehicle',
             'discount_amount', 'notes', 'delivery_note', 'whatsapp_invoice_message'
         ]
         widgets = {
@@ -742,3 +757,86 @@ CreditNoteItemFormSet = inlineformset_factory(
     min_num=1,
     validate_min=True
 )
+
+
+class VehicleForm(forms.ModelForm):
+    """Form for creating and updating fleet vehicles"""
+
+    class Meta:
+        model = Vehicle
+        fields = [
+            'registration_number', 'vin_number', 'engine_number', 'vehicle_type',
+            'make_model', 'year', 'first_registration_date', 'status', 'is_active', 'notes'
+        ]
+        widgets = {
+            'registration_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., ABC 123 GP'
+            }),
+            'vin_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Vehicle Identification Number'
+            }),
+            'engine_number': forms.TextInput(attrs={
+                'class': 'form-control'
+            }),
+            'vehicle_type': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'make_model': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., Toyota Hilux'
+            }),
+            'year': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., 2019'
+            }),
+            'first_registration_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'status': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Internal notes about the vehicle'
+            }),
+        }
+
+
+class VehicleServiceRecordForm(forms.ModelForm):
+    """Form for logging a service on a vehicle"""
+
+    class Meta:
+        model = VehicleServiceRecord
+        fields = ['service_date', 'description', 'cost', 'next_service_due_date', 'serviced_by']
+        widgets = {
+            'service_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Work carried out (e.g., oil change, brakes)'
+            }),
+            'cost': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': '0.00'
+            }),
+            'next_service_due_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'serviced_by': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Workshop or mechanic name'
+            }),
+        }
