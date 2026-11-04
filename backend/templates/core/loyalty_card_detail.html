@@ -136,8 +136,8 @@
         </div>
     </div>
 
-    <!-- Recent Transactions (staff only, not printed) -->
-    <div class="card print-hide">
+    <!-- Recent Transactions -->
+    <div class="card">
         <div class="card-header bg-secondary text-white py-1">
             <h6 class="mb-0">Recent Transactions</h6>
         </div>
@@ -155,7 +155,7 @@
                 </thead>
                 <tbody>
                     {% for transaction in transactions %}
-                    <tr>
+                    <tr{% if not transaction.invoice_id %} class="print-hide"{% endif %}>
                         <td class="small">{% if transaction.invoice %}{{ transaction.invoice.issue_date|date:"Y-m-d" }}{% else %}{{ transaction.created_at|date:"Y-m-d" }}{% endif %}</td>
                         <td class="small">
                             {% if transaction.transaction_type == 'stamp' %}
