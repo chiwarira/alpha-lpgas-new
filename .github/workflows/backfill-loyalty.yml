@@ -1,0 +1,47 @@
+name: Backfill loyalty rewards
+
+# Manual only: Actions -> "Backfill loyalty rewards" -> Run workflow.
+# Records historical free (R0) gas exchange lines as 100% loyalty rewards. Idempotent.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Database to run against'
+        type: choice
+        options: [production, staging]
+        default: production
+      dry_run:
+        description: 'Dry run (only list what would be recorded)'
+        type: boolean
+        default: true
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target == 'production' && 'Alpha LPGas / production' || 'Alpha LPGas / dev/staging' }}
+    env:
+      DATABASE_URL: ${{ inputs.target == 'production' && secrets.DATABASE_URL || secrets.DATABASE_URL_STAGING }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.6'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Backfill loyalty rewards
+        working-directory: backend
+        run: python manage.py backfill_loyalty_rewards ${{ inputs.dry_run && '--dry-run' || '' }}
