@@ -104,7 +104,8 @@ def client_last_invoice_ajax(request, client_id):
         
         # Get invoice items (excluding delivery fees)
         items = []
-        for item in last_invoice.items.exclude(product__name='Delivery Fee'):
+        from .utils_loyalty import LOYALTY_REWARD_SKU
+        for item in last_invoice.items.exclude(product__name='Delivery Fee').exclude(product__sku=LOYALTY_REWARD_SKU):
             items.append({
                 'product_id': item.product.id if item.product else None,
                 'product_name': item.product.name if item.product else item.description,
@@ -766,6 +767,14 @@ def invoice_bulk_action(request):
         return redirect('accounting_forms:invoice_list')
 
 
+def _loyalty_message(request, loyalty_card):
+    rewards = getattr(loyalty_card, 'rewards_applied', 0)
+    if rewards:
+        messages.success(request, f'Loyalty reward applied: {loyalty_card.reward_percent}% off {rewards} bottle(s). Card reset to {loyalty_card.stamps}/9 stamps.')
+    else:
+        messages.info(request, f'Loyalty card updated: {loyalty_card.stamps}/9 stamps')
+
+
 @login_required
 @transaction.atomic
 def invoice_create(request):
@@ -823,7 +832,7 @@ def invoice_create(request):
             try:
                 loyalty_card = process_loyalty_stamp(invoice)
                 if loyalty_card:
-                    messages.info(request, f'Loyalty card updated: {loyalty_card.stamps}/9 stamps')
+                    _loyalty_message(request, loyalty_card)
             except Exception as e:
                 # Log the error but don't fail the invoice creation
                 import logging
@@ -929,7 +938,7 @@ def invoice_edit(request, invoice_number):
                     if old_client != invoice.client:
                         messages.info(request, f'Loyalty stamps transferred from {old_client.name} to {invoice.client.name}')
                     else:
-                        messages.info(request, f'Loyalty card updated: {loyalty_card.stamps}/9 stamps')
+                        _loyalty_message(request, loyalty_card)
             except Exception as e:
                 import logging
                 logger = logging.getLogger(__name__)
@@ -942,10 +951,11 @@ def invoice_edit(request, invoice_number):
             messages.error(request, 'Please correct the errors below.')
     else:
         form = InvoiceForm(instance=invoice)
-        # Exclude delivery fee items from the formset - they're managed automatically
+        # Exclude delivery fee and loyalty reward items from the formset - they're managed automatically
+        from .utils_loyalty import LOYALTY_REWARD_SKU
         formset = InvoiceItemFormSet(
             instance=invoice,
-            queryset=invoice.items.exclude(product__name='Delivery Fee')
+            queryset=invoice.items.exclude(product__name='Delivery Fee').exclude(product__sku=LOYALTY_REWARD_SKU)
         )
     
     return render(request, 'core/invoice_form.html', {

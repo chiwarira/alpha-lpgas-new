@@ -5,7 +5,8 @@ from .models_loyalty import LoyaltyCard, LoyaltyTransaction
 class LoyaltyTransactionInline(admin.TabularInline):
     model = LoyaltyTransaction
     extra = 0
-    readonly_fields = ['transaction_type', 'stamps_before', 'stamps_after', 'invoice', 'notes', 'created_at', 'created_by']
+    readonly_fields = ['transaction_type', 'stamps_before', 'stamps_after', 'reward_percent', 'reward_amount', 'invoice', 'notes', 'created_at', 'created_by']
+    fields = readonly_fields
     can_delete = False
     
     def has_add_permission(self, request, obj=None):
@@ -32,11 +33,7 @@ class LoyaltyCardAdmin(admin.ModelAdmin):
     
     def reward_status(self, obj):
         if obj.stamps >= 9:
-            reward_type = obj.get_reward_type()
-            if reward_type == 'free':
-                return '🎁 Free Cylinder'
-            else:
-                return '🎁 50% Off'
+            return f'🎁 {obj.reward_percent}% Off'
         else:
             remaining = 9 - obj.stamps
             return f'{remaining} more needed'
@@ -75,10 +72,10 @@ class LoyaltyCardAdmin(admin.ModelAdmin):
 
 @admin.register(LoyaltyTransaction)
 class LoyaltyTransactionAdmin(admin.ModelAdmin):
-    list_display = ['loyalty_card', 'transaction_type', 'stamps_before', 'stamps_after', 'invoice', 'created_at']
-    list_filter = ['transaction_type', 'created_at']
+    list_display = ['loyalty_card', 'transaction_type', 'stamps_before', 'stamps_after', 'reward_percent', 'reward_amount', 'invoice', 'created_at']
+    list_filter = ['transaction_type', 'reward_percent', 'created_at']
     search_fields = ['loyalty_card__client__name', 'invoice__invoice_number', 'notes']
-    readonly_fields = ['loyalty_card', 'invoice', 'transaction_type', 'stamps_before', 'stamps_after', 'notes', 'created_at', 'created_by']
+    readonly_fields = ['loyalty_card', 'invoice', 'transaction_type', 'stamps_before', 'stamps_after', 'reward_percent', 'reward_amount', 'reward_item', 'notes', 'created_at', 'created_by']
     
     def has_add_permission(self, request):
         return False

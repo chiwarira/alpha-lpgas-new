@@ -11,22 +11,70 @@
             <h1><i class="bi bi-card-checklist"></i> Loyalty Cards</h1>
         </div>
         <div class="col-md-6 text-end">
+            <a href="{% url 'accounting_forms:loyalty_reward_history' %}" class="btn btn-outline-primary">
+                <i class="bi bi-gift"></i> Reward History
+            </a>
             <a href="{% url 'accounting_forms:invoice_list' %}" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Back to Invoices
             </a>
         </div>
     </div>
 
+    <!-- Reward summary + setting -->
+    <div class="row mb-3 g-2">
+        <div class="col-6 col-md-3">
+            <a href="{% url 'accounting_forms:loyalty_reward_history' %}?percent=100" class="text-decoration-none">
+                <div class="card h-100"><div class="card-body py-2">
+                    <div class="text-muted small">100% rewards given</div>
+                    <div class="fs-4 fw-bold text-success">{{ total_full_rewards }}</div>
+                </div></div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a href="{% url 'accounting_forms:loyalty_reward_history' %}?percent=50" class="text-decoration-none">
+                <div class="card h-100"><div class="card-body py-2">
+                    <div class="text-muted small">50% rewards given</div>
+                    <div class="fs-4 fw-bold text-primary">{{ total_half_rewards }}</div>
+                </div></div>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100"><div class="card-body py-2">
+                <div class="text-muted small mb-1">Current reward on the 10th gas exchange</div>
+                {% if request.user.is_staff %}
+                <form method="post" action="{% url 'accounting_forms:loyalty_settings_update' %}" class="d-flex gap-2">
+                    {% csrf_token %}
+                    <select name="loyalty_reward_percent" class="form-select form-select-sm">
+                        {% for value, label in reward_percent_choices %}
+                        <option value="{{ value }}" {% if value == reward_percent %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                </form>
+                {% else %}
+                <div class="fw-bold">{{ reward_percent }}% off one bottle</div>
+                {% endif %}
+            </div></div>
+        </div>
+    </div>
+
     <!-- Search Bar -->
     <div class="row mb-3">
-        <div class="col-md-6">
+        <div class="col-md-8">
             <form method="get" action="{% url 'accounting_forms:loyalty_card_list' %}">
                 <div class="input-group">
                     <input type="text" name="search" class="form-control" placeholder="Search by client name, phone, or cylinder size..." value="{{ search_query }}">
+                    <select name="rewards" class="form-select" style="max-width: 220px;">
+                        <option value="">All cards</option>
+                        <option value="eligible" {% if reward_filter == 'eligible' %}selected{% endif %}>Reward due (9/9)</option>
+                        <option value="any" {% if reward_filter == 'any' %}selected{% endif %}>Has received a reward</option>
+                        <option value="full" {% if reward_filter == 'full' %}selected{% endif %}>Has received 100%</option>
+                        <option value="half" {% if reward_filter == 'half' %}selected{% endif %}>Has received 50%</option>
+                    </select>
                     <button class="btn btn-primary" type="submit">
                         <i class="bi bi-search"></i> Search
                     </button>
-                    {% if search_query %}
+                    {% if search_query or reward_filter %}
                     <a href="{% url 'accounting_forms:loyalty_card_list' %}" class="btn btn-secondary">
                         <i class="bi bi-x"></i> Clear
                     </a>
@@ -49,6 +97,9 @@
                             <th>Stamps</th>
                             <th>Progress</th>
                             <th>Reward Status</th>
+                            <th class="text-center">100% Rewards</th>
+                            <th class="text-center">50% Rewards</th>
+                            <th>Last Reward</th>
                             <th>Last Updated</th>
                             <th>Actions</th>
                         </tr>
@@ -78,17 +129,14 @@
                             </td>
                             <td>
                                 {% if card.is_reward_eligible %}
-                                    {% if card.get_reward_type == 'free' %}
-                                        <span class="badge bg-success">🎁 Free Cylinder</span>
-                                    {% else %}
-                                        <span class="badge bg-success">🎁 50% Off</span>
-                                    {% endif %}
+                                    <span class="badge bg-success">🎁 {{ reward_percent }}% off next bottle</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">
-                                        {% if card.stamps == 0 %}9{% elif card.stamps == 1 %}8{% elif card.stamps == 2 %}7{% elif card.stamps == 3 %}6{% elif card.stamps == 4 %}5{% elif card.stamps == 5 %}4{% elif card.stamps == 6 %}3{% elif card.stamps == 7 %}2{% elif card.stamps == 8 %}1{% endif %} more needed
-                                    </span>
+                                    <span class="badge bg-secondary">{{ card.remaining_stamps }} more needed</span>
                                 {% endif %}
                             </td>
+                            <td class="text-center">{% if card.full_rewards %}<span class="badge bg-success">{{ card.full_rewards }}</span>{% else %}<span class="text-muted">0</span>{% endif %}</td>
+                            <td class="text-center">{% if card.half_rewards %}<span class="badge bg-primary">{{ card.half_rewards }}</span>{% else %}<span class="text-muted">0</span>{% endif %}</td>
+                            <td>{{ card.last_reward_at|date:"Y-m-d"|default:"-" }}</td>
                             <td>{{ card.updated_at|date:"Y-m-d H:i" }}</td>
                             <td>
                                 <a href="{% url 'accounting_forms:loyalty_card_detail' card.pk %}" class="btn btn-sm btn-primary">
@@ -98,7 +146,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center text-muted">
+                            <td colspan="11" class="text-center text-muted">
                                 <i class="bi bi-inbox" style="font-size: 3rem;"></i>
                                 <p>No loyalty cards found.</p>
                             </td>
@@ -119,11 +167,7 @@
                         </div>
                         <div>
                             {% if card.is_reward_eligible %}
-                                {% if card.get_reward_type == 'free' %}
-                                <span class="badge bg-success">Free Cylinder</span>
-                                {% else %}
-                                <span class="badge bg-success">50% Off</span>
-                                {% endif %}
+                            <span class="badge bg-success">{{ reward_percent }}% Off</span>
                             {% else %}
                             <span class="badge bg-info">{{ card.cylinder_size }}</span>
                             {% endif %}
@@ -145,6 +189,10 @@
                                     <div class="progress-bar {% if card.stamps >= 9 %}bg-success{% else %}bg-primary{% endif %}" style="width: {% widthratio card.stamps 9 100 %}%">{{ card.stamps }}/9</div>
                                 </div>
                             </div>
+                        </div>
+                        <div>
+                            <div class="detail-label">Rewards (100% / 50%)</div>
+                            <div class="detail-value">{{ card.full_rewards }} / {{ card.half_rewards }}</div>
                         </div>
                         <div>
                             <div class="detail-label">Last Updated</div>

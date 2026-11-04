@@ -22,7 +22,7 @@ from .models_tax_reporting import (
 from .models_stock import CylinderSize, GasStock, StockMovement, StockPurchase, StockPurchaseItem, StockAlertSettings
 
 # Import loyalty program models
-from .models_loyalty import LoyaltyCard, LoyaltyTransaction
+from .models_loyalty import LoyaltyCard, LoyaltyTransaction, REWARD_PERCENT_CHOICES
 
 # Import WhatsApp models
 from .models_whatsapp import WhatsAppConversation, WhatsAppMessage, WhatsAppOrderIntent, WhatsAppConfig
@@ -230,6 +230,11 @@ class CompanySettings(models.Model):
         default='🎉 Congratulations {client_name}! You have earned {reward_type} from {company_name}! Present this message to claim your reward. Thank you for your loyalty! Best regards, {company_name} Team',
         blank=True,
         help_text='WhatsApp message for when a loyalty card reaches 9 stamps. Available variables: {client_name}, {company_name}, {cylinder_size}, {reward_type}'
+    )
+    loyalty_reward_percent = models.PositiveSmallIntegerField(
+        choices=REWARD_PERCENT_CHOICES,
+        default=50,
+        help_text='Discount applied to one gas bottle on the 10th loyalty purchase'
     )
     
     updated_at = models.DateTimeField(auto_now=True)

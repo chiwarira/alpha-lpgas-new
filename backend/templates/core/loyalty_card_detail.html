@@ -73,15 +73,11 @@
             {% if loyalty_card.is_reward_eligible %}
                 <div class="alert alert-success py-1 mb-2" role="alert">
                     <strong>🎉 Reward Eligible!</strong>
-                    {% if loyalty_card.get_reward_type == 'free' %}
-                        FREE {{ loyalty_card.cylinder_size }} cylinder on your next purchase!
-                    {% else %}
-                        50% DISCOUNT on your next {{ loyalty_card.cylinder_size }} cylinder purchase!
-                    {% endif %}
+                    {% if reward_percent >= 100 %}FREE gas bottle{% else %}{{ reward_percent }}% off one gas bottle{% endif %} on the next purchase - applied automatically to the next invoice.
                 </div>
             {% else %}
                 <div class="alert alert-info py-1 mb-2" role="alert">
-                    <small>{% if loyalty_card.stamps == 0 %}9{% elif loyalty_card.stamps == 1 %}8{% elif loyalty_card.stamps == 2 %}7{% elif loyalty_card.stamps == 3 %}6{% elif loyalty_card.stamps == 4 %}5{% elif loyalty_card.stamps == 5 %}4{% elif loyalty_card.stamps == 6 %}3{% elif loyalty_card.stamps == 7 %}2{% elif loyalty_card.stamps == 8 %}1{% endif %} more stamp(s) needed</small>
+                    <small>{{ loyalty_card.remaining_stamps }} more stamp(s) needed - the next bottle after that gets {{ reward_percent }}% off</small>
                 </div>
             {% endif %}
 
@@ -97,6 +93,46 @@
                     </div>
                 {% endfor %}
             </div>
+        </div>
+    </div>
+
+    <!-- Rewards Given -->
+    <div class="card mb-2">
+        <div class="card-header bg-warning py-1 d-flex justify-content-between">
+            <h6 class="mb-0">Rewards Given</h6>
+            <span class="small">100%: <strong>{{ full_rewards }}</strong> &nbsp;|&nbsp; 50%: <strong>{{ half_rewards }}</strong></span>
+        </div>
+        <div class="card-body py-2">
+            <table class="table table-sm table-bordered mb-0">
+                <thead>
+                    <tr>
+                        <th class="small">Date</th>
+                        <th class="small">Reward</th>
+                        <th class="small">Invoice</th>
+                        <th class="small text-end">Value</th>
+                        <th class="small">Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reward in rewards %}
+                    <tr>
+                        <td class="small">{% if reward.invoice %}{{ reward.invoice.issue_date|date:"Y-m-d" }}{% else %}{{ reward.created_at|date:"Y-m-d" }}{% endif %}</td>
+                        <td class="small"><span class="badge {% if reward.reward_percent == 100 %}bg-success{% else %}bg-primary{% endif %}">{{ reward.reward_percent }}%</span></td>
+                        <td class="small">
+                            {% if reward.invoice %}
+                            <a href="{% url 'accounting_forms:invoice_detail' reward.invoice.invoice_number %}">{{ reward.invoice.invoice_number }}</a>
+                            {% else %}N/A{% endif %}
+                        </td>
+                        <td class="small text-end">{% if reward.reward_amount is not None %}R{{ reward.reward_amount|floatformat:2 }}{% endif %}</td>
+                        <td class="small">{{ reward.notes }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted small">No rewards given yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 

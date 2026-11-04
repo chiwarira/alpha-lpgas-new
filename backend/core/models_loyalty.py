@@ -3,6 +3,13 @@ from django.contrib.auth.models import User
 from decimal import Decimal
 
 
+STAMPS_REQUIRED = 9  # stamps collected before the next bottle is rewarded (i.e. 10th purchase)
+REWARD_PERCENT_CHOICES = [
+    (50, '50% off one bottle'),
+    (100, '100% off one bottle (free)'),
+]
+
+
 class LoyaltyCard(models.Model):
     """Loyalty card tracking for clients"""
     CYLINDER_SIZE_CHOICES = [
@@ -36,14 +43,32 @@ class LoyaltyCard(models.Model):
     
     def is_reward_eligible(self):
         """Check if card is eligible for reward (9 stamps)"""
-        return self.stamps >= 9
-    
+        return self.stamps >= STAMPS_REQUIRED
+
+    @property
+    def reward_percent(self):
+        """Current reward percentage (configured in Company Settings)"""
+        from .models import CompanySettings
+        return CompanySettings.load().loyalty_reward_percent
+
+    @property
+    def remaining_stamps(self):
+        return max(0, STAMPS_REQUIRED - self.stamps)
+
     def get_reward_type(self):
-        """Get the type of reward based on cylinder size"""
-        if self.cylinder_size in ['5kg', '9kg', '14kg']:
-            return 'free'  # Free cylinder on 10th purchase
-        else:  # 19kg, 48kg
-            return '50_percent'  # 50% off on 10th purchase
+        """'free' when the configured reward is 100%, otherwise 'discount'"""
+        return 'free' if self.reward_percent >= 100 else 'discount'
+
+    def reward_transactions(self):
+        return self.transactions.filter(transaction_type='reward_claimed')
+
+    @property
+    def full_rewards_count(self):
+        return self.reward_transactions().filter(reward_percent=100).count()
+
+    @property
+    def half_rewards_count(self):
+        return self.reward_transactions().filter(reward_percent=50).count()
     
     def reset_card(self):
         """Reset the card after reward is claimed"""
@@ -65,6 +90,9 @@ class LoyaltyTransaction(models.Model):
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
     stamps_before = models.IntegerField()
     stamps_after = models.IntegerField()
+    reward_percent = models.PositiveSmallIntegerField(null=True, blank=True, help_text="Discount percentage given (reward_claimed only)")
+    reward_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Rand value of the reward (reward_claimed only)")
+    reward_item = models.ForeignKey('InvoiceItem', on_delete=models.SET_NULL, null=True, blank=True, related_name='+', help_text="Invoice line that carries the reward")
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)

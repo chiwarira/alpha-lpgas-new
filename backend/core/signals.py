@@ -4,20 +4,17 @@ from django.dispatch import receiver
 
 @receiver(pre_delete, sender='core.Invoice')
 def reverse_loyalty_on_invoice_delete(sender, instance, **kwargs):
-    """When an invoice is deleted, reverse any loyalty stamps it created."""
+    """When an invoice is deleted, reverse any loyalty stamps and rewards it created."""
     from .models_loyalty import LoyaltyTransaction
+    from .utils_loyalty import remove_loyalty_stamp
 
-    transactions = LoyaltyTransaction.objects.filter(
-        invoice=instance,
-        transaction_type='stamp'
-    ).select_related('loyalty_card')
-
-    for txn in transactions:
-        card = txn.loyalty_card
-        # Decrement stamps (don't go below 0)
-        card.stamps = max(0, card.stamps - 1)
-        card.save()
-        txn.delete()
+    stamps = LoyaltyTransaction.objects.filter(
+        invoice=instance, transaction_type='stamp'
+    ).select_related('loyalty_card__client')
+    for txn in list(stamps):
+        remove_loyalty_stamp(instance, client=txn.loyalty_card.client, recalculate_totals=False)
+    # Any remaining rewards (e.g. backfilled history) go with the invoice
+    LoyaltyTransaction.objects.filter(invoice=instance, transaction_type='reward_claimed').delete()
 
 
 @receiver(pre_delete, sender='core.InvoiceItem')

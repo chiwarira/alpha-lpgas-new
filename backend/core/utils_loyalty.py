@@ -1,4 +1,5 @@
 """Utility functions for loyalty program"""
+import re
 from decimal import Decimal
 from PIL import Image, ImageDraw, ImageFont
 import io
@@ -17,129 +18,173 @@ from .models_loyalty import LoyaltyCard, LoyaltyTransaction
 from .models import CompanySettings
 
 
+SIZE_ORDER = ['5kg', '9kg', '14kg', '19kg', '48kg']
+LOYALTY_REWARD_SKU = 'LOYALTY-REWARD'
+
+
+def _size_from_name(name):
+    """Map a product name to a cylinder size (matches whole numbers so '19kg' isn't read as '9kg')."""
+    match = re.search(r'(?<!\d)(\d+)\s?kg', name.lower())
+    size = f'{match.group(1)}kg' if match else None
+    return size if size in SIZE_ORDER else None
+
+
+def _is_gas_product(product):
+    if not product or not product.name:
+        return False
+    name_lower = product.name.lower()
+    return 'gas exchange' in name_lower or 'gas refill' in name_lower
+
+
+def _qualifying_items(invoice):
+    """Paid Gas Exchange / Gas Refill lines with a known cylinder size: [(item, size), ...]"""
+    result = []
+    for item in invoice.items.select_related('product'):
+        if not _is_gas_product(item.product) or item.product.sku == LOYALTY_REWARD_SKU:
+            continue
+        if item.quantity <= 0 or item.unit_price <= 0:
+            continue
+        size = _size_from_name(item.product.name)
+        if size:
+            result.append((item, size))
+    return result
+
+
 def get_cylinder_size_from_invoice(invoice):
     """Extract cylinder size from invoice items"""
-    # Check invoice items for cylinder products
     for item in invoice.items.all():
         if item.product and item.product.name:
-            name_lower = item.product.name.lower()
-            if '5kg' in name_lower or '5 kg' in name_lower:
-                return '5kg'
-            elif '9kg' in name_lower or '9 kg' in name_lower:
-                return '9kg'
-            elif '14kg' in name_lower or '14 kg' in name_lower:
-                return '14kg'
-            elif '19kg' in name_lower or '19 kg' in name_lower:
-                return '19kg'
-            elif '48kg' in name_lower or '48 kg' in name_lower:
-                return '48kg'
+            size = _size_from_name(item.product.name)
+            if size:
+                return size
     return None
 
 
-def process_loyalty_stamp(invoice):
-    """Process loyalty stamp for an invoice - one card per client, tracks smallest cylinder for reward
-    Only applies to Gas Exchange and Gas Refill products.
+def reward_description(percent):
+    """Human-readable reward, e.g. 'a FREE gas bottle' or '50% OFF one gas bottle'."""
+    return 'a FREE gas bottle' if percent >= 100 else f'{percent}% OFF one gas bottle'
+
+
+def get_loyalty_reward_product():
+    """Internal product used for the reward discount line (hidden from dropdowns and the website)."""
+    from .models import Product
+    product, _ = Product.objects.get_or_create(
+        sku=LOYALTY_REWARD_SKU,
+        defaults={
+            'name': 'Loyalty Reward',
+            'description': 'Loyalty programme discount',
+            'unit_price': Decimal('0'),
+            'tax_rate': Decimal('15'),
+            'is_active': False,
+            'show_on_website': False,
+            'available_for_invoicing': False,
+        }
+    )
+    return product
+
+
+def process_loyalty_stamp(invoice, reward_percent=None):
+    """Add stamps for an invoice and apply the loyalty reward when the 10th bottle is reached.
+
+    Each paid Gas Exchange / Gas Refill bottle earns one stamp. Once a card holds
+    STAMPS_REQUIRED stamps, the next bottle is the reward bottle: the cheapest bottle
+    on the invoice gets `reward_percent`% off (via a negative 'Loyalty Reward' line),
+    the card resets to 0 and any remaining bottles start the new card.
     """
-    from .models import Invoice
-    
-    # Count cylinders by size
-    cylinder_counts = {
-        '5kg': 0,
-        '9kg': 0,
-        '14kg': 0,
-        '19kg': 0,
-        '48kg': 0
-    }
-    
-    # Count all cylinder sizes in this invoice (only Gas Exchange and Gas Refill)
-    for item in invoice.items.all():
-        if item.product and item.product.name:
-            name_lower = item.product.name.lower()
-            
-            # Only process Gas Exchange and Gas Refill products
-            if 'gas exchange' not in name_lower and 'gas refill' not in name_lower:
-                continue
-            
-            if '5kg' in name_lower or '5 kg' in name_lower:
-                cylinder_counts['5kg'] += int(item.quantity)
-            elif '9kg' in name_lower or '9 kg' in name_lower:
-                cylinder_counts['9kg'] += int(item.quantity)
-            elif '14kg' in name_lower or '14 kg' in name_lower:
-                cylinder_counts['14kg'] += int(item.quantity)
-            elif '19kg' in name_lower or '19 kg' in name_lower:
-                cylinder_counts['19kg'] += int(item.quantity)
-            elif '48kg' in name_lower or '48 kg' in name_lower:
-                cylinder_counts['48kg'] += int(item.quantity)
-    
-    # Find the smallest cylinder size purchased in this invoice
-    # Order: 5kg < 9kg < 14kg < 19kg < 48kg
-    smallest_size = None
-    total_cylinders = 0
-    size_order = ['5kg', '9kg', '14kg', '19kg', '48kg']
-    
-    for size in size_order:
-        if cylinder_counts[size] > 0:
-            if smallest_size is None:
-                smallest_size = size
-            total_cylinders += cylinder_counts[size]
-    
-    # If no cylinders found, return None
-    if smallest_size is None or total_cylinders == 0:
+    from .models_loyalty import STAMPS_REQUIRED
+
+    qualifying = _qualifying_items(invoice)
+    if not qualifying:
         return None
-    
+
+    if LoyaltyTransaction.objects.filter(invoice=invoice, transaction_type='stamp').exists():
+        return LoyaltyCard.objects.filter(client=invoice.client, is_active=True).first()
+
+    sizes = {size for _, size in qualifying}
+    smallest_size = min(sizes, key=SIZE_ORDER.index)
+
     # Get or create loyalty card for the client (one card per client)
-    loyalty_card, created = LoyaltyCard.objects.get_or_create(
+    loyalty_card, _ = LoyaltyCard.objects.get_or_create(
         client=invoice.client,
         is_active=True,
         defaults={'stamps': 0, 'cylinder_size': smallest_size}
     )
-    
-    # Update cylinder_size to smallest if this invoice has a smaller size
-    if loyalty_card.cylinder_size:
-        current_size_index = size_order.index(loyalty_card.cylinder_size)
-        new_size_index = size_order.index(smallest_size)
-        if new_size_index < current_size_index:
-            loyalty_card.cylinder_size = smallest_size
-            loyalty_card.save()
-    else:
+    if not loyalty_card.cylinder_size or SIZE_ORDER.index(smallest_size) < SIZE_ORDER.index(loyalty_card.cylinder_size):
         loyalty_card.cylinder_size = smallest_size
-        loyalty_card.save()
-    
-    # Check if this invoice already has a loyalty transaction
-    existing_transaction = LoyaltyTransaction.objects.filter(
-        invoice=invoice,
-        transaction_type='stamp'
-    ).first()
-    
-    if existing_transaction:
-        return loyalty_card  # Already processed
-    
-    # Add stamps for all cylinders (regardless of size)
+
+    total_bottles = sum(int(item.quantity) for item, _ in qualifying)
     stamps_before = loyalty_card.stamps
-    for _ in range(total_cylinders):
-        loyalty_card.add_stamp()
-    stamps_after = loyalty_card.stamps
-    
-    # Build notes describing what was purchased
-    cylinder_details = []
-    for size in size_order:
-        if cylinder_counts[size] > 0:
-            cylinder_details.append(f"{cylinder_counts[size]} x {size}")
-    
-    notes = f'{total_cylinders} stamp(s) added for invoice {invoice.invoice_number} ({", ".join(cylinder_details)}). Reward will be for {loyalty_card.cylinder_size} cylinder.'
-    
-    # Create transaction record
+    count, rewards = stamps_before, 0
+    for _ in range(total_bottles):
+        if count >= STAMPS_REQUIRED:
+            rewards += 1
+            count = 0
+        else:
+            count += 1
+    loyalty_card.stamps = count
+    loyalty_card.save()
+
+    cylinder_details = {}
+    for item, size in qualifying:
+        cylinder_details[size] = cylinder_details.get(size, 0) + int(item.quantity)
+    details = ', '.join(f'{qty} x {size}' for size, qty in sorted(cylinder_details.items(), key=lambda kv: SIZE_ORDER.index(kv[0])))
+    stamped = total_bottles - rewards
+    notes = f'{stamped} stamp(s) added for invoice {invoice.invoice_number} ({details}).'
+    if rewards:
+        notes += f' {rewards} bottle(s) rewarded; card reset.'
+
     LoyaltyTransaction.objects.create(
         loyalty_card=loyalty_card,
         invoice=invoice,
         transaction_type='stamp',
         stamps_before=stamps_before,
-        stamps_after=stamps_after,
+        stamps_after=count,
         notes=notes,
         created_by=invoice.created_by
     )
-    
+
+    loyalty_card.rewards_applied = rewards
+    if rewards:
+        percent = reward_percent or CompanySettings.load().loyalty_reward_percent
+        _apply_rewards(invoice, loyalty_card, qualifying, rewards, percent)
     return loyalty_card
+
+
+def _apply_rewards(invoice, loyalty_card, qualifying, rewards, percent):
+    """Discount the `rewards` cheapest bottles on the invoice."""
+    from .models import InvoiceItem
+    from .models_loyalty import STAMPS_REQUIRED
+
+    reward_product = get_loyalty_reward_product()
+    remaining = rewards
+    for item, size in sorted(qualifying, key=lambda pair: pair[0].unit_price):
+        if not remaining:
+            break
+        qty = min(remaining, int(item.quantity))
+        remaining -= qty
+        discount = (item.unit_price * Decimal(percent) / Decimal('100')).quantize(Decimal('0.01'))
+        reward_line = InvoiceItem.objects.create(
+            invoice=invoice,
+            product=reward_product,
+            description=f'Loyalty reward: {percent}% off {item.product.name} (10th purchase)',
+            quantity=qty,
+            unit_price=-discount,
+            tax_rate=item.tax_rate,
+        )
+        for _ in range(qty):
+            LoyaltyTransaction.objects.create(
+                loyalty_card=loyalty_card,
+                invoice=invoice,
+                transaction_type='reward_claimed',
+                stamps_before=STAMPS_REQUIRED,
+                stamps_after=0,
+                reward_percent=percent,
+                reward_amount=discount,
+                reward_item=reward_line,
+                notes=f'{percent}% off 1 x {item.product.name} (R{discount}) on invoice {invoice.invoice_number}',
+                created_by=invoice.created_by,
+            )
+    invoice.calculate_totals()
 
 
 def generate_loyalty_card_pdf(loyalty_card):
@@ -250,12 +295,9 @@ def generate_loyalty_card_pdf(loyalty_card):
     elements.append(Spacer(1, 10*mm))
     
     # Reward info
-    reward_type = loyalty_card.get_reward_type()
+    reward_percent = loyalty_card.reward_percent
     if stamps_filled >= 9:
-        if reward_type == 'free':
-            reward_text = f"🎉 Congratulations! You've earned a FREE {loyalty_card.cylinder_size} cylinder!"
-        else:
-            reward_text = f"🎉 Congratulations! You've earned 50% OFF your next {loyalty_card.cylinder_size} cylinder!"
+        reward_text = f"🎉 Congratulations! You've earned {reward_description(reward_percent)} on your next purchase!"
         reward_color = '#00CC00'
     else:
         remaining = 9 - stamps_filled
@@ -273,7 +315,7 @@ def generate_loyalty_card_pdf(loyalty_card):
     elements.append(Paragraph(reward_text, reward_style))
     elements.append(Spacer(1, 10*mm))
     
-    # Disclaimer about 19kg and 48kg bottles
+    # Reward terms
     disclaimer_style = ParagraphStyle(
         'Disclaimer',
         parent=styles['Normal'],
@@ -282,7 +324,7 @@ def generate_loyalty_card_pdf(loyalty_card):
         textColor=colors.HexColor('#666666'),
         leading=12,
     )
-    disclaimer_text = "* 19kg and 48kg bottles are eligible for a 50% discount on the 10th purchase instead of a free gas exchange."
+    disclaimer_text = f"* Every gas exchange earns a stamp. Your 10th gas exchange gets {reward_percent}% off one bottle (the lowest-priced bottle on that order)."
     elements.append(Paragraph(disclaimer_text, disclaimer_style))
     elements.append(Spacer(1, 8*mm))
     
@@ -387,119 +429,102 @@ def reprocess_loyalty_stamp(invoice, old_client=None):
         invoice: The invoice being edited
         old_client: The previous client if invoice was reassigned (None if same client)
     """
-    from .models import Invoice
-    
+    # Keep the reward percentage the invoice was originally given, even if the setting changed since
+    previous_reward = LoyaltyTransaction.objects.filter(
+        invoice=invoice, transaction_type='reward_claimed', reward_percent__isnull=False
+    ).first()
+    reward_percent = previous_reward.reward_percent if previous_reward else None
+
     # If invoice was reassigned to a different client, remove stamps from old client
     if old_client and old_client != invoice.client:
         remove_loyalty_stamp(invoice, old_client)
-    
-    # Remove existing transaction for this invoice (if any) for current client
-    existing_transaction = LoyaltyTransaction.objects.filter(
-        invoice=invoice,
-        transaction_type='stamp'
-    ).first()
-    
-    if existing_transaction:
-        # Reverse the existing stamps
-        loyalty_card = existing_transaction.loyalty_card
-        stamps_to_remove = existing_transaction.stamps_after - existing_transaction.stamps_before
-        
-        # Remove stamps
-        loyalty_card.stamps = max(0, loyalty_card.stamps - stamps_to_remove)
-        loyalty_card.save()
-        
-        # Delete the old transaction
-        existing_transaction.delete()
-        
-        # Recalculate cylinder_size based on all remaining transactions
-        _recalculate_card_cylinder_size(loyalty_card)
+
+    remove_loyalty_stamp(invoice, log_reversal=False)
     
     # Now process the invoice with updated items
-    return process_loyalty_stamp(invoice)
+    return process_loyalty_stamp(invoice, reward_percent=reward_percent)
 
 
 def _recalculate_card_cylinder_size(loyalty_card):
     """Recalculate the smallest cylinder size based on all transactions for this card
     Only considers Gas Exchange and Gas Refill products.
     """
-    size_order = ['5kg', '9kg', '14kg', '19kg', '48kg']
-    smallest_size = None
-    
-    # Get all stamp transactions for this card
+    sizes = set()
     transactions = LoyaltyTransaction.objects.filter(
         loyalty_card=loyalty_card,
         transaction_type='stamp'
-    ).exclude(invoice__isnull=True)
-    
-    # Find smallest cylinder size across all transactions
+    ).exclude(invoice__isnull=True).select_related('invoice')
     for transaction in transactions:
-        if transaction.invoice:
-            for item in transaction.invoice.items.all():
-                if item.product and item.product.name:
-                    name_lower = item.product.name.lower()
-                    
-                    # Only consider Gas Exchange and Gas Refill products
-                    if 'gas exchange' not in name_lower and 'gas refill' not in name_lower:
-                        continue
-                    
-                    for size in size_order:
-                        if size.replace('kg', '') in name_lower or size in name_lower:
-                            if smallest_size is None:
-                                smallest_size = size
-                            elif size_order.index(size) < size_order.index(smallest_size):
-                                smallest_size = size
-                            break
+        sizes.update(size for _, size in _qualifying_items(transaction.invoice))
     
     # Update card's cylinder size (set to None if no qualifying products remain)
-    loyalty_card.cylinder_size = smallest_size
+    loyalty_card.cylinder_size = min(sizes, key=SIZE_ORDER.index) if sizes else None
     loyalty_card.save()
 
 
-def remove_loyalty_stamp(invoice, client=None):
-    """Remove loyalty stamps when invoice is deleted or reassigned
+def remove_loyalty_stamp(invoice, client=None, log_reversal=True, recalculate_totals=True):
+    """Remove loyalty stamps (and any reward this invoice generated) when an invoice is
+    deleted, edited or reassigned.
     
     Args:
         invoice: The invoice being deleted or reassigned
         client: Specific client to remove stamps from (defaults to invoice.client)
+        log_reversal: Record a 'reversal' transaction for the audit trail
+        recalculate_totals: Recalculate invoice totals after removing reward lines
     """
     if client is None:
         client = invoice.client
     
-    # Find the loyalty transaction for this invoice
     transaction = LoyaltyTransaction.objects.filter(
         invoice=invoice,
         transaction_type='stamp',
         loyalty_card__client=client
-    ).first()
+    ).select_related('loyalty_card').first()
     
-    if transaction:
-        loyalty_card = transaction.loyalty_card
-        stamps_to_remove = transaction.stamps_after - transaction.stamps_before
-        
-        # Remove stamps from the loyalty card
-        loyalty_card.stamps = max(0, loyalty_card.stamps - stamps_to_remove)
-        loyalty_card.save()
-        
-        # Create a reversal transaction record (don't reference invoice to avoid cascade delete)
+    if not transaction:
+        return None
+
+    loyalty_card = transaction.loyalty_card
+    # stamps_after - stamps_before is negative when the invoice triggered a reward (card reset)
+    delta = transaction.stamps_after - transaction.stamps_before
+    loyalty_card.stamps = max(0, loyalty_card.stamps - delta)
+    loyalty_card.save()
+
+    # Undo rewards generated for this invoice (backfilled historical rewards point at a real gas
+    # line rather than a Loyalty Reward line and are left alone)
+    rewards = LoyaltyTransaction.objects.filter(
+        invoice=invoice,
+        transaction_type='reward_claimed',
+        loyalty_card=loyalty_card,
+        reward_item__product__sku=LOYALTY_REWARD_SKU,
+    )
+    reward_line_ids = set(rewards.values_list('reward_item_id', flat=True))
+    rewards_removed = rewards.count()
+    rewards.delete()
+    if reward_line_ids:
+        for line in invoice.items.filter(pk__in=reward_line_ids):
+            line.order_items.all().delete()
+            line.delete()
+        if recalculate_totals:
+            invoice.calculate_totals()
+
+    if log_reversal:
+        notes = f'Reversed {transaction.stamps_before}->{transaction.stamps_after} stamps - Invoice {invoice.invoice_number} deleted or reassigned'
+        if rewards_removed:
+            notes += f' ({rewards_removed} reward(s) cancelled)'
         LoyaltyTransaction.objects.create(
             loyalty_card=loyalty_card,
             invoice=None,  # Don't reference invoice to prevent cascade deletion
             transaction_type='reversal',
             stamps_before=transaction.stamps_after,
             stamps_after=loyalty_card.stamps,
-            notes=f'Removed {stamps_to_remove} stamp(s) - Invoice {invoice.invoice_number} deleted or reassigned',
+            notes=notes,
             created_by=transaction.created_by
         )
-        
-        # Delete the original stamp transaction
-        transaction.delete()
-        
-        # Recalculate cylinder_size based on remaining transactions
-        _recalculate_card_cylinder_size(loyalty_card)
-        
-        return loyalty_card
-    
-    return None
+
+    transaction.delete()
+    _recalculate_card_cylinder_size(loyalty_card)
+    return loyalty_card
 
 
 def send_loyalty_card_whatsapp(loyalty_card, phone_number=None):
@@ -519,13 +544,9 @@ def send_loyalty_card_whatsapp(loyalty_card, phone_number=None):
     
     # Prepare message
     stamps = loyalty_card.stamps
-    reward_type = loyalty_card.get_reward_type()
     
     if stamps >= 9:
-        if reward_type == 'free':
-            message = f"🎉 Congratulations! You've earned a FREE {loyalty_card.cylinder_size} cylinder on your next purchase!"
-        else:
-            message = f"🎉 Congratulations! You've earned 50% OFF your next {loyalty_card.cylinder_size} cylinder purchase!"
+        message = f"🎉 Congratulations! You've earned {reward_description(loyalty_card.reward_percent)} on your next purchase!"
     else:
         remaining = 9 - stamps
         message = f"Thank you for your purchase! You have {stamps}/9 stamps. Only {remaining} more purchase(s) to earn your reward! 🎁"

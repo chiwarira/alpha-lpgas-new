@@ -32,6 +32,11 @@
 - `Invoice.assigned_driver` is required on the invoice form (nullable in DB for API/WhatsApp-created invoices). `Invoice.assigned_vehicle` auto-fills from the roster for the invoice date unless explicitly chosen; `Order.assigned_vehicle` copies through `core.signals` (`create_order_from_invoice` / `sync_order_from_invoice`).
 - UI: `/accounting/vehicles/` CRUD, `/accounting/vehicles/assignments/` daily roster, service log on vehicle detail (updates `last_service_date`/`next_service_due_date` via `update_service_dates`). Nav entries gated by `UserMenuPermission.can_see_vehicles`.
 
+## Loyalty programme
+- Models: `core/models_loyalty.py` (`LoyaltyCard` one active per client, `LoyaltyTransaction` types `stamp` / `reward_claimed` / `reversal` / `card_reset`). Logic in `core/utils_loyalty.py`; only the staff invoice create/edit/delete views (`views_forms.py`) and the Invoice `pre_delete` signal call it.
+- One stamp per paid Gas Exchange/Refill bottle. After 9 stamps the next bottle is rewarded: the cheapest bottle on that invoice gets `CompanySettings.loyalty_reward_percent` (50 or 100, set on `/accounting/loyalty-cards/`) off via a negative "Loyalty Reward" line (product sku `LOYALTY-REWARD`, inactive). Card resets; extra bottles carry over. One `reward_claimed` txn per rewarded bottle (`reward_percent`, `reward_amount`, `reward_item`) drives the 100%/50% counts.
+- Reward history: `/accounting/loyalty-cards/rewards/`. Historical free refills (R0 gas lines) are recorded with `python manage.py backfill_loyalty_rewards [--dry-run]` (idempotent).
+
 ## Driver portal
 - Server-rendered mobile UI at `/driver/` (`core/urls/driver_portal.py`, `views_driver_portal.py`, `templates/core/driver_portal/`). Login at `/driver/login/` requires a `Driver` profile (`driver_required` decorator).
 - Drivers see orders in `pending`/`confirmed`/`preparing`/`out_for_delivery`/`failed` and can advance them: `out_for_delivery` → `delivered` or `failed` (requires `delivery_failure_reason`); `failed` can be re-attempted (`driver_update_status`). `get_active_deliveries()` includes `pending`/`failed` so assigned orders appear without a manual confirm step.

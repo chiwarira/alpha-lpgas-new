@@ -51,7 +51,8 @@ from ..views_analytics import (
 from ..pdf_generator import download_invoice_pdf, download_quote_pdf
 from ..views_loyalty import (
     loyalty_card_list, loyalty_card_detail,
-    send_loyalty_card_whatsapp_view, download_loyalty_card
+    send_loyalty_card_whatsapp_view, download_loyalty_card,
+    loyalty_settings_update, loyalty_reward_history
 )
 from ..views_client_leadtime import client_lead_time_analysis
 from ..views_stock import (
@@ -111,6 +112,8 @@ urlpatterns = [
     
     # Loyalty Cards
     path('loyalty-cards/', loyalty_card_list, name='loyalty_card_list'),
+    path('loyalty-cards/settings/', loyalty_settings_update, name='loyalty_settings_update'),
+    path('loyalty-cards/rewards/', loyalty_reward_history, name='loyalty_reward_history'),
     path('loyalty-cards/<int:pk>/', loyalty_card_detail, name='loyalty_card_detail'),
     path('loyalty-cards/<int:pk>/send/', send_loyalty_card_whatsapp_view, name='send_loyalty_card'),
     path('loyalty-cards/<int:pk>/download/', download_loyalty_card, name='download_loyalty_card'),
