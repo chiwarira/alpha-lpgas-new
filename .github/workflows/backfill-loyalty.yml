@@ -1,10 +1,16 @@
 name: Backfill loyalty rewards
 
-# Manual only: Actions -> "Backfill loyalty rewards" -> Run workflow.
-# Records historical free (R0) gas exchange lines as 100% loyalty rewards. Idempotent.
+# Manual only: Actions -> "Backfill loyalty rewards" -> Run workflow. Both commands are idempotent.
+#   normalize_loyalty_cards  - cards over 9 stamps: record past rewards as 100%, keep the remainder
+#   backfill_loyalty_rewards - record historical free (R0) gas exchange lines as 100% rewards
 on:
   workflow_dispatch:
     inputs:
+      command:
+        description: 'Loyalty command to run'
+        type: choice
+        options: [normalize_loyalty_cards, backfill_loyalty_rewards]
+        default: normalize_loyalty_cards
       target:
         description: 'Database to run against'
         type: choice
@@ -42,6 +48,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Backfill loyalty rewards
+      - name: Run ${{ inputs.command }}
         working-directory: backend
-        run: python manage.py backfill_loyalty_rewards ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: python manage.py ${{ inputs.command }} ${{ inputs.dry_run && '--dry-run' || '' }}

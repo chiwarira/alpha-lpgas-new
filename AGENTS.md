@@ -35,7 +35,7 @@
 ## Loyalty programme
 - Models: `core/models_loyalty.py` (`LoyaltyCard` one active per client, `LoyaltyTransaction` types `stamp` / `reward_claimed` / `reversal` / `card_reset`). Logic in `core/utils_loyalty.py`; only the staff invoice create/edit/delete views (`views_forms.py`) and the Invoice `pre_delete` signal call it.
 - One stamp per paid Gas Exchange/Refill bottle. After 9 stamps the next bottle is rewarded: the cheapest bottle on that invoice gets `CompanySettings.loyalty_reward_percent` (50 or 100, set on `/accounting/loyalty-cards/`) off via a negative "Loyalty Reward" line (product sku `LOYALTY-REWARD`, inactive). Card resets; extra bottles carry over. One `reward_claimed` txn per rewarded bottle (`reward_percent`, `reward_amount`, `reward_item`) drives the 100%/50% counts.
-- Reward history: `/accounting/loyalty-cards/rewards/`. Historical free refills (R0 gas lines) are recorded with `python manage.py backfill_loyalty_rewards [--dry-run]` (idempotent).
+- Reward history: `/accounting/loyalty-cards/rewards/`. Historical free refills (R0 gas lines) are recorded with `python manage.py backfill_loyalty_rewards [--dry-run]` (idempotent). Cards that went past 9 under the old system are normalised with `normalize_loyalty_cards [--dry-run]` (past rewards recorded as 100%, card keeps the remainder). Vercel can't run commands and its DB vars are Sensitive (not pullable) - run both via the manual GitHub Actions workflow `backfill-loyalty.yml`.
 
 ## Driver portal
 - Server-rendered mobile UI at `/driver/` (`core/urls/driver_portal.py`, `views_driver_portal.py`, `templates/core/driver_portal/`). Login at `/driver/login/` requires a `Driver` profile (`driver_required` decorator).

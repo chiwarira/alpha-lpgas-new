@@ -220,6 +220,29 @@ class BackfillTests(LoyaltyTestBase):
         self.assertEqual((reward.reward_percent, reward.reward_amount), (100, Decimal('330.00')))
 
 
+class NormalizeCardsTests(LoyaltyTestBase):
+    def test_split_stamps(self):
+        from core.management.commands.normalize_loyalty_cards import split_stamps
+        self.assertEqual(split_stamps(10), (1, 1))
+        self.assertEqual(split_stamps(18), (1, 9))
+        self.assertEqual(split_stamps(19), (2, 1))
+        self.assertEqual(split_stamps(40), (4, 4))
+
+    def test_normalize_records_history_and_is_rerunnable(self):
+        self.set_stamps(40)
+        other = Client.objects.create(name='Due Client')
+        LoyaltyCard.objects.create(client=other, stamps=9, cylinder_size='9kg')
+        call_command('normalize_loyalty_cards', '--dry-run', stdout=StringIO())
+        self.assertEqual(LoyaltyCard.objects.get(client=self.client_obj).stamps, 40)
+        call_command('normalize_loyalty_cards', stdout=StringIO())
+        call_command('normalize_loyalty_cards', stdout=StringIO())
+        card = LoyaltyCard.objects.get(client=self.client_obj)
+        self.assertEqual((card.stamps, card.full_rewards_count), (4, 4))
+        self.assertEqual(card.reward_transactions().first().reward_amount, Decimal('330.00'))
+        self.assertEqual(LoyaltyCard.objects.get(client=other).stamps, 9)
+        self.assertFalse(LoyaltyTransaction.objects.filter(loyalty_card__client=other).exists())
+
+
 class LoyaltyViewTests(LoyaltyTestBase):
     def setUp(self):
         super().setUp()
